@@ -1,4 +1,8 @@
+# <img src="/assets/icon.png"> Translator
+
 This is a [Plasmo extension](https://docs.plasmo.com/) project bootstrapped with [`plasmo init`](https://www.npmjs.com/package/plasmo).
+
+help you translate web pages in your language
 
 ## Getting Started
 
