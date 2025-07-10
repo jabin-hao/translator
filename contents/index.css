@@ -1,39 +1,22 @@
-.plasmo-injected-message {
-    color: red;
-    border: 1px solid red;
-    padding: 10px;
+/* 全局样式重置 */
+* {
+  box-sizing: border-box;
 }
 
-/* 翻译图标样式 */
-.translator-icon {
-  position: fixed !important;
-  width: 32px !important;
-  height: 32px !important;
+/* 确保Ant Design组件在内容脚本中正确显示 */
+.ant-card {
   background: white !important;
-  border: 2px solid #2386e1 !important;
-  border-radius: 50% !important;
-  cursor: pointer !important;
-  z-index: 999999 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
-  pointer-events: auto !important;
-  user-select: none !important;
+  border: 1px solid #d9d9d9 !important;
 }
 
-/* 翻译结果样式 */
-.translator-result {
-  position: fixed;
-  max-width: 300px;
-  padding: 12px 16px;
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  z-index: 999999;
-  font-size: 14px;
-  line-height: 1.4;
-  color: #333;
-  pointer-events: auto;
+.ant-select {
+  background: white !important;
+}
+
+.ant-input {
+  background: white !important;
+}
+
+.ant-btn {
+  background: white !important;
 }

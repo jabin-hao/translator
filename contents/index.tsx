@@ -1,4 +1,14 @@
+let shadowRoot: ShadowRoot | null = null
+
+export const getRootContainer = async () => {
+  const root = document.createElement("div")
+  document.body.appendChild(root)
+  shadowRoot = root.attachShadow({ mode: "open" })
+  return shadowRoot
+}
+
 import React, { useEffect, useRef, useState } from 'react';
+import { StyleProvider } from '@ant-design/cssinjs';
 import TranslatorIcon from './components/TranslatorIcon';
 import TranslatorResult from './components/TranslatorResult';
 import InputTranslator from './components/InputTranslator';
@@ -104,7 +114,7 @@ const ContentScript = () => {
   }, []);
 
   return (
-    <>
+    <StyleProvider hashPriority="high" container={shadowRoot}>
       {icon && (
         <TranslatorIcon
           x={icon.x}
@@ -125,7 +135,7 @@ const ContentScript = () => {
           onClose={() => setShowInputTranslator(false)}
         />
       )}
-    </>
+    </StyleProvider>
   );
 };
 
