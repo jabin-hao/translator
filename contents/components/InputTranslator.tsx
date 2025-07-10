@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useEffect } from 'react';
 import { 
   Card, 
   Input, 
@@ -35,6 +36,19 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose }) => {
   const [sourceLang, setSourceLang] = useState('auto');
   const [targetLang, setTargetLang] = useState('zh');
   const [isTranslating, setIsTranslating] = useState(false);
+
+  // 按下Esc关闭悬浮窗
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onClose]);
 
   const languages = [
     { code: 'auto', name: '自动检测' },
@@ -93,12 +107,14 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose }) => {
         width: 700,
         zIndex: 2147483647,
         boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
-        borderRadius: 12
+        borderRadius: 12,
+        // 让 header 高度自适应 select
+        // 这里不直接设置高度，样式在 style 标签里覆盖
       }}
       title={
-        <Space>
+        <Space className="custom-card-header" align="center">
           <MyTranslationIcon />
-          <Title level={4} style={{ margin: 0 }}>翻译工具</Title>
+          <Title level={4} style={{ margin: 0, lineHeight: '36px', height: 36 }}>翻译工具</Title>
         </Space>
       }
       extra={
@@ -110,9 +126,9 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose }) => {
         />
       }
     >
-      <Space direction="vertical" style={{ width: '100%' }} size="middle">
+      <Space direction="vertical" style={{ width: '100%' }} size="small">
         {/* 语言选择 */}
-        <Space>
+        <Space size={4} style={{ marginBottom: 0, marginTop: 0 }}>
           <Select
             value={sourceLang}
             onChange={setSourceLang}
@@ -120,6 +136,7 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose }) => {
             placeholder="源语言"
             getPopupContainer={triggerNode => triggerNode.parentNode}
             size="small"
+            className="custom-select"
           >
             {languages.map(lang => (
               <Option key={lang.code} value={lang.code}>{lang.name}</Option>
@@ -141,6 +158,7 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose }) => {
             placeholder="目标语言"
             getPopupContainer={triggerNode => triggerNode.parentNode}
             size="small"
+            className="custom-select"
           >
             {languages.filter(lang => lang.code !== 'auto').map(lang => (
               <Option key={lang.code} value={lang.code}>{lang.name}</Option>
@@ -148,7 +166,7 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose }) => {
           </Select>
         </Space>
 
-        <Divider />
+        <Divider style={{ margin: '8px 0' }} />
 
         {/* 翻译区域 */}
         <div style={{ display: "flex", gap: 16 }}>
@@ -211,6 +229,20 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose }) => {
           </Space>
         </div>
       </Space>
+      <style>{`
+        .custom-select .ant-select-selector {
+          min-height: 28px !important;
+          height: 28px !important;
+          line-height: 26px !important;
+          padding: 0 8px !important;
+        }
+        .custom-select .ant-select-selection-item {
+          line-height: 26px !important;
+        }
+        .custom-select .ant-select-arrow {
+          margin-top: -4px;
+        }
+      `}</style>
     </Card>
   );
 };
