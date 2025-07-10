@@ -15,7 +15,7 @@ const TranslatorIcon: React.FC<{
       border: "2px solid #2386e1",
       borderRadius: "50%",
       cursor: "pointer",
-      zIndex: 999999,
+      zIndex: 2147483647,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -52,7 +52,7 @@ const TranslatorResult: React.FC<{
       border: "1px solid #ddd",
       borderRadius: 8,
       boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-      zIndex: 999999,
+      zIndex: 2147483647,
       fontSize: 14,
       lineHeight: 1.4,
       color: "#333",
@@ -77,6 +77,23 @@ const ContentScript = () => {
     text: string
   } | null>(null);
   const resultPosRef = useRef<{ x: number; y: number; text: string } | null>(null);
+  const lastCtrlPressRef = useRef<number>(0);
+  const doubleClickThreshold = 300;
+  const ctrlPressedRef = useRef<boolean>(false);
+
+  const showTranslationIcon = (text: string, rect: DOMRect) => {
+    const x = rect.left;
+    const y = rect.bottom;
+    const iconData = { x: rect.right, y: rect.top, text };
+    setIcon(iconData);
+    resultPosRef.current = { x, y, text };
+  };
+
+  const handleTranslation = () => {
+    const { x, y, text } = resultPosRef.current || { x: icon?.x || 0, y: (icon?.y || 0) + 40, text: icon?.text || "" };
+    setResult({ x, y, text });
+    setIcon(null);
+  };
 
   useEffect(() => {
     const handleMouseUp = (e: MouseEvent) => {
@@ -85,18 +102,51 @@ const ContentScript = () => {
       setResult(null);
       if (text && text.length > 0 && selection && selection.rangeCount > 0) {
         const rect = selection.getRangeAt(0).getBoundingClientRect();
-        const x = rect.left;
-        const y = rect.bottom;
-        setIcon({ x: rect.right, y: rect.top, text });
-        resultPosRef.current = { x, y, text };
+        showTranslationIcon(text, rect);
       } else {
         setIcon(null);
         resultPosRef.current = null;
       }
     };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Control' || e.ctrlKey) {
+        if (!ctrlPressedRef.current) {
+          ctrlPressedRef.current = true;
+          const now = Date.now();
+          
+          if (now - lastCtrlPressRef.current < doubleClickThreshold) {
+            const selection = window.getSelection();
+            const text = selection?.toString().trim();
+            
+            if (text && text.length > 0 && selection && selection.rangeCount > 0) {
+              const rect = selection.getRangeAt(0).getBoundingClientRect();
+              
+              const x = rect.left;
+              const y = rect.bottom;
+              setResult({ x, y, text });
+              setIcon(null);
+            }
+          }
+          lastCtrlPressRef.current = now;
+        }
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Control' || !e.ctrlKey) {
+        ctrlPressedRef.current = false;
+      }
+    };
+
     document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
+    
     return () => {
       document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keyup', handleKeyUp);
     };
   }, []);
 
@@ -107,11 +157,7 @@ const ContentScript = () => {
           x={icon.x}
           y={icon.y}
           text={icon.text}
-          onClick={() => {
-            const { x, y, text } = resultPosRef.current || { x: icon.x, y: icon.y + 40, text: icon.text };
-            setResult({ x, y, text });
-            setIcon(null);
-          }}
+          onClick={handleTranslation}
         />
       )}
       {result && (
