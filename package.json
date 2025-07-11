@@ -12,6 +12,7 @@
   "dependencies": {
     "@ant-design/cssinjs": "^1.23.0",
     "@ant-design/icons": "^6.0.0",
+    "@iconify/react": "^6.0.0",
     "@plasmohq/messaging": "^0.7.2",
     "@plasmohq/storage": "^1.15.0",
     "antd": "^5.26.4",

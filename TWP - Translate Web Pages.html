@@ -1,0 +1,2340 @@
+<!DOCTYPE html>
+<!-- saved from url=(0082)chrome-extension://lpfanhbckoffhgkncoohkflmgooghpoh/options/options.html#languages -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>TWP - Translate Web Pages</title>
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="chrome-extension://lpfanhbckoffhgkncoohkflmgooghpoh/w3css/4/w3.css">
+  <link rel="stylesheet" href="chrome-extension://lpfanhbckoffhgkncoohkflmgooghpoh/options/options.css">
+  <script src="chrome-extension://lpfanhbckoffhgkncoohkflmgooghpoh/options/darkmode.js"></script>
+<style>.firefox-only {display: none !important}</style><style id="darkModeElement" rel="stylesheet">
+            * {
+                scrollbar-color: #202324 #454a4d;
+            }
+  
+            #donation * {
+                color: black !important;
+                background-color: #87CEEB !important;
+            }
+  
+            #donation select, #donation option {
+                background-color: rgb(231, 230, 228) !important;
+            }
+
+            html *, nav, #header {
+                color: rgb(231, 230, 228) !important;
+                background-color: #181a1b !important;
+            }
+            </style></head>
+
+<body class="w3-content" style="max-width: 1200px">
+  <nav class="w3-sidebar w3-bar-block w3-collapse w3-top" style="z-index: 3; width: 300px" id="sideBar">
+    <div class="w3-container w3-display-container w3-padding-16">
+      <h3 class="w3-wide"><b>TWP - Translate Web Pages</b></h3>
+    </div>
+    <div class="w3-padding-64 w3-large w3-text-grey" style="font-weight: bold">
+      <a href="chrome-extension://lpfanhbckoffhgkncoohkflmgooghpoh/options/options.html#languages" class="w3-bar-item w3-button w3-light-grey" data-i18n="msgLanguages">语言</a>
+      <a href="chrome-extension://lpfanhbckoffhgkncoohkflmgooghpoh/options/options.html#sites" class="w3-bar-item w3-button" data-i18n="msgSites">网站</a>
+      <a href="chrome-extension://lpfanhbckoffhgkncoohkflmgooghpoh/options/options.html#translations" class="w3-bar-item w3-button" data-i18n="msgTranslations">翻译</a>
+      <a href="chrome-extension://lpfanhbckoffhgkncoohkflmgooghpoh/options/options.html#style" class="w3-bar-item w3-button" data-i18n="msgStyle">样式</a>
+      <a href="chrome-extension://lpfanhbckoffhgkncoohkflmgooghpoh/options/options.html#hotkeys" class="w3-bar-item w3-button desktopOnly" data-i18n="msgHotkeys">热键</a>
+      <a href="chrome-extension://lpfanhbckoffhgkncoohkflmgooghpoh/options/options.html#privacy" class="w3-bar-item w3-button" data-i18n="msgPrivacy">隐私</a>
+      <a href="chrome-extension://lpfanhbckoffhgkncoohkflmgooghpoh/options/options.html#storage" class="w3-bar-item w3-button" data-i18n="msgStorage">存储</a>
+      <a href="chrome-extension://lpfanhbckoffhgkncoohkflmgooghpoh/options/options.html#others" class="w3-bar-item w3-button" data-i18n="lblOthers">其他</a>
+      <a href="chrome-extension://lpfanhbckoffhgkncoohkflmgooghpoh/options/options.html#experimental" class="w3-bar-item w3-button" data-i18n="lblExperimental">实验性</a>
+    </div>
+    <b><a href="chrome-extension://lpfanhbckoffhgkncoohkflmgooghpoh/options/options.html#donation" class="w3-bar-item w3-button w3-padding"><span data-i18n="lblMakeDonation">捐助支持</span> ❤</a></b>
+    <a href="chrome-extension://lpfanhbckoffhgkncoohkflmgooghpoh/options/options.html#release_notes" class="w3-bar-item w3-button w3-padding" data-i18n="lblReleaseNotes">发行说明</a>
+    <a href="https://github.com/FilipePS/Traduzir-paginas-web/issues" target="blank" class="w3-bar-item w3-button w3-padding" data-i18n="lblReport">反馈问题</a>
+    <a href="https://crowdin.com/project/translate-web-pages" target="blank" class="w3-bar-item w3-button w3-padding" data-i18n="lblTranslateInterface">贡献翻译</a>
+  </nav>
+
+  <header class="w3-bar w3-top w3-black w3-hide-large w3-xlarge" id="header">
+    <div class="w3-bar-item w3-padding-20 w3-wide">TWP</div>
+    <a class="w3-bar-item w3-button w3-padding-24 w3-right" id="btnOpenMenu">
+      <div class="menu-container" id="menuContainer">
+        <div class="bar1"></div>
+        <div class="bar2"></div>
+        <div class="bar3"></div>
+        <div class="bar4"></div>
+        <div class="bar5"></div>
+      </div>
+    </a>
+  </header>
+
+  <div class="w3-main" style="margin-left: 300px">
+    <div class="w3-hide-large" style="margin-top: 83px"></div>
+
+    <header class="w3-container w3-xlarge">
+      <p id="itemSelectedName" data-i18n="lblSettings" style="float: left">设置</p>
+      <p style="float: right; display: block;" id="btnPatreon">
+        <a href="https://www.patreon.com/filipeps" target="blank" class="patreonButton"><img src="chrome-extension://lpfanhbckoffhgkncoohkflmgooghpoh/icons/patreon.png" style="height: 40px"></a>
+      </p>
+    </header>
+
+    <div>
+      <div id="languages" class="w3-container" style="display: block;">
+        <p><b data-i18n="msgExtUILanguage">扩展用户界面语言</b></p>
+        <select id="selectUiLanguage" class="w3-select w3-half w3-border w3-round" style="margin-left: 20px;">
+          <option value="default" selected="" data-i18n="msgDefaultLanguage">默认语言 - Default language</option>
+          <option value="af">Afrikaans - Afrikaans</option>
+          <option value="ca">català - Catalan</option>
+          <option value="cs">čeština - Czech</option>
+          <option value="da">Dansk - Danish</option>
+          <option value="de">Deutsch - German</option>
+          <option value="en">English - English</option>
+          <option value="es">español - Spanish</option>
+          <option value="fr">français - French</option>
+          <option value="hr">hrvatski - Croatian</option>
+          <option value="is">íslenska - Icelandic</option>
+          <option value="it">Italiano - Italian</option>
+          <option value="lv">latviešu - Latvian</option>
+          <option value="hu">magyar - Hungarian</option>
+          <option value="nl">Nederlands - Dutch</option>
+          <option value="no">norsk - Norwegian</option>
+          <option value="pl">polski - Polish</option>
+          <option value="pt-BR">Português (Brasil) - Portuguese (Brazil)</option>
+          <option value="pt-PT">Português (Portugal) - Portuguese (Portugal)</option>
+          <option value="kaa">Qaraqalpaqsha - Karakalpak</option>
+          <option value="ro">Română - Romanian</option>
+          <option value="sl">slovenščina - Slovenian</option>
+          <option value="fi">suomi - Finnish</option>
+          <option value="sv">svenska - Swedish</option>
+          <option value="tr">Türkçe - Turkish</option>
+          <option value="ug">Uyghur - Uyghur</option>
+          <option value="vi">Việt - Vietnamese</option>
+          <option value="el">Ελληνικά - Greek</option>
+          <option value="bg">български - Bulgarian</option>
+          <option value="ru">русский - Russian</option>
+          <option value="sr">српски - Serbian</option>
+          <option value="uk">українська - Ukrainian</option>
+          <option value="he">עברית - Hebrew</option>
+          <option value="ar">العربية - Arabic</option>
+          <option value="fa">فارسی - Persian</option>
+          <option value="hi">हिन्दी - Hindi</option>
+          <option value="bn">বাংলা - Bengali</option>
+          <option value="ta">தமிழ் - Tamil</option>
+          <option value="th">ไทย - Thai</option>
+          <option value="sat">ᱥᱟᱱᱛᱟᱲᱤ - Santali</option>
+          <option value="ko">한국어 - Korean</option>
+          <option value="zh-TW">中文 (繁體) - Chinese (Traditional)</option>
+          <option value="zh-CN">中文（简体） - Chinese (Simplified)</option>
+          <option value="ja">日本語 - Japanese</option>
+        </select>
+        <button class="w3-button w3-blue w3-round w3-margin-left" data-i18n="btnApply" id="btnApplyUiLanguage">应用</button>
+        <br>
+        <br>
+
+        <p><b data-i18n="msgSelectTargetLanguage">将网站翻译成目标语言</b></p>
+        <select id="selectTargetLanguage" class="w3-select w3-half w3-border w3-round" style="margin-left: 20px;"><option value="ab">阿布哈兹语</option><option value="sq">阿尔巴尼亚语</option><option value="aa">阿法尔语</option><option value="ar">阿拉伯语</option><option value="alz">阿卢尔语</option><option value="am">阿姆哈拉语</option><option value="ach">阿乔利语</option><option value="as">阿萨姆语</option><option value="az">阿塞拜疆语</option><option value="awa">阿瓦德语</option><option value="av">阿瓦尔语</option><option value="ee">埃维语</option><option value="ay">艾马拉语</option><option value="ga">爱尔兰语</option><option value="et">爱沙尼亚语</option><option value="oc">奥克语</option><option value="or">奥利亚语</option><option value="om">奥罗莫语</option><option value="os">奥塞梯语</option><option value="tpi">巴布亚皮钦语</option><option value="bew">巴达维语</option><option value="ban">巴厘语</option><option value="ba">巴什基尔语</option><option value="eu">巴斯克语</option><option value="btx">巴塔克卡罗语</option><option value="bbc">巴塔克托巴语</option><option value="bts">巴塔克西马隆贡语</option><option value="bci">巴乌雷语</option><option value="be">白俄罗斯语</option><option value="bm">班巴拉语</option><option value="pag">邦阿西楠语</option><option value="pam">邦板牙语</option><option value="bg">保加利亚语</option><option value="nso">北索托语</option><option value="bem">奔巴语</option><option value="bik">比科尔语</option><option value="bal">俾路支语</option><option value="is">冰岛语</option><option value="pl">波兰语</option><option value="bs">波斯尼亚语</option><option value="fa">波斯语</option><option value="bho">博杰普尔语</option><option value="bua">布里亚特语</option><option value="br">布列塔尼语</option><option value="bo">藏语</option><option value="chm">草原马里语</option><option value="ch">查莫罗语</option><option value="ce">车臣语</option><option value="chk">楚克语</option><option value="cv">楚瓦什语</option><option value="tn">茨瓦纳语</option><option value="ts">聪加语</option><option value="prs">达里语</option><option value="tt">鞑靼语</option><option value="da">丹麦语</option><option value="shn">掸语</option><option value="tet">德顿语</option><option value="de">德语</option><option value="dv">迪维希语</option><option value="dyu">迪尤拉语</option><option value="tiv">蒂夫语</option><option value="din">丁卡语</option><option value="doi">多格拉语</option><option value="ru">俄语</option><option value="ndc-ZW">恩道语</option><option value="nr">恩德贝莱语（南部）</option><option value="dov">恩敦贝语</option><option value="bm-Nkoo">恩科字母（西非书面文字）</option><option value="fo">法罗语</option><option value="fr">法语</option><option value="fr-CA">法语 (加拿大)</option><option value="sa">梵语</option><option value="tl">菲律宾语</option><option value="fj">斐济语</option><option value="fi">芬兰语</option><option value="fon">丰语</option><option value="fy">弗里西语</option><option value="fur">弗留利语</option><option value="ff">富拉尼语</option><option value="kg">刚果语</option><option value="km">高棉语</option><option value="kl">格陵兰语</option><option value="ka">格鲁吉亚语</option><option value="gom">贡根语</option><option value="gu">古吉拉特语</option><option value="gn">瓜拉尼语</option><option value="cnh">哈卡钦语</option><option value="kk">哈萨克语</option><option value="ht">海地克里奥尔语</option><option value="ko">韩语</option><option value="ha">豪萨语</option><option value="nl">荷兰语</option><option value="hrx">洪斯吕克语</option><option value="ky">吉尔吉斯语</option><option value="ktu">吉土巴语</option><option value="gl">加利西亚语</option><option value="ca">加泰罗尼亚语</option><option value="gaa">加语</option><option value="cs">捷克语</option><option value="kac">景颇语</option><option value="kn">卡纳达语</option><option value="kr">卡努里语</option><option value="kha">卡西语</option><option value="kek">凯克其语</option><option value="kv">科米语</option><option value="xh">科萨语</option><option value="co">科西嘉语</option><option value="otq">克雷塔罗奥托米语</option><option value="crh-Latn">克里米亚鞑靼语（拉丁文）</option><option value="crh">克里米亚鞑靼语（西里尔文）</option><option value="tlh-Latn">克林贡语 (拉丁文)</option><option value="tlh-Piqd">克林贡语 (pIqaD)</option><option value="hr">克罗地亚语</option><option value="qu">克丘亚语</option><option value="ku">库尔德语（库尔曼吉语）</option><option value="ckb">库尔德语（索拉尼）</option><option value="trp">廓克博若克语</option><option value="la">拉丁语</option><option value="ltg">拉特加莱语</option><option value="lv">拉脱维亚语</option><option value="lo">老挝语</option><option value="lt">立陶宛语</option><option value="lij">利古里亚语</option><option value="li">林堡语</option><option value="ln">林加拉语</option><option value="rn">隆迪语</option><option value="luo">卢奥语</option><option value="lg">卢干达语</option><option value="lb">卢森堡语</option><option value="rw">卢旺达语</option><option value="lmo">伦巴第语</option><option value="ro">罗马尼亚语</option><option value="rom">罗姆语</option><option value="mad">马都拉语</option><option value="gv">马恩岛语</option><option value="mg">马尔加什语</option><option value="mwr">马尔瓦迪语</option><option value="mt">马耳他语</option><option value="mr">马拉地语</option><option value="ml">马拉雅拉姆语</option><option value="ms">马来语</option><option value="ms-Arab">马来语（爪夷文）</option><option value="mk">马其顿语</option><option value="mh">马绍尔语</option><option value="mam">玛姆语</option><option value="mai">迈蒂利语</option><option value="mfe">毛里裘斯克里奥耳语</option><option value="mi">毛利语</option><option value="mni-Mtei">梅泰语（曼尼普尔语）</option><option value="mn">蒙古语</option><option value="bn">孟加拉语</option><option value="min">米南语</option><option value="lus">米佐语</option><option value="my">缅甸语</option><option value="hmn">苗语</option><option value="nhe">纳瓦特尔语（东部瓦斯特卡）</option><option value="af">南非荷兰语</option><option value="st">南索托语</option><option value="ne">尼泊尔语</option><option value="new">尼泊尔语言（尼瓦尔语）</option><option value="nus">努尔语</option><option value="no">挪威语</option><option value="pap">帕皮阿门托语</option><option value="pa">旁遮普语（果鲁穆奇文）</option><option value="pa-Arab">旁遮普语（沙木基文）</option><option value="pt">葡萄牙语 (巴西)</option><option value="pt-PT">葡萄牙语 (葡萄牙)</option><option value="ps">普什图语</option><option value="ny">齐切瓦语</option><option value="cgg">奇加语</option><option value="lua">奇卢伯语</option><option value="ak">契维语</option><option value="ja">日语</option><option value="sv">瑞典语</option><option value="zap">萨巴特克语</option><option value="se">萨米语（北部）</option><option value="sm">萨摩亚语</option><option value="sr">塞尔维亚语</option><option value="sr-Latn">塞尔维亚语 (拉丁文)</option><option value="kri">塞拉利昂克里奥尔语</option><option value="crs">塞舌尔克里奥尔语</option><option value="sg">桑戈语</option><option value="sat-Latn">桑塔利语（拉丁文）</option><option value="sat">桑塔利语（欧甘文）</option><option value="si">僧伽罗语</option><option value="hsb">上索布语</option><option value="eo">世界语</option><option value="sk">斯洛伐克语</option><option value="sl">斯洛文尼亚语</option><option value="ss">斯瓦特语</option><option value="sw">斯瓦希里语</option><option value="gd">苏格兰盖尔语</option><option value="sus">苏苏语</option><option value="ceb">宿务语</option><option value="so">索马里语</option><option value="tg">塔吉克语</option><option value="ber">塔马齐格特语（提非纳文）</option><option value="ber-Latn">塔马塞特语</option><option value="ty">塔希提语</option><option value="te">泰卢固语</option><option value="ta">泰米尔语</option><option value="th">泰语</option><option value="to">汤加语</option><option value="ti">提格里尼亚语</option><option value="tcy">图鲁语</option><option value="tum">图姆布卡语</option><option value="tyv">图瓦语</option><option value="tr">土耳其语</option><option value="tk">土库曼语</option><option value="war">瓦瑞语</option><option value="mak">望加锡语</option><option value="cy">威尔士语</option><option value="vec">威尼斯语</option><option value="ug">维吾尔语</option><option value="ve">文达语</option><option value="wo">沃洛夫语</option><option value="udm">乌德穆尔特语</option><option value="ur">乌尔都语</option><option value="uk">乌克兰语</option><option value="uz">乌兹别克语</option><option value="es">西班牙语</option><option value="szl">西里西亚语</option><option value="scn">西西里语</option><option value="he">希伯来语</option><option value="el">希腊语</option><option value="hil">希利盖农语</option><option value="dsb">下索布语</option><option value="haw">夏威夷语</option><option value="sd">信德语</option><option value="hu">匈牙利语</option><option value="sn">修纳语</option><option value="su">巽他语</option><option value="jam">牙买加土语</option><option value="sah">雅库特语</option><option value="hy">亚美尼亚语</option><option value="ace">亚齐语</option><option value="iba">伊班语</option><option value="ig">伊博语</option><option value="ilo">伊洛卡诺语</option><option value="it">意大利语</option><option value="yi">意第绪语</option><option value="iu-Latn">因纽特语（拉丁文）</option><option value="iu">因纽特语（音节）</option><option value="hi">印地语</option><option value="id">印尼语</option><option value="en">英语</option><option value="yua">尤卡坦玛雅语</option><option value="yo">约鲁巴语</option><option value="yue">粤语</option><option value="vi">越南语</option><option value="jv">爪哇语</option><option value="zh-TW">中文（繁体）</option><option value="zh-CN">中文（简体）</option><option value="dz">宗卡语</option><option value="zu">祖鲁语</option><option value="brx">Bodo</option><option value="hne">Chhattisgarhi</option><option value="lzh">Chinese (Literary)</option><option value="sjn">Elvish (Sindarin)</option><option value="emj">Emoji</option><option value="mrj">Hill Mari</option><option value="ikt">Inuinnaqtun</option><option value="ks">Kashmiri</option><option value="kazlat">Kazakh (Latin)</option><option value="mhr">Mari</option><option value="mn-Mong">Mongolian (Traditional)</option><option value="nya">Nyanja</option><option value="run">Rundi</option><option value="uzbcyr">Uzbek (Cyrillic)</option></select>
+        <br>
+        <br>
+
+        <p><b data-i18n="msgSelectTargetLanguageForText">将所选文本翻译成该目标语言</b></p>
+        <select id="selectTargetLanguageForText" class="w3-select w3-half w3-border w3-round" style="margin-left: 20px;"><option value="ab">阿布哈兹语</option><option value="sq">阿尔巴尼亚语</option><option value="aa">阿法尔语</option><option value="ar">阿拉伯语</option><option value="alz">阿卢尔语</option><option value="am">阿姆哈拉语</option><option value="ach">阿乔利语</option><option value="as">阿萨姆语</option><option value="az">阿塞拜疆语</option><option value="awa">阿瓦德语</option><option value="av">阿瓦尔语</option><option value="ee">埃维语</option><option value="ay">艾马拉语</option><option value="ga">爱尔兰语</option><option value="et">爱沙尼亚语</option><option value="oc">奥克语</option><option value="or">奥利亚语</option><option value="om">奥罗莫语</option><option value="os">奥塞梯语</option><option value="tpi">巴布亚皮钦语</option><option value="bew">巴达维语</option><option value="ban">巴厘语</option><option value="ba">巴什基尔语</option><option value="eu">巴斯克语</option><option value="btx">巴塔克卡罗语</option><option value="bbc">巴塔克托巴语</option><option value="bts">巴塔克西马隆贡语</option><option value="bci">巴乌雷语</option><option value="be">白俄罗斯语</option><option value="bm">班巴拉语</option><option value="pag">邦阿西楠语</option><option value="pam">邦板牙语</option><option value="bg">保加利亚语</option><option value="nso">北索托语</option><option value="bem">奔巴语</option><option value="bik">比科尔语</option><option value="bal">俾路支语</option><option value="is">冰岛语</option><option value="pl">波兰语</option><option value="bs">波斯尼亚语</option><option value="fa">波斯语</option><option value="bho">博杰普尔语</option><option value="bua">布里亚特语</option><option value="br">布列塔尼语</option><option value="bo">藏语</option><option value="chm">草原马里语</option><option value="ch">查莫罗语</option><option value="ce">车臣语</option><option value="chk">楚克语</option><option value="cv">楚瓦什语</option><option value="tn">茨瓦纳语</option><option value="ts">聪加语</option><option value="prs">达里语</option><option value="tt">鞑靼语</option><option value="da">丹麦语</option><option value="shn">掸语</option><option value="tet">德顿语</option><option value="de">德语</option><option value="dv">迪维希语</option><option value="dyu">迪尤拉语</option><option value="tiv">蒂夫语</option><option value="din">丁卡语</option><option value="doi">多格拉语</option><option value="ru">俄语</option><option value="ndc-ZW">恩道语</option><option value="nr">恩德贝莱语（南部）</option><option value="dov">恩敦贝语</option><option value="bm-Nkoo">恩科字母（西非书面文字）</option><option value="fo">法罗语</option><option value="fr">法语</option><option value="fr-CA">法语 (加拿大)</option><option value="sa">梵语</option><option value="tl">菲律宾语</option><option value="fj">斐济语</option><option value="fi">芬兰语</option><option value="fon">丰语</option><option value="fy">弗里西语</option><option value="fur">弗留利语</option><option value="ff">富拉尼语</option><option value="kg">刚果语</option><option value="km">高棉语</option><option value="kl">格陵兰语</option><option value="ka">格鲁吉亚语</option><option value="gom">贡根语</option><option value="gu">古吉拉特语</option><option value="gn">瓜拉尼语</option><option value="cnh">哈卡钦语</option><option value="kk">哈萨克语</option><option value="ht">海地克里奥尔语</option><option value="ko">韩语</option><option value="ha">豪萨语</option><option value="nl">荷兰语</option><option value="hrx">洪斯吕克语</option><option value="ky">吉尔吉斯语</option><option value="ktu">吉土巴语</option><option value="gl">加利西亚语</option><option value="ca">加泰罗尼亚语</option><option value="gaa">加语</option><option value="cs">捷克语</option><option value="kac">景颇语</option><option value="kn">卡纳达语</option><option value="kr">卡努里语</option><option value="kha">卡西语</option><option value="kek">凯克其语</option><option value="kv">科米语</option><option value="xh">科萨语</option><option value="co">科西嘉语</option><option value="otq">克雷塔罗奥托米语</option><option value="crh-Latn">克里米亚鞑靼语（拉丁文）</option><option value="crh">克里米亚鞑靼语（西里尔文）</option><option value="tlh-Latn">克林贡语 (拉丁文)</option><option value="tlh-Piqd">克林贡语 (pIqaD)</option><option value="hr">克罗地亚语</option><option value="qu">克丘亚语</option><option value="ku">库尔德语（库尔曼吉语）</option><option value="ckb">库尔德语（索拉尼）</option><option value="trp">廓克博若克语</option><option value="la">拉丁语</option><option value="ltg">拉特加莱语</option><option value="lv">拉脱维亚语</option><option value="lo">老挝语</option><option value="lt">立陶宛语</option><option value="lij">利古里亚语</option><option value="li">林堡语</option><option value="ln">林加拉语</option><option value="rn">隆迪语</option><option value="luo">卢奥语</option><option value="lg">卢干达语</option><option value="lb">卢森堡语</option><option value="rw">卢旺达语</option><option value="lmo">伦巴第语</option><option value="ro">罗马尼亚语</option><option value="rom">罗姆语</option><option value="mad">马都拉语</option><option value="gv">马恩岛语</option><option value="mg">马尔加什语</option><option value="mwr">马尔瓦迪语</option><option value="mt">马耳他语</option><option value="mr">马拉地语</option><option value="ml">马拉雅拉姆语</option><option value="ms">马来语</option><option value="ms-Arab">马来语（爪夷文）</option><option value="mk">马其顿语</option><option value="mh">马绍尔语</option><option value="mam">玛姆语</option><option value="mai">迈蒂利语</option><option value="mfe">毛里裘斯克里奥耳语</option><option value="mi">毛利语</option><option value="mni-Mtei">梅泰语（曼尼普尔语）</option><option value="mn">蒙古语</option><option value="bn">孟加拉语</option><option value="min">米南语</option><option value="lus">米佐语</option><option value="my">缅甸语</option><option value="hmn">苗语</option><option value="nhe">纳瓦特尔语（东部瓦斯特卡）</option><option value="af">南非荷兰语</option><option value="st">南索托语</option><option value="ne">尼泊尔语</option><option value="new">尼泊尔语言（尼瓦尔语）</option><option value="nus">努尔语</option><option value="no">挪威语</option><option value="pap">帕皮阿门托语</option><option value="pa">旁遮普语（果鲁穆奇文）</option><option value="pa-Arab">旁遮普语（沙木基文）</option><option value="pt">葡萄牙语 (巴西)</option><option value="pt-PT">葡萄牙语 (葡萄牙)</option><option value="ps">普什图语</option><option value="ny">齐切瓦语</option><option value="cgg">奇加语</option><option value="lua">奇卢伯语</option><option value="ak">契维语</option><option value="ja">日语</option><option value="sv">瑞典语</option><option value="zap">萨巴特克语</option><option value="se">萨米语（北部）</option><option value="sm">萨摩亚语</option><option value="sr">塞尔维亚语</option><option value="sr-Latn">塞尔维亚语 (拉丁文)</option><option value="kri">塞拉利昂克里奥尔语</option><option value="crs">塞舌尔克里奥尔语</option><option value="sg">桑戈语</option><option value="sat-Latn">桑塔利语（拉丁文）</option><option value="sat">桑塔利语（欧甘文）</option><option value="si">僧伽罗语</option><option value="hsb">上索布语</option><option value="eo">世界语</option><option value="sk">斯洛伐克语</option><option value="sl">斯洛文尼亚语</option><option value="ss">斯瓦特语</option><option value="sw">斯瓦希里语</option><option value="gd">苏格兰盖尔语</option><option value="sus">苏苏语</option><option value="ceb">宿务语</option><option value="so">索马里语</option><option value="tg">塔吉克语</option><option value="ber">塔马齐格特语（提非纳文）</option><option value="ber-Latn">塔马塞特语</option><option value="ty">塔希提语</option><option value="te">泰卢固语</option><option value="ta">泰米尔语</option><option value="th">泰语</option><option value="to">汤加语</option><option value="ti">提格里尼亚语</option><option value="tcy">图鲁语</option><option value="tum">图姆布卡语</option><option value="tyv">图瓦语</option><option value="tr">土耳其语</option><option value="tk">土库曼语</option><option value="war">瓦瑞语</option><option value="mak">望加锡语</option><option value="cy">威尔士语</option><option value="vec">威尼斯语</option><option value="ug">维吾尔语</option><option value="ve">文达语</option><option value="wo">沃洛夫语</option><option value="udm">乌德穆尔特语</option><option value="ur">乌尔都语</option><option value="uk">乌克兰语</option><option value="uz">乌兹别克语</option><option value="es">西班牙语</option><option value="szl">西里西亚语</option><option value="scn">西西里语</option><option value="he">希伯来语</option><option value="el">希腊语</option><option value="hil">希利盖农语</option><option value="dsb">下索布语</option><option value="haw">夏威夷语</option><option value="sd">信德语</option><option value="hu">匈牙利语</option><option value="sn">修纳语</option><option value="su">巽他语</option><option value="jam">牙买加土语</option><option value="sah">雅库特语</option><option value="hy">亚美尼亚语</option><option value="ace">亚齐语</option><option value="iba">伊班语</option><option value="ig">伊博语</option><option value="ilo">伊洛卡诺语</option><option value="it">意大利语</option><option value="yi">意第绪语</option><option value="iu-Latn">因纽特语（拉丁文）</option><option value="iu">因纽特语（音节）</option><option value="hi">印地语</option><option value="id">印尼语</option><option value="en">英语</option><option value="yua">尤卡坦玛雅语</option><option value="yo">约鲁巴语</option><option value="yue">粤语</option><option value="vi">越南语</option><option value="jv">爪哇语</option><option value="zh-TW">中文（繁体）</option><option value="zh-CN">中文（简体）</option><option value="dz">宗卡语</option><option value="zu">祖鲁语</option><option value="brx">Bodo</option><option value="hne">Chhattisgarhi</option><option value="lzh">Chinese (Literary)</option><option value="sjn">Elvish (Sindarin)</option><option value="emj">Emoji</option><option value="mrj">Hill Mari</option><option value="ikt">Inuinnaqtun</option><option value="ks">Kashmiri</option><option value="kazlat">Kazakh (Latin)</option><option value="mhr">Mari</option><option value="mn-Mong">Mongolian (Traditional)</option><option value="nya">Nyanja</option><option value="run">Rundi</option><option value="uzbcyr">Uzbek (Cyrillic)</option></select>
+        <br>
+        <br>
+
+        <p><b data-i18n="msgFavoriteLanguages">偏好语言</b></p>
+        <ul class="w3-ul">
+          <li class="w3-row">
+            <p class="w3-half" data-i18n="lblFavoriteLanguage" data-i18n-ph-value="1">偏好语言 1</p>
+            <select id="favoriteLanguage1" class="w3-select w3-half w3-border w3-round"><option value="ab">阿布哈兹语</option><option value="sq">阿尔巴尼亚语</option><option value="aa">阿法尔语</option><option value="ar">阿拉伯语</option><option value="alz">阿卢尔语</option><option value="am">阿姆哈拉语</option><option value="ach">阿乔利语</option><option value="as">阿萨姆语</option><option value="az">阿塞拜疆语</option><option value="awa">阿瓦德语</option><option value="av">阿瓦尔语</option><option value="ee">埃维语</option><option value="ay">艾马拉语</option><option value="ga">爱尔兰语</option><option value="et">爱沙尼亚语</option><option value="oc">奥克语</option><option value="or">奥利亚语</option><option value="om">奥罗莫语</option><option value="os">奥塞梯语</option><option value="tpi">巴布亚皮钦语</option><option value="bew">巴达维语</option><option value="ban">巴厘语</option><option value="ba">巴什基尔语</option><option value="eu">巴斯克语</option><option value="btx">巴塔克卡罗语</option><option value="bbc">巴塔克托巴语</option><option value="bts">巴塔克西马隆贡语</option><option value="bci">巴乌雷语</option><option value="be">白俄罗斯语</option><option value="bm">班巴拉语</option><option value="pag">邦阿西楠语</option><option value="pam">邦板牙语</option><option value="bg">保加利亚语</option><option value="nso">北索托语</option><option value="bem">奔巴语</option><option value="bik">比科尔语</option><option value="bal">俾路支语</option><option value="is">冰岛语</option><option value="pl">波兰语</option><option value="bs">波斯尼亚语</option><option value="fa">波斯语</option><option value="bho">博杰普尔语</option><option value="bua">布里亚特语</option><option value="br">布列塔尼语</option><option value="bo">藏语</option><option value="chm">草原马里语</option><option value="ch">查莫罗语</option><option value="ce">车臣语</option><option value="chk">楚克语</option><option value="cv">楚瓦什语</option><option value="tn">茨瓦纳语</option><option value="ts">聪加语</option><option value="prs">达里语</option><option value="tt">鞑靼语</option><option value="da">丹麦语</option><option value="shn">掸语</option><option value="tet">德顿语</option><option value="de">德语</option><option value="dv">迪维希语</option><option value="dyu">迪尤拉语</option><option value="tiv">蒂夫语</option><option value="din">丁卡语</option><option value="doi">多格拉语</option><option value="ru">俄语</option><option value="ndc-ZW">恩道语</option><option value="nr">恩德贝莱语（南部）</option><option value="dov">恩敦贝语</option><option value="bm-Nkoo">恩科字母（西非书面文字）</option><option value="fo">法罗语</option><option value="fr">法语</option><option value="fr-CA">法语 (加拿大)</option><option value="sa">梵语</option><option value="tl">菲律宾语</option><option value="fj">斐济语</option><option value="fi">芬兰语</option><option value="fon">丰语</option><option value="fy">弗里西语</option><option value="fur">弗留利语</option><option value="ff">富拉尼语</option><option value="kg">刚果语</option><option value="km">高棉语</option><option value="kl">格陵兰语</option><option value="ka">格鲁吉亚语</option><option value="gom">贡根语</option><option value="gu">古吉拉特语</option><option value="gn">瓜拉尼语</option><option value="cnh">哈卡钦语</option><option value="kk">哈萨克语</option><option value="ht">海地克里奥尔语</option><option value="ko">韩语</option><option value="ha">豪萨语</option><option value="nl">荷兰语</option><option value="hrx">洪斯吕克语</option><option value="ky">吉尔吉斯语</option><option value="ktu">吉土巴语</option><option value="gl">加利西亚语</option><option value="ca">加泰罗尼亚语</option><option value="gaa">加语</option><option value="cs">捷克语</option><option value="kac">景颇语</option><option value="kn">卡纳达语</option><option value="kr">卡努里语</option><option value="kha">卡西语</option><option value="kek">凯克其语</option><option value="kv">科米语</option><option value="xh">科萨语</option><option value="co">科西嘉语</option><option value="otq">克雷塔罗奥托米语</option><option value="crh-Latn">克里米亚鞑靼语（拉丁文）</option><option value="crh">克里米亚鞑靼语（西里尔文）</option><option value="tlh-Latn">克林贡语 (拉丁文)</option><option value="tlh-Piqd">克林贡语 (pIqaD)</option><option value="hr">克罗地亚语</option><option value="qu">克丘亚语</option><option value="ku">库尔德语（库尔曼吉语）</option><option value="ckb">库尔德语（索拉尼）</option><option value="trp">廓克博若克语</option><option value="la">拉丁语</option><option value="ltg">拉特加莱语</option><option value="lv">拉脱维亚语</option><option value="lo">老挝语</option><option value="lt">立陶宛语</option><option value="lij">利古里亚语</option><option value="li">林堡语</option><option value="ln">林加拉语</option><option value="rn">隆迪语</option><option value="luo">卢奥语</option><option value="lg">卢干达语</option><option value="lb">卢森堡语</option><option value="rw">卢旺达语</option><option value="lmo">伦巴第语</option><option value="ro">罗马尼亚语</option><option value="rom">罗姆语</option><option value="mad">马都拉语</option><option value="gv">马恩岛语</option><option value="mg">马尔加什语</option><option value="mwr">马尔瓦迪语</option><option value="mt">马耳他语</option><option value="mr">马拉地语</option><option value="ml">马拉雅拉姆语</option><option value="ms">马来语</option><option value="ms-Arab">马来语（爪夷文）</option><option value="mk">马其顿语</option><option value="mh">马绍尔语</option><option value="mam">玛姆语</option><option value="mai">迈蒂利语</option><option value="mfe">毛里裘斯克里奥耳语</option><option value="mi">毛利语</option><option value="mni-Mtei">梅泰语（曼尼普尔语）</option><option value="mn">蒙古语</option><option value="bn">孟加拉语</option><option value="min">米南语</option><option value="lus">米佐语</option><option value="my">缅甸语</option><option value="hmn">苗语</option><option value="nhe">纳瓦特尔语（东部瓦斯特卡）</option><option value="af">南非荷兰语</option><option value="st">南索托语</option><option value="ne">尼泊尔语</option><option value="new">尼泊尔语言（尼瓦尔语）</option><option value="nus">努尔语</option><option value="no">挪威语</option><option value="pap">帕皮阿门托语</option><option value="pa">旁遮普语（果鲁穆奇文）</option><option value="pa-Arab">旁遮普语（沙木基文）</option><option value="pt">葡萄牙语 (巴西)</option><option value="pt-PT">葡萄牙语 (葡萄牙)</option><option value="ps">普什图语</option><option value="ny">齐切瓦语</option><option value="cgg">奇加语</option><option value="lua">奇卢伯语</option><option value="ak">契维语</option><option value="ja">日语</option><option value="sv">瑞典语</option><option value="zap">萨巴特克语</option><option value="se">萨米语（北部）</option><option value="sm">萨摩亚语</option><option value="sr">塞尔维亚语</option><option value="sr-Latn">塞尔维亚语 (拉丁文)</option><option value="kri">塞拉利昂克里奥尔语</option><option value="crs">塞舌尔克里奥尔语</option><option value="sg">桑戈语</option><option value="sat-Latn">桑塔利语（拉丁文）</option><option value="sat">桑塔利语（欧甘文）</option><option value="si">僧伽罗语</option><option value="hsb">上索布语</option><option value="eo">世界语</option><option value="sk">斯洛伐克语</option><option value="sl">斯洛文尼亚语</option><option value="ss">斯瓦特语</option><option value="sw">斯瓦希里语</option><option value="gd">苏格兰盖尔语</option><option value="sus">苏苏语</option><option value="ceb">宿务语</option><option value="so">索马里语</option><option value="tg">塔吉克语</option><option value="ber">塔马齐格特语（提非纳文）</option><option value="ber-Latn">塔马塞特语</option><option value="ty">塔希提语</option><option value="te">泰卢固语</option><option value="ta">泰米尔语</option><option value="th">泰语</option><option value="to">汤加语</option><option value="ti">提格里尼亚语</option><option value="tcy">图鲁语</option><option value="tum">图姆布卡语</option><option value="tyv">图瓦语</option><option value="tr">土耳其语</option><option value="tk">土库曼语</option><option value="war">瓦瑞语</option><option value="mak">望加锡语</option><option value="cy">威尔士语</option><option value="vec">威尼斯语</option><option value="ug">维吾尔语</option><option value="ve">文达语</option><option value="wo">沃洛夫语</option><option value="udm">乌德穆尔特语</option><option value="ur">乌尔都语</option><option value="uk">乌克兰语</option><option value="uz">乌兹别克语</option><option value="es">西班牙语</option><option value="szl">西里西亚语</option><option value="scn">西西里语</option><option value="he">希伯来语</option><option value="el">希腊语</option><option value="hil">希利盖农语</option><option value="dsb">下索布语</option><option value="haw">夏威夷语</option><option value="sd">信德语</option><option value="hu">匈牙利语</option><option value="sn">修纳语</option><option value="su">巽他语</option><option value="jam">牙买加土语</option><option value="sah">雅库特语</option><option value="hy">亚美尼亚语</option><option value="ace">亚齐语</option><option value="iba">伊班语</option><option value="ig">伊博语</option><option value="ilo">伊洛卡诺语</option><option value="it">意大利语</option><option value="yi">意第绪语</option><option value="iu-Latn">因纽特语（拉丁文）</option><option value="iu">因纽特语（音节）</option><option value="hi">印地语</option><option value="id">印尼语</option><option value="en">英语</option><option value="yua">尤卡坦玛雅语</option><option value="yo">约鲁巴语</option><option value="yue">粤语</option><option value="vi">越南语</option><option value="jv">爪哇语</option><option value="zh-TW">中文（繁体）</option><option value="zh-CN">中文（简体）</option><option value="dz">宗卡语</option><option value="zu">祖鲁语</option><option value="brx">Bodo</option><option value="hne">Chhattisgarhi</option><option value="lzh">Chinese (Literary)</option><option value="sjn">Elvish (Sindarin)</option><option value="emj">Emoji</option><option value="mrj">Hill Mari</option><option value="ikt">Inuinnaqtun</option><option value="ks">Kashmiri</option><option value="kazlat">Kazakh (Latin)</option><option value="mhr">Mari</option><option value="mn-Mong">Mongolian (Traditional)</option><option value="nya">Nyanja</option><option value="run">Rundi</option><option value="uzbcyr">Uzbek (Cyrillic)</option></select>
+          </li>
+          <li class="w3-row">
+            <p class="w3-half" data-i18n="lblFavoriteLanguage" data-i18n-ph-value="2">偏好语言 2</p>
+            <select id="favoriteLanguage2" class="w3-select w3-half w3-border w3-round"><option value="ab">阿布哈兹语</option><option value="sq">阿尔巴尼亚语</option><option value="aa">阿法尔语</option><option value="ar">阿拉伯语</option><option value="alz">阿卢尔语</option><option value="am">阿姆哈拉语</option><option value="ach">阿乔利语</option><option value="as">阿萨姆语</option><option value="az">阿塞拜疆语</option><option value="awa">阿瓦德语</option><option value="av">阿瓦尔语</option><option value="ee">埃维语</option><option value="ay">艾马拉语</option><option value="ga">爱尔兰语</option><option value="et">爱沙尼亚语</option><option value="oc">奥克语</option><option value="or">奥利亚语</option><option value="om">奥罗莫语</option><option value="os">奥塞梯语</option><option value="tpi">巴布亚皮钦语</option><option value="bew">巴达维语</option><option value="ban">巴厘语</option><option value="ba">巴什基尔语</option><option value="eu">巴斯克语</option><option value="btx">巴塔克卡罗语</option><option value="bbc">巴塔克托巴语</option><option value="bts">巴塔克西马隆贡语</option><option value="bci">巴乌雷语</option><option value="be">白俄罗斯语</option><option value="bm">班巴拉语</option><option value="pag">邦阿西楠语</option><option value="pam">邦板牙语</option><option value="bg">保加利亚语</option><option value="nso">北索托语</option><option value="bem">奔巴语</option><option value="bik">比科尔语</option><option value="bal">俾路支语</option><option value="is">冰岛语</option><option value="pl">波兰语</option><option value="bs">波斯尼亚语</option><option value="fa">波斯语</option><option value="bho">博杰普尔语</option><option value="bua">布里亚特语</option><option value="br">布列塔尼语</option><option value="bo">藏语</option><option value="chm">草原马里语</option><option value="ch">查莫罗语</option><option value="ce">车臣语</option><option value="chk">楚克语</option><option value="cv">楚瓦什语</option><option value="tn">茨瓦纳语</option><option value="ts">聪加语</option><option value="prs">达里语</option><option value="tt">鞑靼语</option><option value="da">丹麦语</option><option value="shn">掸语</option><option value="tet">德顿语</option><option value="de">德语</option><option value="dv">迪维希语</option><option value="dyu">迪尤拉语</option><option value="tiv">蒂夫语</option><option value="din">丁卡语</option><option value="doi">多格拉语</option><option value="ru">俄语</option><option value="ndc-ZW">恩道语</option><option value="nr">恩德贝莱语（南部）</option><option value="dov">恩敦贝语</option><option value="bm-Nkoo">恩科字母（西非书面文字）</option><option value="fo">法罗语</option><option value="fr">法语</option><option value="fr-CA">法语 (加拿大)</option><option value="sa">梵语</option><option value="tl">菲律宾语</option><option value="fj">斐济语</option><option value="fi">芬兰语</option><option value="fon">丰语</option><option value="fy">弗里西语</option><option value="fur">弗留利语</option><option value="ff">富拉尼语</option><option value="kg">刚果语</option><option value="km">高棉语</option><option value="kl">格陵兰语</option><option value="ka">格鲁吉亚语</option><option value="gom">贡根语</option><option value="gu">古吉拉特语</option><option value="gn">瓜拉尼语</option><option value="cnh">哈卡钦语</option><option value="kk">哈萨克语</option><option value="ht">海地克里奥尔语</option><option value="ko">韩语</option><option value="ha">豪萨语</option><option value="nl">荷兰语</option><option value="hrx">洪斯吕克语</option><option value="ky">吉尔吉斯语</option><option value="ktu">吉土巴语</option><option value="gl">加利西亚语</option><option value="ca">加泰罗尼亚语</option><option value="gaa">加语</option><option value="cs">捷克语</option><option value="kac">景颇语</option><option value="kn">卡纳达语</option><option value="kr">卡努里语</option><option value="kha">卡西语</option><option value="kek">凯克其语</option><option value="kv">科米语</option><option value="xh">科萨语</option><option value="co">科西嘉语</option><option value="otq">克雷塔罗奥托米语</option><option value="crh-Latn">克里米亚鞑靼语（拉丁文）</option><option value="crh">克里米亚鞑靼语（西里尔文）</option><option value="tlh-Latn">克林贡语 (拉丁文)</option><option value="tlh-Piqd">克林贡语 (pIqaD)</option><option value="hr">克罗地亚语</option><option value="qu">克丘亚语</option><option value="ku">库尔德语（库尔曼吉语）</option><option value="ckb">库尔德语（索拉尼）</option><option value="trp">廓克博若克语</option><option value="la">拉丁语</option><option value="ltg">拉特加莱语</option><option value="lv">拉脱维亚语</option><option value="lo">老挝语</option><option value="lt">立陶宛语</option><option value="lij">利古里亚语</option><option value="li">林堡语</option><option value="ln">林加拉语</option><option value="rn">隆迪语</option><option value="luo">卢奥语</option><option value="lg">卢干达语</option><option value="lb">卢森堡语</option><option value="rw">卢旺达语</option><option value="lmo">伦巴第语</option><option value="ro">罗马尼亚语</option><option value="rom">罗姆语</option><option value="mad">马都拉语</option><option value="gv">马恩岛语</option><option value="mg">马尔加什语</option><option value="mwr">马尔瓦迪语</option><option value="mt">马耳他语</option><option value="mr">马拉地语</option><option value="ml">马拉雅拉姆语</option><option value="ms">马来语</option><option value="ms-Arab">马来语（爪夷文）</option><option value="mk">马其顿语</option><option value="mh">马绍尔语</option><option value="mam">玛姆语</option><option value="mai">迈蒂利语</option><option value="mfe">毛里裘斯克里奥耳语</option><option value="mi">毛利语</option><option value="mni-Mtei">梅泰语（曼尼普尔语）</option><option value="mn">蒙古语</option><option value="bn">孟加拉语</option><option value="min">米南语</option><option value="lus">米佐语</option><option value="my">缅甸语</option><option value="hmn">苗语</option><option value="nhe">纳瓦特尔语（东部瓦斯特卡）</option><option value="af">南非荷兰语</option><option value="st">南索托语</option><option value="ne">尼泊尔语</option><option value="new">尼泊尔语言（尼瓦尔语）</option><option value="nus">努尔语</option><option value="no">挪威语</option><option value="pap">帕皮阿门托语</option><option value="pa">旁遮普语（果鲁穆奇文）</option><option value="pa-Arab">旁遮普语（沙木基文）</option><option value="pt">葡萄牙语 (巴西)</option><option value="pt-PT">葡萄牙语 (葡萄牙)</option><option value="ps">普什图语</option><option value="ny">齐切瓦语</option><option value="cgg">奇加语</option><option value="lua">奇卢伯语</option><option value="ak">契维语</option><option value="ja">日语</option><option value="sv">瑞典语</option><option value="zap">萨巴特克语</option><option value="se">萨米语（北部）</option><option value="sm">萨摩亚语</option><option value="sr">塞尔维亚语</option><option value="sr-Latn">塞尔维亚语 (拉丁文)</option><option value="kri">塞拉利昂克里奥尔语</option><option value="crs">塞舌尔克里奥尔语</option><option value="sg">桑戈语</option><option value="sat-Latn">桑塔利语（拉丁文）</option><option value="sat">桑塔利语（欧甘文）</option><option value="si">僧伽罗语</option><option value="hsb">上索布语</option><option value="eo">世界语</option><option value="sk">斯洛伐克语</option><option value="sl">斯洛文尼亚语</option><option value="ss">斯瓦特语</option><option value="sw">斯瓦希里语</option><option value="gd">苏格兰盖尔语</option><option value="sus">苏苏语</option><option value="ceb">宿务语</option><option value="so">索马里语</option><option value="tg">塔吉克语</option><option value="ber">塔马齐格特语（提非纳文）</option><option value="ber-Latn">塔马塞特语</option><option value="ty">塔希提语</option><option value="te">泰卢固语</option><option value="ta">泰米尔语</option><option value="th">泰语</option><option value="to">汤加语</option><option value="ti">提格里尼亚语</option><option value="tcy">图鲁语</option><option value="tum">图姆布卡语</option><option value="tyv">图瓦语</option><option value="tr">土耳其语</option><option value="tk">土库曼语</option><option value="war">瓦瑞语</option><option value="mak">望加锡语</option><option value="cy">威尔士语</option><option value="vec">威尼斯语</option><option value="ug">维吾尔语</option><option value="ve">文达语</option><option value="wo">沃洛夫语</option><option value="udm">乌德穆尔特语</option><option value="ur">乌尔都语</option><option value="uk">乌克兰语</option><option value="uz">乌兹别克语</option><option value="es">西班牙语</option><option value="szl">西里西亚语</option><option value="scn">西西里语</option><option value="he">希伯来语</option><option value="el">希腊语</option><option value="hil">希利盖农语</option><option value="dsb">下索布语</option><option value="haw">夏威夷语</option><option value="sd">信德语</option><option value="hu">匈牙利语</option><option value="sn">修纳语</option><option value="su">巽他语</option><option value="jam">牙买加土语</option><option value="sah">雅库特语</option><option value="hy">亚美尼亚语</option><option value="ace">亚齐语</option><option value="iba">伊班语</option><option value="ig">伊博语</option><option value="ilo">伊洛卡诺语</option><option value="it">意大利语</option><option value="yi">意第绪语</option><option value="iu-Latn">因纽特语（拉丁文）</option><option value="iu">因纽特语（音节）</option><option value="hi">印地语</option><option value="id">印尼语</option><option value="en">英语</option><option value="yua">尤卡坦玛雅语</option><option value="yo">约鲁巴语</option><option value="yue">粤语</option><option value="vi">越南语</option><option value="jv">爪哇语</option><option value="zh-TW">中文（繁体）</option><option value="zh-CN">中文（简体）</option><option value="dz">宗卡语</option><option value="zu">祖鲁语</option><option value="brx">Bodo</option><option value="hne">Chhattisgarhi</option><option value="lzh">Chinese (Literary)</option><option value="sjn">Elvish (Sindarin)</option><option value="emj">Emoji</option><option value="mrj">Hill Mari</option><option value="ikt">Inuinnaqtun</option><option value="ks">Kashmiri</option><option value="kazlat">Kazakh (Latin)</option><option value="mhr">Mari</option><option value="mn-Mong">Mongolian (Traditional)</option><option value="nya">Nyanja</option><option value="run">Rundi</option><option value="uzbcyr">Uzbek (Cyrillic)</option></select>
+          </li>
+          <li class="w3-row">
+            <p class="w3-half" data-i18n="lblFavoriteLanguage" data-i18n-ph-value="3">偏好语言 3</p>
+            <select id="favoriteLanguage3" class="w3-select w3-half w3-border w3-round"><option value="ab">阿布哈兹语</option><option value="sq">阿尔巴尼亚语</option><option value="aa">阿法尔语</option><option value="ar">阿拉伯语</option><option value="alz">阿卢尔语</option><option value="am">阿姆哈拉语</option><option value="ach">阿乔利语</option><option value="as">阿萨姆语</option><option value="az">阿塞拜疆语</option><option value="awa">阿瓦德语</option><option value="av">阿瓦尔语</option><option value="ee">埃维语</option><option value="ay">艾马拉语</option><option value="ga">爱尔兰语</option><option value="et">爱沙尼亚语</option><option value="oc">奥克语</option><option value="or">奥利亚语</option><option value="om">奥罗莫语</option><option value="os">奥塞梯语</option><option value="tpi">巴布亚皮钦语</option><option value="bew">巴达维语</option><option value="ban">巴厘语</option><option value="ba">巴什基尔语</option><option value="eu">巴斯克语</option><option value="btx">巴塔克卡罗语</option><option value="bbc">巴塔克托巴语</option><option value="bts">巴塔克西马隆贡语</option><option value="bci">巴乌雷语</option><option value="be">白俄罗斯语</option><option value="bm">班巴拉语</option><option value="pag">邦阿西楠语</option><option value="pam">邦板牙语</option><option value="bg">保加利亚语</option><option value="nso">北索托语</option><option value="bem">奔巴语</option><option value="bik">比科尔语</option><option value="bal">俾路支语</option><option value="is">冰岛语</option><option value="pl">波兰语</option><option value="bs">波斯尼亚语</option><option value="fa">波斯语</option><option value="bho">博杰普尔语</option><option value="bua">布里亚特语</option><option value="br">布列塔尼语</option><option value="bo">藏语</option><option value="chm">草原马里语</option><option value="ch">查莫罗语</option><option value="ce">车臣语</option><option value="chk">楚克语</option><option value="cv">楚瓦什语</option><option value="tn">茨瓦纳语</option><option value="ts">聪加语</option><option value="prs">达里语</option><option value="tt">鞑靼语</option><option value="da">丹麦语</option><option value="shn">掸语</option><option value="tet">德顿语</option><option value="de">德语</option><option value="dv">迪维希语</option><option value="dyu">迪尤拉语</option><option value="tiv">蒂夫语</option><option value="din">丁卡语</option><option value="doi">多格拉语</option><option value="ru">俄语</option><option value="ndc-ZW">恩道语</option><option value="nr">恩德贝莱语（南部）</option><option value="dov">恩敦贝语</option><option value="bm-Nkoo">恩科字母（西非书面文字）</option><option value="fo">法罗语</option><option value="fr">法语</option><option value="fr-CA">法语 (加拿大)</option><option value="sa">梵语</option><option value="tl">菲律宾语</option><option value="fj">斐济语</option><option value="fi">芬兰语</option><option value="fon">丰语</option><option value="fy">弗里西语</option><option value="fur">弗留利语</option><option value="ff">富拉尼语</option><option value="kg">刚果语</option><option value="km">高棉语</option><option value="kl">格陵兰语</option><option value="ka">格鲁吉亚语</option><option value="gom">贡根语</option><option value="gu">古吉拉特语</option><option value="gn">瓜拉尼语</option><option value="cnh">哈卡钦语</option><option value="kk">哈萨克语</option><option value="ht">海地克里奥尔语</option><option value="ko">韩语</option><option value="ha">豪萨语</option><option value="nl">荷兰语</option><option value="hrx">洪斯吕克语</option><option value="ky">吉尔吉斯语</option><option value="ktu">吉土巴语</option><option value="gl">加利西亚语</option><option value="ca">加泰罗尼亚语</option><option value="gaa">加语</option><option value="cs">捷克语</option><option value="kac">景颇语</option><option value="kn">卡纳达语</option><option value="kr">卡努里语</option><option value="kha">卡西语</option><option value="kek">凯克其语</option><option value="kv">科米语</option><option value="xh">科萨语</option><option value="co">科西嘉语</option><option value="otq">克雷塔罗奥托米语</option><option value="crh-Latn">克里米亚鞑靼语（拉丁文）</option><option value="crh">克里米亚鞑靼语（西里尔文）</option><option value="tlh-Latn">克林贡语 (拉丁文)</option><option value="tlh-Piqd">克林贡语 (pIqaD)</option><option value="hr">克罗地亚语</option><option value="qu">克丘亚语</option><option value="ku">库尔德语（库尔曼吉语）</option><option value="ckb">库尔德语（索拉尼）</option><option value="trp">廓克博若克语</option><option value="la">拉丁语</option><option value="ltg">拉特加莱语</option><option value="lv">拉脱维亚语</option><option value="lo">老挝语</option><option value="lt">立陶宛语</option><option value="lij">利古里亚语</option><option value="li">林堡语</option><option value="ln">林加拉语</option><option value="rn">隆迪语</option><option value="luo">卢奥语</option><option value="lg">卢干达语</option><option value="lb">卢森堡语</option><option value="rw">卢旺达语</option><option value="lmo">伦巴第语</option><option value="ro">罗马尼亚语</option><option value="rom">罗姆语</option><option value="mad">马都拉语</option><option value="gv">马恩岛语</option><option value="mg">马尔加什语</option><option value="mwr">马尔瓦迪语</option><option value="mt">马耳他语</option><option value="mr">马拉地语</option><option value="ml">马拉雅拉姆语</option><option value="ms">马来语</option><option value="ms-Arab">马来语（爪夷文）</option><option value="mk">马其顿语</option><option value="mh">马绍尔语</option><option value="mam">玛姆语</option><option value="mai">迈蒂利语</option><option value="mfe">毛里裘斯克里奥耳语</option><option value="mi">毛利语</option><option value="mni-Mtei">梅泰语（曼尼普尔语）</option><option value="mn">蒙古语</option><option value="bn">孟加拉语</option><option value="min">米南语</option><option value="lus">米佐语</option><option value="my">缅甸语</option><option value="hmn">苗语</option><option value="nhe">纳瓦特尔语（东部瓦斯特卡）</option><option value="af">南非荷兰语</option><option value="st">南索托语</option><option value="ne">尼泊尔语</option><option value="new">尼泊尔语言（尼瓦尔语）</option><option value="nus">努尔语</option><option value="no">挪威语</option><option value="pap">帕皮阿门托语</option><option value="pa">旁遮普语（果鲁穆奇文）</option><option value="pa-Arab">旁遮普语（沙木基文）</option><option value="pt">葡萄牙语 (巴西)</option><option value="pt-PT">葡萄牙语 (葡萄牙)</option><option value="ps">普什图语</option><option value="ny">齐切瓦语</option><option value="cgg">奇加语</option><option value="lua">奇卢伯语</option><option value="ak">契维语</option><option value="ja">日语</option><option value="sv">瑞典语</option><option value="zap">萨巴特克语</option><option value="se">萨米语（北部）</option><option value="sm">萨摩亚语</option><option value="sr">塞尔维亚语</option><option value="sr-Latn">塞尔维亚语 (拉丁文)</option><option value="kri">塞拉利昂克里奥尔语</option><option value="crs">塞舌尔克里奥尔语</option><option value="sg">桑戈语</option><option value="sat-Latn">桑塔利语（拉丁文）</option><option value="sat">桑塔利语（欧甘文）</option><option value="si">僧伽罗语</option><option value="hsb">上索布语</option><option value="eo">世界语</option><option value="sk">斯洛伐克语</option><option value="sl">斯洛文尼亚语</option><option value="ss">斯瓦特语</option><option value="sw">斯瓦希里语</option><option value="gd">苏格兰盖尔语</option><option value="sus">苏苏语</option><option value="ceb">宿务语</option><option value="so">索马里语</option><option value="tg">塔吉克语</option><option value="ber">塔马齐格特语（提非纳文）</option><option value="ber-Latn">塔马塞特语</option><option value="ty">塔希提语</option><option value="te">泰卢固语</option><option value="ta">泰米尔语</option><option value="th">泰语</option><option value="to">汤加语</option><option value="ti">提格里尼亚语</option><option value="tcy">图鲁语</option><option value="tum">图姆布卡语</option><option value="tyv">图瓦语</option><option value="tr">土耳其语</option><option value="tk">土库曼语</option><option value="war">瓦瑞语</option><option value="mak">望加锡语</option><option value="cy">威尔士语</option><option value="vec">威尼斯语</option><option value="ug">维吾尔语</option><option value="ve">文达语</option><option value="wo">沃洛夫语</option><option value="udm">乌德穆尔特语</option><option value="ur">乌尔都语</option><option value="uk">乌克兰语</option><option value="uz">乌兹别克语</option><option value="es">西班牙语</option><option value="szl">西里西亚语</option><option value="scn">西西里语</option><option value="he">希伯来语</option><option value="el">希腊语</option><option value="hil">希利盖农语</option><option value="dsb">下索布语</option><option value="haw">夏威夷语</option><option value="sd">信德语</option><option value="hu">匈牙利语</option><option value="sn">修纳语</option><option value="su">巽他语</option><option value="jam">牙买加土语</option><option value="sah">雅库特语</option><option value="hy">亚美尼亚语</option><option value="ace">亚齐语</option><option value="iba">伊班语</option><option value="ig">伊博语</option><option value="ilo">伊洛卡诺语</option><option value="it">意大利语</option><option value="yi">意第绪语</option><option value="iu-Latn">因纽特语（拉丁文）</option><option value="iu">因纽特语（音节）</option><option value="hi">印地语</option><option value="id">印尼语</option><option value="en">英语</option><option value="yua">尤卡坦玛雅语</option><option value="yo">约鲁巴语</option><option value="yue">粤语</option><option value="vi">越南语</option><option value="jv">爪哇语</option><option value="zh-TW">中文（繁体）</option><option value="zh-CN">中文（简体）</option><option value="dz">宗卡语</option><option value="zu">祖鲁语</option><option value="brx">Bodo</option><option value="hne">Chhattisgarhi</option><option value="lzh">Chinese (Literary)</option><option value="sjn">Elvish (Sindarin)</option><option value="emj">Emoji</option><option value="mrj">Hill Mari</option><option value="ikt">Inuinnaqtun</option><option value="ks">Kashmiri</option><option value="kazlat">Kazakh (Latin)</option><option value="mhr">Mari</option><option value="mn-Mong">Mongolian (Traditional)</option><option value="nya">Nyanja</option><option value="run">Rundi</option><option value="uzbcyr">Uzbek (Cyrillic)</option></select>
+          </li>
+        </ul>
+        <br>
+        <div class="w3-display-container w3-padding w3-margin-top">
+          <div class="w3-display-left">
+            <p>
+              <b data-i18n="lblNeverTranslateLangs">永不翻译这些语言</b>
+            </p>
+          </div>
+          <div class="w3-display-right">
+            <div style="position: relative">
+              <button class="w3-button w3-blue w3-round w3-margin-right add" data-i18n="lblAdd">添加</button>
+              <select id="addToNeverTranslateLangs" class="add">
+                <option value="" selected="" disabled="" hidden=""></option>
+              <option value="ab">阿布哈兹语</option><option value="sq">阿尔巴尼亚语</option><option value="aa">阿法尔语</option><option value="ar">阿拉伯语</option><option value="alz">阿卢尔语</option><option value="am">阿姆哈拉语</option><option value="ach">阿乔利语</option><option value="as">阿萨姆语</option><option value="az">阿塞拜疆语</option><option value="awa">阿瓦德语</option><option value="av">阿瓦尔语</option><option value="ee">埃维语</option><option value="ay">艾马拉语</option><option value="ga">爱尔兰语</option><option value="et">爱沙尼亚语</option><option value="oc">奥克语</option><option value="or">奥利亚语</option><option value="om">奥罗莫语</option><option value="os">奥塞梯语</option><option value="tpi">巴布亚皮钦语</option><option value="bew">巴达维语</option><option value="ban">巴厘语</option><option value="ba">巴什基尔语</option><option value="eu">巴斯克语</option><option value="btx">巴塔克卡罗语</option><option value="bbc">巴塔克托巴语</option><option value="bts">巴塔克西马隆贡语</option><option value="bci">巴乌雷语</option><option value="be">白俄罗斯语</option><option value="bm">班巴拉语</option><option value="pag">邦阿西楠语</option><option value="pam">邦板牙语</option><option value="bg">保加利亚语</option><option value="nso">北索托语</option><option value="bem">奔巴语</option><option value="bik">比科尔语</option><option value="bal">俾路支语</option><option value="is">冰岛语</option><option value="pl">波兰语</option><option value="bs">波斯尼亚语</option><option value="fa">波斯语</option><option value="bho">博杰普尔语</option><option value="bua">布里亚特语</option><option value="br">布列塔尼语</option><option value="bo">藏语</option><option value="chm">草原马里语</option><option value="ch">查莫罗语</option><option value="ce">车臣语</option><option value="chk">楚克语</option><option value="cv">楚瓦什语</option><option value="tn">茨瓦纳语</option><option value="ts">聪加语</option><option value="prs">达里语</option><option value="tt">鞑靼语</option><option value="da">丹麦语</option><option value="shn">掸语</option><option value="tet">德顿语</option><option value="de">德语</option><option value="dv">迪维希语</option><option value="dyu">迪尤拉语</option><option value="tiv">蒂夫语</option><option value="din">丁卡语</option><option value="doi">多格拉语</option><option value="ru">俄语</option><option value="ndc-ZW">恩道语</option><option value="nr">恩德贝莱语（南部）</option><option value="dov">恩敦贝语</option><option value="bm-Nkoo">恩科字母（西非书面文字）</option><option value="fo">法罗语</option><option value="fr">法语</option><option value="fr-CA">法语 (加拿大)</option><option value="sa">梵语</option><option value="tl">菲律宾语</option><option value="fj">斐济语</option><option value="fi">芬兰语</option><option value="fon">丰语</option><option value="fy">弗里西语</option><option value="fur">弗留利语</option><option value="ff">富拉尼语</option><option value="kg">刚果语</option><option value="km">高棉语</option><option value="kl">格陵兰语</option><option value="ka">格鲁吉亚语</option><option value="gom">贡根语</option><option value="gu">古吉拉特语</option><option value="gn">瓜拉尼语</option><option value="cnh">哈卡钦语</option><option value="kk">哈萨克语</option><option value="ht">海地克里奥尔语</option><option value="ko">韩语</option><option value="ha">豪萨语</option><option value="nl">荷兰语</option><option value="hrx">洪斯吕克语</option><option value="ky">吉尔吉斯语</option><option value="ktu">吉土巴语</option><option value="gl">加利西亚语</option><option value="ca">加泰罗尼亚语</option><option value="gaa">加语</option><option value="cs">捷克语</option><option value="kac">景颇语</option><option value="kn">卡纳达语</option><option value="kr">卡努里语</option><option value="kha">卡西语</option><option value="kek">凯克其语</option><option value="kv">科米语</option><option value="xh">科萨语</option><option value="co">科西嘉语</option><option value="otq">克雷塔罗奥托米语</option><option value="crh-Latn">克里米亚鞑靼语（拉丁文）</option><option value="crh">克里米亚鞑靼语（西里尔文）</option><option value="tlh-Latn">克林贡语 (拉丁文)</option><option value="tlh-Piqd">克林贡语 (pIqaD)</option><option value="hr">克罗地亚语</option><option value="qu">克丘亚语</option><option value="ku">库尔德语（库尔曼吉语）</option><option value="ckb">库尔德语（索拉尼）</option><option value="trp">廓克博若克语</option><option value="la">拉丁语</option><option value="ltg">拉特加莱语</option><option value="lv">拉脱维亚语</option><option value="lo">老挝语</option><option value="lt">立陶宛语</option><option value="lij">利古里亚语</option><option value="li">林堡语</option><option value="ln">林加拉语</option><option value="rn">隆迪语</option><option value="luo">卢奥语</option><option value="lg">卢干达语</option><option value="lb">卢森堡语</option><option value="rw">卢旺达语</option><option value="lmo">伦巴第语</option><option value="ro">罗马尼亚语</option><option value="rom">罗姆语</option><option value="mad">马都拉语</option><option value="gv">马恩岛语</option><option value="mg">马尔加什语</option><option value="mwr">马尔瓦迪语</option><option value="mt">马耳他语</option><option value="mr">马拉地语</option><option value="ml">马拉雅拉姆语</option><option value="ms">马来语</option><option value="ms-Arab">马来语（爪夷文）</option><option value="mk">马其顿语</option><option value="mh">马绍尔语</option><option value="mam">玛姆语</option><option value="mai">迈蒂利语</option><option value="mfe">毛里裘斯克里奥耳语</option><option value="mi">毛利语</option><option value="mni-Mtei">梅泰语（曼尼普尔语）</option><option value="mn">蒙古语</option><option value="bn">孟加拉语</option><option value="min">米南语</option><option value="lus">米佐语</option><option value="my">缅甸语</option><option value="hmn">苗语</option><option value="nhe">纳瓦特尔语（东部瓦斯特卡）</option><option value="af">南非荷兰语</option><option value="st">南索托语</option><option value="ne">尼泊尔语</option><option value="new">尼泊尔语言（尼瓦尔语）</option><option value="nus">努尔语</option><option value="no">挪威语</option><option value="pap">帕皮阿门托语</option><option value="pa">旁遮普语（果鲁穆奇文）</option><option value="pa-Arab">旁遮普语（沙木基文）</option><option value="pt">葡萄牙语 (巴西)</option><option value="pt-PT">葡萄牙语 (葡萄牙)</option><option value="ps">普什图语</option><option value="ny">齐切瓦语</option><option value="cgg">奇加语</option><option value="lua">奇卢伯语</option><option value="ak">契维语</option><option value="ja">日语</option><option value="sv">瑞典语</option><option value="zap">萨巴特克语</option><option value="se">萨米语（北部）</option><option value="sm">萨摩亚语</option><option value="sr">塞尔维亚语</option><option value="sr-Latn">塞尔维亚语 (拉丁文)</option><option value="kri">塞拉利昂克里奥尔语</option><option value="crs">塞舌尔克里奥尔语</option><option value="sg">桑戈语</option><option value="sat-Latn">桑塔利语（拉丁文）</option><option value="sat">桑塔利语（欧甘文）</option><option value="si">僧伽罗语</option><option value="hsb">上索布语</option><option value="eo">世界语</option><option value="sk">斯洛伐克语</option><option value="sl">斯洛文尼亚语</option><option value="ss">斯瓦特语</option><option value="sw">斯瓦希里语</option><option value="gd">苏格兰盖尔语</option><option value="sus">苏苏语</option><option value="ceb">宿务语</option><option value="so">索马里语</option><option value="tg">塔吉克语</option><option value="ber">塔马齐格特语（提非纳文）</option><option value="ber-Latn">塔马塞特语</option><option value="ty">塔希提语</option><option value="te">泰卢固语</option><option value="ta">泰米尔语</option><option value="th">泰语</option><option value="to">汤加语</option><option value="ti">提格里尼亚语</option><option value="tcy">图鲁语</option><option value="tum">图姆布卡语</option><option value="tyv">图瓦语</option><option value="tr">土耳其语</option><option value="tk">土库曼语</option><option value="war">瓦瑞语</option><option value="mak">望加锡语</option><option value="cy">威尔士语</option><option value="vec">威尼斯语</option><option value="ug">维吾尔语</option><option value="ve">文达语</option><option value="wo">沃洛夫语</option><option value="udm">乌德穆尔特语</option><option value="ur">乌尔都语</option><option value="uk">乌克兰语</option><option value="uz">乌兹别克语</option><option value="es">西班牙语</option><option value="szl">西里西亚语</option><option value="scn">西西里语</option><option value="he">希伯来语</option><option value="el">希腊语</option><option value="hil">希利盖农语</option><option value="dsb">下索布语</option><option value="haw">夏威夷语</option><option value="sd">信德语</option><option value="hu">匈牙利语</option><option value="sn">修纳语</option><option value="su">巽他语</option><option value="jam">牙买加土语</option><option value="sah">雅库特语</option><option value="hy">亚美尼亚语</option><option value="ace">亚齐语</option><option value="iba">伊班语</option><option value="ig">伊博语</option><option value="ilo">伊洛卡诺语</option><option value="it">意大利语</option><option value="yi">意第绪语</option><option value="iu-Latn">因纽特语（拉丁文）</option><option value="iu">因纽特语（音节）</option><option value="hi">印地语</option><option value="id">印尼语</option><option value="en">英语</option><option value="yua">尤卡坦玛雅语</option><option value="yo">约鲁巴语</option><option value="yue">粤语</option><option value="vi">越南语</option><option value="jv">爪哇语</option><option value="zh-TW">中文（繁体）</option><option value="zh-CN">中文（简体）</option><option value="dz">宗卡语</option><option value="zu">祖鲁语</option><option value="brx">Bodo</option><option value="hne">Chhattisgarhi</option><option value="lzh">Chinese (Literary)</option><option value="sjn">Elvish (Sindarin)</option><option value="emj">Emoji</option><option value="mrj">Hill Mari</option><option value="ikt">Inuinnaqtun</option><option value="ks">Kashmiri</option><option value="kazlat">Kazakh (Latin)</option><option value="mhr">Mari</option><option value="mn-Mong">Mongolian (Traditional)</option><option value="nya">Nyanja</option><option value="run">Rundi</option><option value="uzbcyr">Uzbek (Cyrillic)</option></select>
+            </div>
+          </div>
+        </div>
+        <ul id="neverTranslateLangs" class="w3-ul w3-card-4 w3-margin w3-round list"><li class="w3-display-container" value="0">中文（简体）<span class="w3-button w3-transparent w3-display-right">×</span></li></ul>
+        <div>
+          <br>
+          <div class="w3-display-container w3-padding w3-margin-top">
+            <div class="w3-display-left">
+              <p>
+                <b data-i18n="optionsAlwaysTranslate">总是翻译这些语言</b>
+              </p>
+            </div>
+            <div class="w3-display-right">
+              <div style="position: relative">
+                <button class="w3-button w3-blue w3-round w3-margin-right add" data-i18n="lblAdd">添加</button>
+                <select id="addToAlwaysTranslateLangs" class="add">
+                  <option value="" selected="" disabled="" hidden=""></option>
+                <option value="ab">阿布哈兹语</option><option value="sq">阿尔巴尼亚语</option><option value="aa">阿法尔语</option><option value="ar">阿拉伯语</option><option value="alz">阿卢尔语</option><option value="am">阿姆哈拉语</option><option value="ach">阿乔利语</option><option value="as">阿萨姆语</option><option value="az">阿塞拜疆语</option><option value="awa">阿瓦德语</option><option value="av">阿瓦尔语</option><option value="ee">埃维语</option><option value="ay">艾马拉语</option><option value="ga">爱尔兰语</option><option value="et">爱沙尼亚语</option><option value="oc">奥克语</option><option value="or">奥利亚语</option><option value="om">奥罗莫语</option><option value="os">奥塞梯语</option><option value="tpi">巴布亚皮钦语</option><option value="bew">巴达维语</option><option value="ban">巴厘语</option><option value="ba">巴什基尔语</option><option value="eu">巴斯克语</option><option value="btx">巴塔克卡罗语</option><option value="bbc">巴塔克托巴语</option><option value="bts">巴塔克西马隆贡语</option><option value="bci">巴乌雷语</option><option value="be">白俄罗斯语</option><option value="bm">班巴拉语</option><option value="pag">邦阿西楠语</option><option value="pam">邦板牙语</option><option value="bg">保加利亚语</option><option value="nso">北索托语</option><option value="bem">奔巴语</option><option value="bik">比科尔语</option><option value="bal">俾路支语</option><option value="is">冰岛语</option><option value="pl">波兰语</option><option value="bs">波斯尼亚语</option><option value="fa">波斯语</option><option value="bho">博杰普尔语</option><option value="bua">布里亚特语</option><option value="br">布列塔尼语</option><option value="bo">藏语</option><option value="chm">草原马里语</option><option value="ch">查莫罗语</option><option value="ce">车臣语</option><option value="chk">楚克语</option><option value="cv">楚瓦什语</option><option value="tn">茨瓦纳语</option><option value="ts">聪加语</option><option value="prs">达里语</option><option value="tt">鞑靼语</option><option value="da">丹麦语</option><option value="shn">掸语</option><option value="tet">德顿语</option><option value="de">德语</option><option value="dv">迪维希语</option><option value="dyu">迪尤拉语</option><option value="tiv">蒂夫语</option><option value="din">丁卡语</option><option value="doi">多格拉语</option><option value="ru">俄语</option><option value="ndc-ZW">恩道语</option><option value="nr">恩德贝莱语（南部）</option><option value="dov">恩敦贝语</option><option value="bm-Nkoo">恩科字母（西非书面文字）</option><option value="fo">法罗语</option><option value="fr">法语</option><option value="fr-CA">法语 (加拿大)</option><option value="sa">梵语</option><option value="tl">菲律宾语</option><option value="fj">斐济语</option><option value="fi">芬兰语</option><option value="fon">丰语</option><option value="fy">弗里西语</option><option value="fur">弗留利语</option><option value="ff">富拉尼语</option><option value="kg">刚果语</option><option value="km">高棉语</option><option value="kl">格陵兰语</option><option value="ka">格鲁吉亚语</option><option value="gom">贡根语</option><option value="gu">古吉拉特语</option><option value="gn">瓜拉尼语</option><option value="cnh">哈卡钦语</option><option value="kk">哈萨克语</option><option value="ht">海地克里奥尔语</option><option value="ko">韩语</option><option value="ha">豪萨语</option><option value="nl">荷兰语</option><option value="hrx">洪斯吕克语</option><option value="ky">吉尔吉斯语</option><option value="ktu">吉土巴语</option><option value="gl">加利西亚语</option><option value="ca">加泰罗尼亚语</option><option value="gaa">加语</option><option value="cs">捷克语</option><option value="kac">景颇语</option><option value="kn">卡纳达语</option><option value="kr">卡努里语</option><option value="kha">卡西语</option><option value="kek">凯克其语</option><option value="kv">科米语</option><option value="xh">科萨语</option><option value="co">科西嘉语</option><option value="otq">克雷塔罗奥托米语</option><option value="crh-Latn">克里米亚鞑靼语（拉丁文）</option><option value="crh">克里米亚鞑靼语（西里尔文）</option><option value="tlh-Latn">克林贡语 (拉丁文)</option><option value="tlh-Piqd">克林贡语 (pIqaD)</option><option value="hr">克罗地亚语</option><option value="qu">克丘亚语</option><option value="ku">库尔德语（库尔曼吉语）</option><option value="ckb">库尔德语（索拉尼）</option><option value="trp">廓克博若克语</option><option value="la">拉丁语</option><option value="ltg">拉特加莱语</option><option value="lv">拉脱维亚语</option><option value="lo">老挝语</option><option value="lt">立陶宛语</option><option value="lij">利古里亚语</option><option value="li">林堡语</option><option value="ln">林加拉语</option><option value="rn">隆迪语</option><option value="luo">卢奥语</option><option value="lg">卢干达语</option><option value="lb">卢森堡语</option><option value="rw">卢旺达语</option><option value="lmo">伦巴第语</option><option value="ro">罗马尼亚语</option><option value="rom">罗姆语</option><option value="mad">马都拉语</option><option value="gv">马恩岛语</option><option value="mg">马尔加什语</option><option value="mwr">马尔瓦迪语</option><option value="mt">马耳他语</option><option value="mr">马拉地语</option><option value="ml">马拉雅拉姆语</option><option value="ms">马来语</option><option value="ms-Arab">马来语（爪夷文）</option><option value="mk">马其顿语</option><option value="mh">马绍尔语</option><option value="mam">玛姆语</option><option value="mai">迈蒂利语</option><option value="mfe">毛里裘斯克里奥耳语</option><option value="mi">毛利语</option><option value="mni-Mtei">梅泰语（曼尼普尔语）</option><option value="mn">蒙古语</option><option value="bn">孟加拉语</option><option value="min">米南语</option><option value="lus">米佐语</option><option value="my">缅甸语</option><option value="hmn">苗语</option><option value="nhe">纳瓦特尔语（东部瓦斯特卡）</option><option value="af">南非荷兰语</option><option value="st">南索托语</option><option value="ne">尼泊尔语</option><option value="new">尼泊尔语言（尼瓦尔语）</option><option value="nus">努尔语</option><option value="no">挪威语</option><option value="pap">帕皮阿门托语</option><option value="pa">旁遮普语（果鲁穆奇文）</option><option value="pa-Arab">旁遮普语（沙木基文）</option><option value="pt">葡萄牙语 (巴西)</option><option value="pt-PT">葡萄牙语 (葡萄牙)</option><option value="ps">普什图语</option><option value="ny">齐切瓦语</option><option value="cgg">奇加语</option><option value="lua">奇卢伯语</option><option value="ak">契维语</option><option value="ja">日语</option><option value="sv">瑞典语</option><option value="zap">萨巴特克语</option><option value="se">萨米语（北部）</option><option value="sm">萨摩亚语</option><option value="sr">塞尔维亚语</option><option value="sr-Latn">塞尔维亚语 (拉丁文)</option><option value="kri">塞拉利昂克里奥尔语</option><option value="crs">塞舌尔克里奥尔语</option><option value="sg">桑戈语</option><option value="sat-Latn">桑塔利语（拉丁文）</option><option value="sat">桑塔利语（欧甘文）</option><option value="si">僧伽罗语</option><option value="hsb">上索布语</option><option value="eo">世界语</option><option value="sk">斯洛伐克语</option><option value="sl">斯洛文尼亚语</option><option value="ss">斯瓦特语</option><option value="sw">斯瓦希里语</option><option value="gd">苏格兰盖尔语</option><option value="sus">苏苏语</option><option value="ceb">宿务语</option><option value="so">索马里语</option><option value="tg">塔吉克语</option><option value="ber">塔马齐格特语（提非纳文）</option><option value="ber-Latn">塔马塞特语</option><option value="ty">塔希提语</option><option value="te">泰卢固语</option><option value="ta">泰米尔语</option><option value="th">泰语</option><option value="to">汤加语</option><option value="ti">提格里尼亚语</option><option value="tcy">图鲁语</option><option value="tum">图姆布卡语</option><option value="tyv">图瓦语</option><option value="tr">土耳其语</option><option value="tk">土库曼语</option><option value="war">瓦瑞语</option><option value="mak">望加锡语</option><option value="cy">威尔士语</option><option value="vec">威尼斯语</option><option value="ug">维吾尔语</option><option value="ve">文达语</option><option value="wo">沃洛夫语</option><option value="udm">乌德穆尔特语</option><option value="ur">乌尔都语</option><option value="uk">乌克兰语</option><option value="uz">乌兹别克语</option><option value="es">西班牙语</option><option value="szl">西里西亚语</option><option value="scn">西西里语</option><option value="he">希伯来语</option><option value="el">希腊语</option><option value="hil">希利盖农语</option><option value="dsb">下索布语</option><option value="haw">夏威夷语</option><option value="sd">信德语</option><option value="hu">匈牙利语</option><option value="sn">修纳语</option><option value="su">巽他语</option><option value="jam">牙买加土语</option><option value="sah">雅库特语</option><option value="hy">亚美尼亚语</option><option value="ace">亚齐语</option><option value="iba">伊班语</option><option value="ig">伊博语</option><option value="ilo">伊洛卡诺语</option><option value="it">意大利语</option><option value="yi">意第绪语</option><option value="iu-Latn">因纽特语（拉丁文）</option><option value="iu">因纽特语（音节）</option><option value="hi">印地语</option><option value="id">印尼语</option><option value="en">英语</option><option value="yua">尤卡坦玛雅语</option><option value="yo">约鲁巴语</option><option value="yue">粤语</option><option value="vi">越南语</option><option value="jv">爪哇语</option><option value="zh-TW">中文（繁体）</option><option value="zh-CN">中文（简体）</option><option value="dz">宗卡语</option><option value="zu">祖鲁语</option><option value="brx">Bodo</option><option value="hne">Chhattisgarhi</option><option value="lzh">Chinese (Literary)</option><option value="sjn">Elvish (Sindarin)</option><option value="emj">Emoji</option><option value="mrj">Hill Mari</option><option value="ikt">Inuinnaqtun</option><option value="ks">Kashmiri</option><option value="kazlat">Kazakh (Latin)</option><option value="mhr">Mari</option><option value="mn-Mong">Mongolian (Traditional)</option><option value="nya">Nyanja</option><option value="run">Rundi</option><option value="uzbcyr">Uzbek (Cyrillic)</option></select>
+              </div>
+            </div>
+          </div>
+          <ul id="alwaysTranslateLangs" class="w3-ul w3-card-4 w3-margin w3-round list"></ul>
+        </div>
+        <div class="desktopOnly">
+          <br>
+          <div class="w3-display-container w3-padding w3-margin-top">
+            <div class="w3-display-left">
+              <p>
+                <b data-i18n="lblShowTranslatedHoveringLangs">在这些语言的网站悬停显示翻译</b>
+              </p>
+            </div>
+            <div class="w3-display-right">
+              <div style="position: relative">
+                <button class="w3-button w3-blue w3-round w3-margin-right add" data-i18n="lblAdd">添加</button>
+                <select id="addLangToTranslateWhenHovering" class="add">
+                  <option value="" selected="" disabled="" hidden=""></option>
+                <option value="ab">阿布哈兹语</option><option value="sq">阿尔巴尼亚语</option><option value="aa">阿法尔语</option><option value="ar">阿拉伯语</option><option value="alz">阿卢尔语</option><option value="am">阿姆哈拉语</option><option value="ach">阿乔利语</option><option value="as">阿萨姆语</option><option value="az">阿塞拜疆语</option><option value="awa">阿瓦德语</option><option value="av">阿瓦尔语</option><option value="ee">埃维语</option><option value="ay">艾马拉语</option><option value="ga">爱尔兰语</option><option value="et">爱沙尼亚语</option><option value="oc">奥克语</option><option value="or">奥利亚语</option><option value="om">奥罗莫语</option><option value="os">奥塞梯语</option><option value="tpi">巴布亚皮钦语</option><option value="bew">巴达维语</option><option value="ban">巴厘语</option><option value="ba">巴什基尔语</option><option value="eu">巴斯克语</option><option value="btx">巴塔克卡罗语</option><option value="bbc">巴塔克托巴语</option><option value="bts">巴塔克西马隆贡语</option><option value="bci">巴乌雷语</option><option value="be">白俄罗斯语</option><option value="bm">班巴拉语</option><option value="pag">邦阿西楠语</option><option value="pam">邦板牙语</option><option value="bg">保加利亚语</option><option value="nso">北索托语</option><option value="bem">奔巴语</option><option value="bik">比科尔语</option><option value="bal">俾路支语</option><option value="is">冰岛语</option><option value="pl">波兰语</option><option value="bs">波斯尼亚语</option><option value="fa">波斯语</option><option value="bho">博杰普尔语</option><option value="bua">布里亚特语</option><option value="br">布列塔尼语</option><option value="bo">藏语</option><option value="chm">草原马里语</option><option value="ch">查莫罗语</option><option value="ce">车臣语</option><option value="chk">楚克语</option><option value="cv">楚瓦什语</option><option value="tn">茨瓦纳语</option><option value="ts">聪加语</option><option value="prs">达里语</option><option value="tt">鞑靼语</option><option value="da">丹麦语</option><option value="shn">掸语</option><option value="tet">德顿语</option><option value="de">德语</option><option value="dv">迪维希语</option><option value="dyu">迪尤拉语</option><option value="tiv">蒂夫语</option><option value="din">丁卡语</option><option value="doi">多格拉语</option><option value="ru">俄语</option><option value="ndc-ZW">恩道语</option><option value="nr">恩德贝莱语（南部）</option><option value="dov">恩敦贝语</option><option value="bm-Nkoo">恩科字母（西非书面文字）</option><option value="fo">法罗语</option><option value="fr">法语</option><option value="fr-CA">法语 (加拿大)</option><option value="sa">梵语</option><option value="tl">菲律宾语</option><option value="fj">斐济语</option><option value="fi">芬兰语</option><option value="fon">丰语</option><option value="fy">弗里西语</option><option value="fur">弗留利语</option><option value="ff">富拉尼语</option><option value="kg">刚果语</option><option value="km">高棉语</option><option value="kl">格陵兰语</option><option value="ka">格鲁吉亚语</option><option value="gom">贡根语</option><option value="gu">古吉拉特语</option><option value="gn">瓜拉尼语</option><option value="cnh">哈卡钦语</option><option value="kk">哈萨克语</option><option value="ht">海地克里奥尔语</option><option value="ko">韩语</option><option value="ha">豪萨语</option><option value="nl">荷兰语</option><option value="hrx">洪斯吕克语</option><option value="ky">吉尔吉斯语</option><option value="ktu">吉土巴语</option><option value="gl">加利西亚语</option><option value="ca">加泰罗尼亚语</option><option value="gaa">加语</option><option value="cs">捷克语</option><option value="kac">景颇语</option><option value="kn">卡纳达语</option><option value="kr">卡努里语</option><option value="kha">卡西语</option><option value="kek">凯克其语</option><option value="kv">科米语</option><option value="xh">科萨语</option><option value="co">科西嘉语</option><option value="otq">克雷塔罗奥托米语</option><option value="crh-Latn">克里米亚鞑靼语（拉丁文）</option><option value="crh">克里米亚鞑靼语（西里尔文）</option><option value="tlh-Latn">克林贡语 (拉丁文)</option><option value="tlh-Piqd">克林贡语 (pIqaD)</option><option value="hr">克罗地亚语</option><option value="qu">克丘亚语</option><option value="ku">库尔德语（库尔曼吉语）</option><option value="ckb">库尔德语（索拉尼）</option><option value="trp">廓克博若克语</option><option value="la">拉丁语</option><option value="ltg">拉特加莱语</option><option value="lv">拉脱维亚语</option><option value="lo">老挝语</option><option value="lt">立陶宛语</option><option value="lij">利古里亚语</option><option value="li">林堡语</option><option value="ln">林加拉语</option><option value="rn">隆迪语</option><option value="luo">卢奥语</option><option value="lg">卢干达语</option><option value="lb">卢森堡语</option><option value="rw">卢旺达语</option><option value="lmo">伦巴第语</option><option value="ro">罗马尼亚语</option><option value="rom">罗姆语</option><option value="mad">马都拉语</option><option value="gv">马恩岛语</option><option value="mg">马尔加什语</option><option value="mwr">马尔瓦迪语</option><option value="mt">马耳他语</option><option value="mr">马拉地语</option><option value="ml">马拉雅拉姆语</option><option value="ms">马来语</option><option value="ms-Arab">马来语（爪夷文）</option><option value="mk">马其顿语</option><option value="mh">马绍尔语</option><option value="mam">玛姆语</option><option value="mai">迈蒂利语</option><option value="mfe">毛里裘斯克里奥耳语</option><option value="mi">毛利语</option><option value="mni-Mtei">梅泰语（曼尼普尔语）</option><option value="mn">蒙古语</option><option value="bn">孟加拉语</option><option value="min">米南语</option><option value="lus">米佐语</option><option value="my">缅甸语</option><option value="hmn">苗语</option><option value="nhe">纳瓦特尔语（东部瓦斯特卡）</option><option value="af">南非荷兰语</option><option value="st">南索托语</option><option value="ne">尼泊尔语</option><option value="new">尼泊尔语言（尼瓦尔语）</option><option value="nus">努尔语</option><option value="no">挪威语</option><option value="pap">帕皮阿门托语</option><option value="pa">旁遮普语（果鲁穆奇文）</option><option value="pa-Arab">旁遮普语（沙木基文）</option><option value="pt">葡萄牙语 (巴西)</option><option value="pt-PT">葡萄牙语 (葡萄牙)</option><option value="ps">普什图语</option><option value="ny">齐切瓦语</option><option value="cgg">奇加语</option><option value="lua">奇卢伯语</option><option value="ak">契维语</option><option value="ja">日语</option><option value="sv">瑞典语</option><option value="zap">萨巴特克语</option><option value="se">萨米语（北部）</option><option value="sm">萨摩亚语</option><option value="sr">塞尔维亚语</option><option value="sr-Latn">塞尔维亚语 (拉丁文)</option><option value="kri">塞拉利昂克里奥尔语</option><option value="crs">塞舌尔克里奥尔语</option><option value="sg">桑戈语</option><option value="sat-Latn">桑塔利语（拉丁文）</option><option value="sat">桑塔利语（欧甘文）</option><option value="si">僧伽罗语</option><option value="hsb">上索布语</option><option value="eo">世界语</option><option value="sk">斯洛伐克语</option><option value="sl">斯洛文尼亚语</option><option value="ss">斯瓦特语</option><option value="sw">斯瓦希里语</option><option value="gd">苏格兰盖尔语</option><option value="sus">苏苏语</option><option value="ceb">宿务语</option><option value="so">索马里语</option><option value="tg">塔吉克语</option><option value="ber">塔马齐格特语（提非纳文）</option><option value="ber-Latn">塔马塞特语</option><option value="ty">塔希提语</option><option value="te">泰卢固语</option><option value="ta">泰米尔语</option><option value="th">泰语</option><option value="to">汤加语</option><option value="ti">提格里尼亚语</option><option value="tcy">图鲁语</option><option value="tum">图姆布卡语</option><option value="tyv">图瓦语</option><option value="tr">土耳其语</option><option value="tk">土库曼语</option><option value="war">瓦瑞语</option><option value="mak">望加锡语</option><option value="cy">威尔士语</option><option value="vec">威尼斯语</option><option value="ug">维吾尔语</option><option value="ve">文达语</option><option value="wo">沃洛夫语</option><option value="udm">乌德穆尔特语</option><option value="ur">乌尔都语</option><option value="uk">乌克兰语</option><option value="uz">乌兹别克语</option><option value="es">西班牙语</option><option value="szl">西里西亚语</option><option value="scn">西西里语</option><option value="he">希伯来语</option><option value="el">希腊语</option><option value="hil">希利盖农语</option><option value="dsb">下索布语</option><option value="haw">夏威夷语</option><option value="sd">信德语</option><option value="hu">匈牙利语</option><option value="sn">修纳语</option><option value="su">巽他语</option><option value="jam">牙买加土语</option><option value="sah">雅库特语</option><option value="hy">亚美尼亚语</option><option value="ace">亚齐语</option><option value="iba">伊班语</option><option value="ig">伊博语</option><option value="ilo">伊洛卡诺语</option><option value="it">意大利语</option><option value="yi">意第绪语</option><option value="iu-Latn">因纽特语（拉丁文）</option><option value="iu">因纽特语（音节）</option><option value="hi">印地语</option><option value="id">印尼语</option><option value="en">英语</option><option value="yua">尤卡坦玛雅语</option><option value="yo">约鲁巴语</option><option value="yue">粤语</option><option value="vi">越南语</option><option value="jv">爪哇语</option><option value="zh-TW">中文（繁体）</option><option value="zh-CN">中文（简体）</option><option value="dz">宗卡语</option><option value="zu">祖鲁语</option><option value="brx">Bodo</option><option value="hne">Chhattisgarhi</option><option value="lzh">Chinese (Literary)</option><option value="sjn">Elvish (Sindarin)</option><option value="emj">Emoji</option><option value="mrj">Hill Mari</option><option value="ikt">Inuinnaqtun</option><option value="ks">Kashmiri</option><option value="kazlat">Kazakh (Latin)</option><option value="mhr">Mari</option><option value="mn-Mong">Mongolian (Traditional)</option><option value="nya">Nyanja</option><option value="run">Rundi</option><option value="uzbcyr">Uzbek (Cyrillic)</option></select>
+              </div>
+            </div>
+          </div>
+          <ul id="langsToTranslateWhenHovering" class="w3-ul w3-card-4 w3-margin w3-round list"></ul>
+        </div>
+      </div>
+
+      <div id="sites" class="w3-container" style="display: none;">
+        <div class="desktopOnly">
+          <div class="w3-display-container w3-padding w3-margin-top">
+            <div class="w3-display-left">
+              <p>
+                <b data-i18n="lblAlwaysTranslateSites">总是翻译这些网站</b>
+              </p>
+            </div>
+            <div class="w3-display-right">
+              <button id="addToAlwaysTranslateSites" class="w3-button w3-blue w3-round w3-margin-right add" data-i18n="lblAdd">添加</button>
+            </div>
+          </div>
+          <ul id="alwaysTranslateSites" class="w3-ul w3-card-4 w3-margin w3-round list"></ul>
+        </div>
+        <br>
+        <div class="w3-display-container w3-padding w3-margin-top">
+          <div class="w3-display-left">
+            <p>
+              <b data-i18n="optionsNeverTranslate">永不翻译这些网站</b>
+            </p>
+          </div>
+          <div class="w3-display-right">
+            <button id="addToNeverTranslateSites" class="w3-button w3-blue w3-round w3-margin-right add" data-i18n="lblAdd">添加</button>
+          </div>
+        </div>
+        <ul id="neverTranslateSites" class="w3-ul w3-card-4 w3-margin w3-round list"></ul>
+        <div class="desktopOnly">
+          <br>
+          <div class="w3-display-container w3-padding w3-margin-top">
+            <div class="w3-display-left">
+              <p>
+                <b data-i18n="lblShowTranslatedHoveringSites">在这些网站悬停显示译文</b>
+              </p>
+            </div>
+            <div class="w3-display-right">
+              <button id="addSiteToTranslateWhenHovering" class="w3-button w3-blue w3-round w3-margin-right add" data-i18n="lblAdd">添加</button>
+            </div>
+          </div>
+          <ul id="sitesToTranslateWhenHovering" class="w3-ul w3-card-4 w3-margin w3-round list"></ul>
+        </div>
+        <div class="desktopOnly">
+          <br>
+          <div class="w3-display-container w3-padding w3-margin-top">
+            <div class="w3-display-left">
+              <p>
+                <b data-i18n="optionsAddToCustomDictionary">添加到我的字典（这允许您在网页翻译时跳过某些单词）</b>
+              </p>
+            </div>
+            <div class="w3-display-right">
+              <button id="addToCustomDictionary" class="w3-button w3-blue w3-round w3-margin-right add" data-i18n="lblAdd">添加</button>
+            </div>
+          </div>
+          <ul id="customDictionary" class="w3-ul w3-card-4 w3-margin w3-round list"></ul>
+        </div>
+      </div>
+
+      <div id="translations" class="w3-container" style="display: none;">
+        
+        <p><b data-i18n="lblTtsSpeed">文字转语音的语速</b></p>
+        <input id="ttsSpeed" type="range" min="0.25" max="2.0" step="0.25" value="1.0">
+        <output id="displayTtsSpeed">1</output>
+        <br>
+        <p><b data-i18n="lblTtsVolume">文本转语音音量</b></p>
+        <input id="ttsVolume" type="range" min="0.1" max="2.0" step="0.1" value="1.0">
+        <output id="displayTtsVolume">1</output>
+        <br>
+        <p>
+          <b data-i18n="lblShowTranslateSelectedButton">显示翻译选中文本的按钮</b>
+        </p>
+        <select id="showTranslateSelectedButton" class="w3-select w3-margin">
+          <option value="yes" data-i18n="msgYes">是</option>
+          <option value="no" data-i18n="msgNo">否</option>
+        </select>
+        <div class="w3-container" id="translateSelectedAdvancedOptions">
+          <input type="checkbox" class="check" id="dontShowIfIsNotValidText">
+          <label for="dontShowIfIsNotValidText" data-i18n="dontShowIfIsNotValidText">如果所选文本无效，则不显示</label>
+          <br>
+          <input type="checkbox" class="check" id="dontShowIfPageLangIsTargetLang">
+          <label for="dontShowIfPageLangIsTargetLang" data-i18n="dontShowIfPageLangIsTargetLang">若页面语言与目标语言一致，则不显示</label>
+          <br>
+          <input type="checkbox" class="check" id="dontShowIfPageLangIsUnknown">
+          <label for="dontShowIfPageLangIsUnknown" data-i18n="dontShowIfPageLangIsUnknown">若页面语言未知，则不显示</label>
+          <br>
+          <input type="checkbox" class="check" id="dontShowIfSelectedTextIsTargetLang">
+          <label for="dontShowIfSelectedTextIsTargetLang" data-i18n="dontShowIfSelectedTextIsTargetLang">若选中文本语言与目标语言一致，则不显示</label>
+          <br>
+          <input type="checkbox" class="check" id="dontShowIfSelectedTextIsUnknown">
+          <label for="dontShowIfSelectedTextIsUnknown" data-i18n="dontShowIfSelectedTextIsUnknown">若选中文本语言未知，则不显示</label>
+        </div>
+        <div class="desktopOnly">
+          <br>
+          <p>
+            <b data-i18n="lblShowOriginalTextWhenHovering">悬停显示原文</b>
+          </p>
+          <select id="showOriginalTextWhenHovering" class="w3-select w3-margin">
+            <option value="yes" data-i18n="msgYes">是</option>
+            <option value="no" data-i18n="msgNo">否</option>
+          </select>
+        </div>
+        <br>
+        <p>
+          <b data-i18n="lblAutoTranslateWhenClickingALink">若点击链接所访问的网站与当前域名相同，则自动翻译</b>
+        </p>
+        <select id="autoTranslateWhenClickingALink" class="w3-select w3-margin">
+          <option value="no" data-i18n="msgNo">否</option>
+          <option value="yes" data-i18n="msgYes">是</option>
+        </select>
+        <br>
+        <p>
+          <b data-i18n="lblTranslateDynamicallyCreatedContent">翻译动态创建的内容</b>
+        </p>
+        <select id="translateDynamicallyCreatedContent" class="w3-select w3-margin">
+          <option value="no" data-i18n="msgNo">否</option>
+          <option value="yes" data-i18n="msgYes">是</option>
+        </select>
+        <br>
+        <p>
+          <b data-i18n="lblDontSortResults">不排序翻译结果</b>
+        </p>
+        <select id="dontSortResults" class="w3-select w3-margin">
+          <option value="no" data-i18n="msgNo">否</option>
+          <option value="yes" data-i18n="msgYes">是</option>
+        </select>
+        <br>
+        <p>
+          <b data-i18n="lblTranslateTag_pre">翻译 &lt;PRE&gt; 标签</b>
+        </p>
+        <select id="translateTag_pre" class="w3-select w3-margin">
+          <option value="yes" data-i18n="msgYes">是</option>
+          <option value="no" data-i18n="msgNo">否</option>
+        </select>
+        <br>
+        <p>
+          <b data-i18n="msgEnableIframePageTranslation">在 &lt;IFRAME&gt;中启用页面翻译</b>
+        </p>
+        <select id="enableIframePageTranslation" class="w3-select w3-margin">
+          <option value="yes" data-i18n="msgYes">是</option>
+          <option value="no" data-i18n="msgNo">否</option>
+        </select>
+        <br>
+      </div>
+
+      <div id="style" class="w3-container" style="display: none;">
+        <div class="desktopOnly">
+          <p>
+            <b data-i18n="lblSelectPopupInterfaceStyle">选择弹出界面样式</b>
+          </p>
+          <select id="useOldPopup" class="w3-select w3-margin">
+            <option value="yes" data-i18n="msgInterfaceSimple">简单</option>
+            <option value="no" data-i18n="msgInterfaceComplex">复杂</option>
+          </select>
+        </div>
+
+        <p><b data-i18n="lblDarkMode">深色模式</b></p>
+        <select id="darkMode" class="w3-select w3-margin">
+          <option value="auto" data-i18n="msgAutomatic">自动</option>
+          <option value="yes" data-i18n="msgYes">是</option>
+          <option value="no" data-i18n="msgNo">否</option>
+        </select>
+
+        <div class="desktopOnly">
+          <p>
+            <b data-i18n="popupBlueWhenSiteIsTranslated">若网站已翻译，则将地址栏中图标变为蓝色</b>
+          </p>
+          <select id="popupBlueWhenSiteIsTranslated" class="w3-select w3-margin">
+            <option value="yes" data-i18n="msgYes">是</option>
+            <option value="no" data-i18n="msgNo">否</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="hotkeys" class="w3-container desktopOnly" style="display: none;">
+        <button data-i18n="openNativeShortcutManager" id="openNativeShortcutManager" class="w3-btn w3-light-grey w3-round w3-border w3-margin" style="width: 60%; max-width: 650px">打开本地快捷键管理器</button>
+
+        <p>
+          <b data-i18n="lblKeyboardShortcutsSpecial">特殊键盘快捷键</b>
+        </p>
+        <ul class="w3-container" style="user-select: none; list-style-type: none">
+          <li>
+            <label for="translateSelectedWhenPressTwice"><input type="checkbox" id="translateSelectedWhenPressTwice">
+              <span data-i18n="lblTranslateSelectedWhenPressTwice">连按两下 <kbd>Ctrl</kbd> 键翻译选中文本</span></label>
+          </li>
+          <li>
+            <label for="translateTextOverMouseWhenPressTwice"><input type="checkbox" id="translateTextOverMouseWhenPressTwice">
+              <span data-i18n="lblTranslateTextOverMouseWhenPressTwice">连按两下 <kbd>Ctrl</kbd> 键翻译鼠标悬停文本</span></label>
+          </li>
+        </ul>
+
+        <p><b data-i18n="lblKeyboardShortcuts">键盘快捷键</b></p>
+        <ul id="KeyboardShortcuts" class="w3-container" style="max-width: 680px"><li class="shortcut-row" id="_execute_browser_action">
+        <div>Enable the extension</div>
+        <div class="shortcut-input-options">
+            <div style="position: relative;">
+                <input name="input" class="w3-input w3-border shortcut-input" type="text" readonly="" placeholder="输入一个快捷键" data-i18n-placeholder="enterShortcut" disabled="">
+                <p name="error" class="shortcut-error" style="position: absolute;"></p>
+            </div>
+            <div class="w3-hover-light-grey shortcut-button" name="removeKey" style="display: none;"><i class="gg-trash"></i></div>
+            <div class="w3-hover-light-grey shortcut-button" name="resetKey" style="display: none;"><i class="gg-sync"></i></div>
+        </div>  
+        </li><li class="shortcut-row" id="hotkey-hot-translate-selected-text">
+        <div>自动替换选中文本为译文</div>
+        <div class="shortcut-input-options">
+            <div style="position: relative;">
+                <input name="input" class="w3-input w3-border shortcut-input" type="text" readonly="" placeholder="输入一个快捷键" data-i18n-placeholder="enterShortcut" disabled="">
+                <p name="error" class="shortcut-error" style="position: absolute;"></p>
+            </div>
+            <div class="w3-hover-light-grey shortcut-button" name="removeKey" style="display: none;"><i class="gg-trash"></i></div>
+            <div class="w3-hover-light-grey shortcut-button" name="resetKey" style="display: none;"><i class="gg-sync"></i></div>
+        </div>  
+        </li><li class="shortcut-row" id="hotkey-show-original">
+        <div>恢复页面为原文</div>
+        <div class="shortcut-input-options">
+            <div style="position: relative;">
+                <input name="input" class="w3-input w3-border shortcut-input" type="text" readonly="" placeholder="输入一个快捷键" data-i18n-placeholder="enterShortcut" disabled="">
+                <p name="error" class="shortcut-error" style="position: absolute;"></p>
+            </div>
+            <div class="w3-hover-light-grey shortcut-button" name="removeKey" style="display: none;"><i class="gg-trash"></i></div>
+            <div class="w3-hover-light-grey shortcut-button" name="resetKey" style="display: none;"><i class="gg-sync"></i></div>
+        </div>  
+        </li><li class="shortcut-row" id="hotkey-swap-page-translation-service">
+        <div>切换翻译服务</div>
+        <div class="shortcut-input-options">
+            <div style="position: relative;">
+                <input name="input" class="w3-input w3-border shortcut-input" type="text" readonly="" placeholder="输入一个快捷键" data-i18n-placeholder="enterShortcut" disabled="">
+                <p name="error" class="shortcut-error" style="position: absolute;"></p>
+            </div>
+            <div class="w3-hover-light-grey shortcut-button" name="removeKey" style="display: none;"><i class="gg-trash"></i></div>
+            <div class="w3-hover-light-grey shortcut-button" name="resetKey" style="display: none;"><i class="gg-sync"></i></div>
+        </div>  
+        </li><li class="shortcut-row" id="hotkey-toggle-translation">
+        <div>在页面的译文和原文间切换</div>
+        <div class="shortcut-input-options">
+            <div style="position: relative;">
+                <input name="input" class="w3-input w3-border shortcut-input" type="text" readonly="" placeholder="输入一个快捷键" data-i18n-placeholder="enterShortcut" disabled="">
+                <p name="error" class="shortcut-error" style="position: absolute;"></p>
+            </div>
+            <div class="w3-hover-light-grey shortcut-button" name="removeKey" style="display: none;"><i class="gg-trash"></i></div>
+            <div class="w3-hover-light-grey shortcut-button" name="resetKey" style="display: none;"><i class="gg-sync"></i></div>
+        </div>  
+        </li><li class="shortcut-row" id="hotkey-translate-page-1">
+        <div>翻译页面为目标语言 1</div>
+        <div class="shortcut-input-options">
+            <div style="position: relative;">
+                <input name="input" class="w3-input w3-border shortcut-input" type="text" readonly="" placeholder="输入一个快捷键" data-i18n-placeholder="enterShortcut" disabled="">
+                <p name="error" class="shortcut-error" style="position: absolute;"></p>
+            </div>
+            <div class="w3-hover-light-grey shortcut-button" name="removeKey" style="display: none;"><i class="gg-trash"></i></div>
+            <div class="w3-hover-light-grey shortcut-button" name="resetKey" style="display: none;"><i class="gg-sync"></i></div>
+        </div>  
+        </li><li class="shortcut-row" id="hotkey-translate-page-2">
+        <div>翻译页面为目标语言 2</div>
+        <div class="shortcut-input-options">
+            <div style="position: relative;">
+                <input name="input" class="w3-input w3-border shortcut-input" type="text" readonly="" placeholder="输入一个快捷键" data-i18n-placeholder="enterShortcut" disabled="">
+                <p name="error" class="shortcut-error" style="position: absolute;"></p>
+            </div>
+            <div class="w3-hover-light-grey shortcut-button" name="removeKey" style="display: none;"><i class="gg-trash"></i></div>
+            <div class="w3-hover-light-grey shortcut-button" name="resetKey" style="display: none;"><i class="gg-sync"></i></div>
+        </div>  
+        </li><li class="shortcut-row" id="hotkey-translate-page-3">
+        <div>翻译页面为目标语言 3</div>
+        <div class="shortcut-input-options">
+            <div style="position: relative;">
+                <input name="input" class="w3-input w3-border shortcut-input" type="text" readonly="" placeholder="输入一个快捷键" data-i18n-placeholder="enterShortcut" disabled="">
+                <p name="error" class="shortcut-error" style="position: absolute;"></p>
+            </div>
+            <div class="w3-hover-light-grey shortcut-button" name="removeKey" style="display: none;"><i class="gg-trash"></i></div>
+            <div class="w3-hover-light-grey shortcut-button" name="resetKey" style="display: none;"><i class="gg-sync"></i></div>
+        </div>  
+        </li><li class="shortcut-row" id="hotkey-translate-selected-text">
+        <div>翻译选中文本</div>
+        <div class="shortcut-input-options">
+            <div style="position: relative;">
+                <input name="input" class="w3-input w3-border shortcut-input" type="text" readonly="" placeholder="输入一个快捷键" data-i18n-placeholder="enterShortcut" disabled="">
+                <p name="error" class="shortcut-error" style="position: absolute;"></p>
+            </div>
+            <div class="w3-hover-light-grey shortcut-button" name="removeKey" style="display: none;"><i class="gg-trash"></i></div>
+            <div class="w3-hover-light-grey shortcut-button" name="resetKey" style="display: none;"><i class="gg-sync"></i></div>
+        </div>  
+        </li></ul>
+      </div>
+
+      <div id="privacy" class="w3-container" style="display: none;"><div id="selectServiceContainer">
+          <p>
+            <b data-i18n="lblPageTranslationService">页面翻译服务</b>
+          </p>
+          <select id="pageTranslatorService" class="w3-select w3-margin">
+            <option value="google">Google</option>
+            <option value="bing">Bing</option>
+            <option value="yandex">Yandex</option>
+          </select>
+          <br>
+          <p>
+            <b data-i18n="lblTextTranslationService">文本翻译服务</b>
+          </p>
+          <select id="textTranslatorService" class="w3-select w3-margin">
+            <option value="google">Google</option>
+            <option value="bing">Bing</option>
+            <option value="yandex">Yandex</option>
+            <option value="deepl">DeepL</option>
+          </select>
+          <br>
+          <p>
+            <b data-i18n="lblTextToSpeechService">文本转语音服务</b>
+          </p>
+          <select id="textToSpeechService" class="w3-select w3-margin">
+            <option value="google">Google</option>
+            <option value="bing">Bing</option>
+          </select>
+          <br>
+        </div>
+        <div style="margin-top: 10px;">
+          <b data-i18n="selectToEnableTranslationService">选择您想使用的翻译服务</b>
+          <div class="w3-container">
+            <label for="btnEnableGoogle" style="user-select: none;"><input type="checkbox" id="btnEnableGoogle" checked="">
+              Google</label>
+            <br>
+            <label for="btnEnableBing" style="user-select: none;"><input type="checkbox" id="btnEnableBing" checked="">
+              Bing</label>
+            <br>
+            <label for="btnEnableYandex" style="user-select: none;"><input type="checkbox" id="btnEnableYandex" checked="">
+              Yandex</label>
+            <hr style="margin: 5px 0;">
+            <label for="btnEnableDeepL" style="user-select: none;"><input type="checkbox" id="btnEnableDeepL" checked="">
+              DeepL</label>
+            <br>
+          </div>
+        </div>
+        <p>
+          <b data-i18n="useAlternativeService">若所选翻译服务不支持当前目标语言，则自动切至另一翻译服务</b>
+          <select id="useAlternativeService" class="w3-select w3-margin">
+            <option value="yes" data-i18n="msgYes">是</option>
+            <option value="no" data-i18n="msgNo">否</option>
+          </select>
+      </p></div>
+
+      <div id="storage" class="w3-container" style="display: none;">
+        <b data-i18n="lblTranslationCache">翻译缓存</b>
+        <div class="w3-container">
+          <span data-i18n="lblStorageUsed">已用存储空间：</span>
+          <button id="btnCalculateStorage" data-i18n="calculateStorage" style="font-size: 12px; display: inline-block;">计算</button><i id="storageUsed" style="display: none;">0 KB</i> <br>
+
+          <p><b data-i18n="lblEnableDiskCache">启用持久翻译缓存（磁盘缓存）</b></p>
+          <select id="enableDiskCache" class="w3-select w3-margin">
+            <option value="yes" data-i18n="msgYes">是</option>
+            <option value="no" data-i18n="msgNo" selected="">否</option>
+          </select>
+          <br>
+
+          <button class="w3-button w3-light-grey w3-round" data-i18n="deleteTranslationCache" id="deleteTranslationCache">删除翻译缓存</button>
+        </div>
+        <br>
+        <b data-i18n="lblPersonalSettings">个人设置</b>
+        <div class="w3-container">
+          <button class="w3-button w3-light-grey w3-round w3-margin-top" data-i18n="backupToFile" id="backupToFile">备份至文件</button><br>
+          <button class="w3-button w3-light-grey w3-round w3-margin-top" data-i18n="restoreFromFile" id="restoreFromFile">从文件恢复</button><br>
+          <button class="w3-button w3-light-grey w3-round w3-margin-top" data-i18n="resetToDefault" id="resetToDefault">初始化设置</button><br>
+        </div>
+      </div>
+
+      <div id="others" class="w3-container" style="display: none;">
+        <div class="desktopOnly">
+          <p>
+            <b data-i18n="lblShowReleaseNotes">更新后显示发行说明</b>
+          </p>
+          <select id="showReleaseNotes" class="w3-select w3-margin">
+            <option value="yes" data-i18n="msgYes">是</option>
+            <option value="no" data-i18n="msgNo">否</option>
+          </select>
+        </div>
+        <br>
+        <p><b data-i18n="msgWhenShowMobilePopup">何时显示移动弹出窗口</b></p>
+        <select id="whenShowMobilePopup" class="w3-select w3-margin">
+          <option value="when-necessary" data-i18n="msgWhenNecessary">必要时</option>
+          <option value="only-when-i-touch" data-i18n="msgOnlyWhenItouch3Fingers">仅当我用三个手指触摸屏幕时</option>
+          <option value="always-show" data-i18n="msgAlwaysShow">总是显示</option>
+        </select>
+        <div class="desktopOnly">
+          <br>
+          <div class="firefox-only">
+            <p>
+              <b data-i18n="lblButtonInTheAddressBar">在地址栏中显示按钮</b>
+            </p>
+            <select id="showButtonInTheAddressBar" class="w3-select w3-margin">
+              <option value="yes" data-i18n="msgYes">是</option>
+              <option value="no" data-i18n="msgNo">否</option>
+            </select>
+            <br>
+          </div>
+          <p>
+            <b data-i18n="lblShowContextMenu">在右键菜单中显示翻译页面的选项</b>
+          </p>
+          <select id="showTranslatePageContextMenu" class="w3-select w3-margin">
+            <option value="yes" data-i18n="msgYes">是</option>
+            <option value="no" data-i18n="msgNo">否</option>
+          </select>
+          <br>
+          <p>
+            <b data-i18n="lblShowTranslateSelectedContextMenu">在右键菜单中显示翻译选中文本的选项</b>
+          </p>
+          <select id="showTranslateSelectedContextMenu" class="w3-select w3-margin">
+            <option value="yes" data-i18n="msgYes">是</option>
+            <option value="no" data-i18n="msgNo">否</option>
+          </select>
+          <br>
+          <p>
+            <b data-i18n="translateClickingOnce">鼠标左击地址栏中按钮，一键翻译页面。(右击可看到弹出窗口)</b>
+          </p>
+          <select id="translateClickingOnce" class="w3-select w3-margin">
+            <option value="no" data-i18n="msgNo">否</option>
+            <option value="yes" data-i18n="msgYes">是</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="experimental" class="w3-container" style="display: none;">
+        <div>
+          <h3>Configure your Libretranslate server for text (not page) translation.</h3>
+          <label for="libreURL">Your Server URL</label><br>
+          <input type="text" id="libreURL" placeholder="https://my-libretranslate-server.com/translate" style="width: 90%;" autocomplete="off" spellcheck="false"><br>
+          <br>
+          <label for="libreKEY">Your API key</label><br>
+          <input type="text" id="libreKEY" placeholder="c02976e6-ec19-11ed-a05b-0242ac120003" style="width: 90%;" autocomplete="off" spellcheck="false"><br>
+          <br>
+          <button id="addLibre">Add Libretranslate</button>
+          <button id="removeLibre">Remove Libretranslate</button>
+        </div>
+        <hr>
+        <div>
+          <h3>Configure a DeepL Free API API key to translate text (not pages) without opening new tabs.</h3>
+          <label for="deeplKEY">Your API key</label><br>
+          <input type="text" id="deeplKEY" placeholder="7cad3e19-32b8-4cac-a03d-64f3c1e1c1be:fx" style="width: 90%;" autocomplete="off" spellcheck="false"><br>
+          <br>
+          <button id="addDeepL">Add DeepL Free API</button>
+          <button id="removeDeepL">Remove DeepL Free API</button>
+          <p id="deeplApiResponse"></p>
+        </div>
+        <hr>
+        <div>
+          <h4>Show the mobile popup on the desktop</h4>
+          <select id="showMobilePopupOnDesktop">
+            <option value="no">no</option>
+            <option value="yes">yes</option>
+          </select>
+          <h4>Add padding at the beginning or end of the page</h4>
+          <select id="addPaddingToPage">
+            <option value="no">no</option>
+            <option value="yes">yes</option>
+          </select>
+        </div>
+        <hr>
+        <div>
+          <p>If you live in a country with a firewall that blocks the Google translation service and have a server to act as a proxy, you can configure it here.</p>
+          <p>It is important to make it clear that what you are configuring below is not a regular http/https/socks proxy. It is a server created or shared with you. Translation requests will be sent to this server and the server will need to know how to direct this request to Google's servers.</p>
+          <button style="width: 100%;" id="btnShowProxyConfiguration">Show configuration</button>
+          <div id="googleProxyContainer" style="display: none;">
+            <label for="googleTranslateProxyServer">Translation Server</label><br>
+            <input type="text" id="googleTranslateProxyServer" placeholder="translate.googleapis.com" style="width: 50%;" autocomplete="off" spellcheck="false"><br>
+            <br>
+            <label for="googleTtsProxyServer">Text-to-speech server</label><br>
+            <input type="text" id="googleTtsProxyServer" placeholder="translate.google.com" style="width: 50%;" autocomplete="off" spellcheck="false"><br>
+            <br>
+            <button id="addGoogleProxy">Set Google Proxy</button>
+            <button id="removeGoogleProxy">Remove Google Proxy</button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div id="donation" class="w3-container" style="display: none;">
+          <section style="background-color: #87CEEB; padding: 20px; border-radius: 20px; box-shadow: 0 0 10px 3px black;">
+            <div style="font-size: 1.2em;">
+              <p style="white-space: pre-line;" data-i18n="donationText">我已经开发、更新和支持这个扩展超过五年了。看到我们每天有超过 600,000 名用户真是太神奇了。
+
+如果您能通过 Paypal 或成为我的 Patreon 会员为我提供经济帮助，我将不胜感激，您的贡献可以帮助我继续改进这个扩展。
+
+感谢所有已经为这个项目做出贡献的人。</p>
+
+              <div style="display: flex; justify-content: space-between;">
+                <div>
+                  <a href="https://www.patreon.com/filipeps" target="blank" class="patreonButton"><img src="chrome-extension://lpfanhbckoffhgkncoohkflmgooghpoh/icons/patreon.png" alt="Become a patreon" width="260"></a>
+                </div>
+
+                <div style="font-size: 0.9em;">
+                  <b>
+                    <div style="display: inline-block" data-i18n="donatewithpaypal">PayPal 捐款</div>
+                  </b>
+                  <select id="currency" style="margin-left: 8px">
+                    <option value="USD">USD</option>
+                    <option value="BRL">BRL</option>
+                  </select>
+                  <div id="donateInUSD">
+                    <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank">
+                      <input type="hidden" name="cmd" value="_s-xclick">
+                      <input type="hidden" name="hosted_button_id" value="3FH2APUZGCY3A">
+                      <table>
+                        <tbody><tr>
+                          <td>
+                            <input type="hidden" name="on0" value="Donate With Paypal">
+                          </td>
+                        </tr>
+                        <tr>
+                          <td>
+                            <select name="os0">
+                              <option value="Maximum">20,00 USD</option>
+                              <option value="Pizza">10,00 USD</option>
+                              <option value="Lunch" selected="">5,00 USD</option>
+                              <option value="Coffe">3,00 USD</option>
+                            </select>
+                          </td>
+                        </tr>
+                      </tbody></table>
+                      <input type="hidden" name="currency_code" value="USD">
+                      <input type="image" src="chrome-extension://lpfanhbckoffhgkncoohkflmgooghpoh/icons/btn_donate_LG.webp" border="0" name="submit" alt="PayPal">
+                      <img alt="" border="0" src="chrome-extension://lpfanhbckoffhgkncoohkflmgooghpoh/icons/pixel.gif" width="1" height="1">
+                    </form>
+                  </div>
+
+                  <div id="donateInBRL" style="display: none;">
+                    <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank">
+                      <input type="hidden" name="cmd" value="_s-xclick">
+                      <input type="hidden" name="hosted_button_id" value="UKVQDPTUB5HTG">
+                      <table>
+                        <tbody><tr>
+                          <td>
+                            <input type="hidden" name="on0" value="Doar com o Paypal">
+                          </td>
+                        </tr>
+                        <tr>
+                          <td>
+                            <select name="os0">
+                              <option value="Maximum">50,00 BRL</option>
+                              <option value="Pizza">30,00 BRL</option>
+                              <option value="Lunch" selected="">15,00 BRL</option>
+                              <option value="Coffe">5,00 BRL</option>
+                            </select>
+                          </td>
+                        </tr>
+                      </tbody></table>
+                      <input type="hidden" name="currency_code" value="BRL">
+                      <input type="image" src="chrome-extension://lpfanhbckoffhgkncoohkflmgooghpoh/icons/btn_donate_LG.webp" border="0" name="submit" alt="PayPal">
+                      <img alt="" border="0" src="chrome-extension://lpfanhbckoffhgkncoohkflmgooghpoh/icons/pixel.gif" width="1" height="1">
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div id="release_notes" class="w3-container" style="display: none;"><article style="background-color: #87CEEB; padding: 20px; border-radius: 20px; box-shadow: 0 0 10px 3px black; position: relative;">
+    <div style="font-size: 1.2em;">
+        <!-- i18n = msgHasBeenUpdated -->
+        <p id="_msgHasBeenUpdated"><b>TWP - Translate Web Pages</b> 扩展已更新为版本 <b>10.1.1.1</b>。</p>
+
+        <!-- i18n = donationText -->
+        <p style="white-space: pre-line;" id="_donationText">我已经开发、更新和支持这个扩展超过五年了。看到我们每天有超过 600,000 名用户真是太神奇了。
+
+如果您能通过 Paypal 或成为我的 Patreon 会员为我提供经济帮助，我将不胜感激，您的贡献可以帮助我继续改进这个扩展。
+
+感谢所有已经为这个项目做出贡献的人。</p>
+
+        <div style="display: flex; justify-content: space-between;">
+            <div>
+                <a href="https://www.patreon.com/filipeps" target="blank" class="patreonButton"><img src="chrome-extension://lpfanhbckoffhgkncoohkflmgooghpoh/icons/patreon.png" alt="Become a patreon" width="260"></a>
+            </div>
+
+            <div style="font-size: 0.9em;">
+                <b>
+                    <!-- i18n = donatewithpaypal -->
+                    <div style="display: inline-block" id="_donatewithpaypal">PayPal 捐款</div>
+                </b>
+                <select id="_currency" style="margin-left: 8px">
+                    <option value="USD">USD</option>
+                    <option value="BRL">BRL</option>
+                </select>
+                <div id="_donateInUSD">
+                    <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank">
+                        <input type="hidden" name="cmd" value="_s-xclick">
+                        <input type="hidden" name="hosted_button_id" value="3FH2APUZGCY3A">
+                        <table>
+                            <tbody><tr>
+                                <td>
+                                    <input type="hidden" name="on0" value="Donate With Paypal">
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <select name="os0">
+                                        <option value="Maximum">20,00 USD</option>
+                                        <option value="Pizza">10,00 USD</option>
+                                        <option value="Lunch" selected="">5,00 USD</option>
+                                        <option value="Coffe">3,00 USD</option>
+                                    </select>
+                                </td>
+                            </tr>
+                        </tbody></table>
+                        <input type="hidden" name="currency_code" value="USD">
+                        <input type="image" src="chrome-extension://lpfanhbckoffhgkncoohkflmgooghpoh/icons/btn_donate_LG.webp" border="0" name="submit" alt="PayPal">
+                        <img alt="" border="0" src="chrome-extension://lpfanhbckoffhgkncoohkflmgooghpoh/icons/pixel.gif" width="1" height="1">
+                    </form>
+                </div>
+
+                <div id="_donateInBRL" style="display: none;">
+                    <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank">
+                        <input type="hidden" name="cmd" value="_s-xclick">
+                        <input type="hidden" name="hosted_button_id" value="UKVQDPTUB5HTG">
+                        <table>
+                            <tbody><tr>
+                                <td>
+                                    <input type="hidden" name="on0" value="Doar com o Paypal">
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <select name="os0">
+                                        <option value="Maximum">50,00 BRL</option>
+                                        <option value="Pizza">30,00 BRL</option>
+                                        <option value="Lunch" selected="">15,00 BRL</option>
+                                        <option value="Coffe">5,00 BRL</option>
+                                    </select>
+                                </td>
+                            </tr>
+                        </tbody></table>
+                        <input type="hidden" name="currency_code" value="BRL">
+                        <input type="image" src="chrome-extension://lpfanhbckoffhgkncoohkflmgooghpoh/icons/btn_donate_LG.webp" border="0" name="submit" alt="PayPal">
+                        <img alt="" border="0" src="chrome-extension://lpfanhbckoffhgkncoohkflmgooghpoh/icons/pixel.gif" width="1" height="1">
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- i18n = msgDonationRecipient -->
+        <p id="_donationRecipient" style="margin: 4px 0 -14px 0">您的捐款将捐献给 <b>TWP - Translate Web Pages</b> 扩展的开发者。</p>
+    </div>
+    <div style="position: absolute; inset: 0px; background-color: rgba(0, 0, 0, 0); display: none; opacity: 0;" id="donationOverflow"></div>
+</article>
+
+<section>
+    <h4>10.1.1 - March 16, 2025</h4>
+    <ul>
+        <li>Fixed:
+            <ul>
+                <li>Google translate does not work when specifying original language</li>
+                <li>Translation with DeepL in new tab does not work</li>
+            </ul>
+        </li>
+        <li>Updated interface localizations</li>
+    </ul>
+</section>
+<section>
+    <h4>10.1 - February 28, 2025</h4>
+    <ul>
+        <li>The extension now uses a new Google Translation API</li>
+        <li>Added a delay to show the Popup when tapping with three fingers on the screen. This should prevent the menu from appearing when you take a screenshot</li>
+        <li>Fixed: Translation with Bing gets stuck after 14 minutes</li>
+        <li>Interface localization for: <i>Bulgarian</i> and <i>Tamil</i></li>
+        <li>You can now translate websites into 114 new languages ​​using Google (some of this list were already supported by Bing or Yandex):</li>
+        <ul>
+            <li><i>
+                Abkhaz, Acehnese, Acholi, Afar, Alur, Avar, Awadhi, Balinese, Baluchi, Baoulé,
+                Bashkir, Batak Karo, Batak Simalungun, Batak Toba, Bemba, Betawi, Bikol, Breton,
+                Buryat, Cantonese, Chamorro, Chechen, Chuukese, Chuvash, Crimean Tatar (Cyrillic),
+                Crimean Tatar (Latin), Dari, Dinka, Dombe, Dyula, Dzongkha, Faroese, Fijian,
+                Fon, French (Canada), Friulian, Fulani, Ga, Hakha Chin, Hiligaynon, Hunsrik, Iban,
+                Inuktut (Latin), Jamaican Patois, Jingpo, Kalaallisut, Kanuri, Kapampangan, Khasi,
+                Kiga, Kikongo, Kituba, Kokborok, Komi, Latgalian, Ligurian, Limburgish, Lombard,
+                Luo, Madurese, Makassar, Malay (Jawi), Mam, Manx, Marshallese, Marwadi, Mauritian Creole,
+                Meadow Mari, Minang, Nahuatl (Eastern Huasteca), Ndau, Ndebele (South), Nepalbhasa (Newari),
+                NKo, Nuer, Occitan, Ossetian, Pangasinan, Papiamento, Punjabi (Shahmukhi), Qʼeqchiʼ, Romani,
+                Rundi, Sami (North), Sango, Santali (Latin), Santali (Ol Chiki), Seychellois Creole, Shan,
+                Sicilian, Silesian, Susu, Swati, Tahitian, Tamazight, Tamazight (Tifinagh), Tetum,
+                Tibetan, Tiv, Tok Pisin, Tongan, Tshiluba, Tswana, Tulu, Tumbuka, Tuvan, Udmurt, Venda,
+                Venetian, Waray, Wolof, Yakut, Yucatec Maya, Zapotec.
+            </i></li>
+        </ul>
+    </ul>
+</section>
+<section>
+    <h4>10.0.1 - March 5, 2024</h4>
+    <ul>
+        <li>Fixed: Text-to-speech audio amplifier does not allow the PC to enter sleep mode</li>
+        <li>Some fixes to the color of the address bar extension icon</li>
+        <li>Defined minimum size for the translate button in the Android interface</li>
+        <li>Update interface translations</li>
+    </ul>
+</section>
+<section>
+    <h4>10.0 - February 20, 2024</h4>
+    <ul>
+        <li>About the <b>Android</b> version.
+            <ul>
+                <li>To use the extension on <b>Firefox Android</b>, install the latest version of <b>Firefox (120 or
+                        higher)</b> from the <i>Play Store</i>, older versions are not supported. It is no longer
+                    necessary to use <i>Iceraven</i> or <i>Firefox Nightly</i>.</li>
+                <li>After installing <i>Firefox</i> open the extension manager, scroll down and click <b>Find more
+                        add-ons</b>. Search <b>TWP</b> and install the <b>TWP - Translate For Mobile</b> extension.</li>
+                <li>The popup interface for <i>Android</i> has been completely redone, hopefully this fixes past issues.
+                </li>
+                <li>The <b>Always translate from [language]</b> option is now available on Android.</li>
+                <li>Remember that when you touch the screen with three fingers, the popup is shown/hidden. If you drag
+                    the popup to the side it will also be hidden.</li>
+                <li>In the <b>Others</b> configuration tab, you have the option <b>When to show the mobile popup</b> with the options: <i>When necessary</i>, <i>Only when I touch three fingers on the screen</i>, <i>Always show</i></li>
+            </ul>
+        </li>
+        <li>Added
+            <ul>
+                <li>Support for 3 new target languages:
+                    <i>Bodo, Chhattisgarhi, Kashmiri.</i>
+                </li>
+                <li>Option to set the <b>volume (with boost)</b> of text-to-speech in the translation settings</li>
+                <li>
+                    <dl>
+                        <dt><b>Do not show if the selected text is not valid</b></dt>
+                        <dd>Enabled by default. And always active for the option <b>[Show translations when hovering
+                                over...]</b></dd>
+                    </dl>
+                </li>
+                <li>
+                    <dl>
+                        <dt>Option to disable <b>iframe</b> page translation</dt>
+                        <dd>If you disable it, you can translate the <i>iframe</i> manually using the button in the
+                            context menu</dd>
+                    </dl>
+                </li>
+                <li>Experimental option to set a proxy server to translate using google</li>
+            </ul>
+        </li>
+        <li>Changes
+            <ul>
+                <li>The <b>[Automatically translate when clicking on a link...]</b> option will not be applied to
+                    <b>Never translate these sites</b>
+                </li>
+                <li>When you click on always/never translate this site/language, the site may be translated/restored to
+                    improve usability</li>
+                <li>Now the translate selected text button will be less annoying, appearing only when the selected text
+                    is valid</li>
+                <li>When the DeepL tab opens, a message informs you of the reason</li>
+                <li>Now, when you press the <b>ESC</b> key, the selected text translate panel will close</li>
+            </ul>
+        </li>
+        <li>Fixed
+            <ul>
+                <li>In Chrome, the translate selected text panel is not localized to the language selected in settings.
+                </li>
+                <li>Extension icon color when using some themes</li>
+                <li>Fix flash of unstyled content on some sites <i>(Thanks Psychpsyo)</i></li>
+                <li>The tts speed config is not loaded when starting the extension</li>
+                <li>Options page doesn't work if <i>sessionStorage</i> is <i>null</i></li>
+                <li>Some texts are not localized in the preferred language for the UI</li>
+                <li>Translate selected text panel appears off-screen on Android</li>
+                <li>Extension icon does not change color when page is translated in Chrome</li>
+                <li>Page language is not detected in Opera and Kiwi</li>
+            </ul>
+        </li>
+        <li>Updated some language names</li>
+        <li>Update interface translations</li>
+    </ul>
+</section>
+<section>
+    <h4>9.9 - September 3, 2023</h4>
+    <ul>
+        <li>Added
+            <ul>
+                <li>Bing as a text-to-speech service</li>
+            </ul>
+        </li>
+        <li>Changes
+            <ul>
+                <li>On Android when touching 3 fingers on the screen the popup of the extension will also be hidden</li>
+                <li>The html tags <i>&lt;math&gt;</i>, <i>&lt;mjx-container&gt;</i> and <i>&lt;tex-math&gt;</i> will not
+                    be translated</li>
+            </ul>
+        </li>
+        <li>Fixed
+            <ul>
+                <li>Extension icon color when using dark mode</li>
+                <li>Extension icon color when using <i>Firefox Alpenglow</i> theme</li>
+                <li>Mathematical elements are sometimes translated</li>
+            </ul>
+        </li>
+        <li>Updated some language names</li>
+        <li>Update interface translations</li>
+    </ul>
+</section>
+<section>
+    <h4>9.8.2 - July 31, 2023</h4>
+    <ul>
+        <li>When clicking the DeepL button in the Translate selected text panel a confirmation message will be shown
+        </li>
+        <li>Update interface translations</li>
+    </ul>
+</section>
+<section>
+    <h4>9.8.1 - June 18, 2023</h4>
+    <ul>
+        <li>Changes
+            <ul>
+                <li>For custom dictionaries, adapt to the official Bing API</li>
+                <li>Now the button to switch between translation services also appears in the <i>simple interface</i>
+                    when the site is translated</li>
+            </ul>
+        </li>
+        <li>Fixed
+            <ul>
+                <li><b>Copy</b> button does not appear when translating selected text from inputs</li>
+                <li>Translate button in context menu does not appear in local files</li>
+                <li>Text files are not translated if <b>&lt;pre&gt;</b> tag translation is disabled</li>
+            </ul>
+        </li>
+        <li>Update interface translations</li>
+    </ul>
+</section>
+<section>
+    <h4>9.8 - June 1, 2023</h4>
+    <ul>
+        <li>Added
+            <ul>
+                <li>Release notes since version 1.0</li>
+                <li>Added option to set extension UI language</li>
+                <li>A new way to translate <b>PDF</b>
+                    <ol>
+                        <li>Open website <a href="https://pdf.translatewebpages.org/" target="_blank">pdf.translatewebpages.org</a></li>
+                        <li>Select or drag and drop a PDF file</li>
+                        <li>The translation will start immediately and happen dynamically as you scroll through the page
+                        </li>
+                    </ol>
+                </li>
+                <li><b>Improve translation</b> button in page translation panel, with the options:
+                    <ul>
+                        <li>Select the original website language</li>
+                        <li>Select target language</li>
+                        <li>Page translation service</li>
+                        <li>Do not sort translation results (This option will only apply to the current tab)</li>
+                    </ul>
+                </li>
+                <li><b>Privacy</b> tab on the settings page, with the options:
+                    <ul>
+                        <li>Select the translation services you want to use</li>
+                        <li>Silently use an alternate translation service if the current target language is not
+                            supported by the selected translation service</li>
+                    </ul>
+                </li>
+                <li><b>Experimental</b> tab on the settings page, with the options:
+                    <ul>
+                        <li>Configure your Libretranslate server for text (not page) translation.</li>
+                        <li>Configure a DeepL Free API API key to translate text (not pages).</li>
+                    </ul>
+                </li>
+                <li>Support for 26 new target languages:
+                    <i>
+                        Tibetan, Lower Sorbian, Emoji 😀 (yandex only), Fijian, Faroese, French (Canada), Upper Sorbian,
+                        Inuinnaqtun,
+                        Inuktitut, Inuktitut (Latin), Chinese (Literary), Mongolian (Traditional), Nyanja, Querétaro
+                        Otomi, Dari,
+                        Portuguese (Portugal), Rundi, Elvish (Sindarin), Serbian (Latin), Klingon (Latin), Klingon
+                        (pIqaD), Setswana,
+                        Tongan, Tahitian, Yucatec Maya, Cantonese (Traditional).
+                    </i>
+                </li>
+                <li>Favorite languages in the language selector on Android</li>
+            </ul>
+        </li>
+        <li>Changes
+            <ul>
+                <li>Nodes modified by <i>jiffyreader</i> will not be translated</li>
+                <li>Links in Twitter posts will not be translated to improve translation quality</li>
+                <li>When translating selected text on PDF and other restrictive websites, you now have the option to
+                    listen to the original text as well</li>
+                <li>Now tabs opened by TWP appear next to your current tab.</li>
+            </ul>
+        </li>
+        <li>Fixed
+            <ul>
+                <!-- <li>Gitako doesn't work with TWP</li> -->
+                <li>Selected text translation not working in other extensions popup</li>
+                <li>Layout breaks on some <i>Wikipedia</i> pages when the
+                    <i><code>Do not sort translation results</code></i> option is enabled
+                </li>
+                <!-- <li>Keep whitespace in textNodes to prevent the translation from getting truncated</li> -->
+                <li>Pressing <b>Ctrl</b> twice in the selected text translation panel translates the entire page</li>
+                <li>Comments section on sites like <b>Fox News</b> and <b>Yahoo news</b> are not translated</li>
+            </ul>
+        </li>
+        <li>Bug fixes and general improvements</li>
+        <li>Update interface translations</li>
+    </ul>
+</section>
+<section>
+    <h4>9.7.2.1 - May 12, 2023</h4>
+    <ul>
+        <li>Update interface translations</li>
+    </ul>
+</section>
+<section>
+    <h4>9.7.2 - April 24, 2023</h4>
+    <ul>
+        <li>Added option to disable persistent translation cache (on-disk cache).
+            <ul>
+                <li>By default, persistent caching will be disabled.</li>
+            </ul>
+        </li>
+    </ul>
+</section>
+<section>
+    <h4>9.7 - April 17, 2023</h4>
+    <ul>
+        <li>Added:
+            <ul>
+                <li>Bing as a page translation service.</li>
+                <li>Custom dictionary in site settings.</li>
+                <li>Option to change target language and favorite languages in setting page.</li>
+                <li>Checkbox to disable translate selected text button in simple interface.</li>
+                <li>Auto update for chromium. (CRX only)</li>
+                <li>Taskbar button changes color when page is translated. <i>(Also works in chrome).</i></li>
+            </ul>
+        </li>
+        <li>Fixed:
+            <ul>
+                <li>Option <b>Always translate this site</b> does not work if the language of the site is unknown.</li>
+                <li>If a translation error occurs due to internet problems, the extension does not try to translate
+                    these texts again unless the browser is restarted.</li>
+                <li>Material icons are also translated.</li>
+                <li>Some extension colors.</li>
+                <li>Some bugs when translating sites that use <i>SvelteJS</i> and <i>SolidJS</i>.</li>
+                <li>YouTube video title disappears when the extension is translating the site.</li>
+                <li>DeepL and Bing do not work.</li>
+                <li>Address bar button doesn't turn blue when clicking forward/backward.</li>
+                <li>The option <b>Automatically translate when clicking on a link [...]</b> does not work on some sites.
+                </li>
+                <li>Fixed support for old browsers.</li>
+            </ul>
+        </li>
+        <li>Changes: <i>(some changes fix potential bugs)</i>
+            <ul>
+                <li>Minor performance improvement.</li>
+                <li>Now the extension's two interfaces are just called <i>Simple</i> and <i>Complex</i>.</li>
+                <li>On the settings page the lists of sites and languages are now in alphabetical order.</li>
+                <li>Inform in the simple interface which language the site will be/was translated into.</li>
+                <li>The <b>Always translate from [...]</b> option will be hidden if the target language is the same as
+                    the original website language.</li>
+                <li>Incomplete translations due to error are removed when clicking translate again.</li>
+                <li>Check to prevent a null entry being inserted into the persistent cache.</li>
+                <li>Convert nodeName to lowerCase to avoid problems with XML nodes.</li>
+                <li>Now the extension will only update when the browser or extension is restarted.</li>
+            </ul>
+        </li>
+        <li>Refactored several files.</li>
+        <li>Interface localization in 5 new languages. In total, the extension's interface is localized in 40 languages,
+            thanks to everyone who contributed.</li>
+        <li>Bug fixes and general improvements</li>
+    </ul>
+</section>
+<section>
+    <h4>9.6.1 - October 3, 2022</h4>
+    <ul>
+        <li>Support for older versions of Firefox.</li>
+        <li>Updated interface translations.</li>
+    </ul>
+</section>
+<section>
+    <h4>9.6 - September 23, 2022</h4>
+    <ul>
+        <li>Added:
+            <ul>
+                <li>Option to replace selected text with translated text
+                    <ul>
+                        <li>When you type a message, select the message and translate the selected text, instead of the
+                            copy text button there will be a button to replace/paste the translated text with the
+                            selected text.</li>
+                        <li>If the <code style="background-color: lightgray;">Translate selected text when pressing <kbd>Ctrl</kbd> twice</code>
+                            option is enabled. Hitting <kbd>Ctrl</kbd> when the popup is open will be the same as
+                            clicking that new button.</li>
+                        <li>When selecting text, the shortcut <kbd>Ctrl+Alt+X</kbd> will translate and replace the
+                            selected text instantly without showing any popup.
+                            <ul>
+                                <li>You can edit this hotkey in the extension's settings.</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </li>
+                <li>Added 33 new target languages: <i>Assamese, Aymara, Bambara, Bashkir, Bhojpuri, Chuvash, Dhivehi,
+                        Dogri, Ewe, Guarani, Hill Mari, Ilocano, Kazakh (Latin), Konkani, Krio, Kurdish (Sorani),
+                        Lingala, Luganda, Mari, Maithili, Meiteilon (Manipuri), Mizo, Oromo, Papiamento, Quechua,
+                        Sanskrit, Sepedi, Tigrinya, Tsonga, Twi, Udmurt, Uzbek (Cyrillic), Yakut</i></li>
+                <li>Translation for language names in: <i>Catalan, Danish, Greek, Hungarian, Icelandic, Korean, Persian,
+                        Swedish, Thai and Portuguese (Portugal).</i></li>
+            </ul>
+        </li>
+        <li>Fixed:
+            <ul>
+                <li>Some parts of the translation are lost and consequently parts of the page are left untranslated</li>
+                <li>The <i><code>&lt;option&gt;</code></i> html tag is not translated.</li>
+                <li>Fixed: <i>showOriginalTextWhenHovering</i> always translates placeholder instead of value</li>
+                <li>Traditional Chinese is not detected as site language</li>
+                <li>text-to-speech does not work on long texts in some languages</li>
+                <li>Option to reset/import settings does not work in firefox android</li>
+                <li>The <b>original</b> button is blue even when the page is translated on android</li>
+                <li>Bugs related to invalid language code</li>
+                <li>Bugs related to translation with DeepL</li>
+            </ul>
+        </li>
+        <li>Changes:
+            <ul>
+                <li>Now text-to-speech has an in-memory cache</li>
+                <li>Now the translation service will change silently if the selected target language is not supported by
+                    the preferred translation service.</li>
+                <li>Updated interface translations</li>
+            </ul>
+        </li>
+    </ul>
+</section>
+<section>
+    <h4>9.5.5 - August 21, 2022</h4>
+    <ul>
+        <li>Added:
+            <ul>
+                <li>Option to configure four more hotkey settings for chromium browsers. (same options as in Firefox and
+                    missing in chromium browsers).</li>
+            </ul>
+        </li>
+        <li>Changed:
+            <ul>
+                <li>Now the extension name is <b>TWP - Translate Web Pages</b> in all languages.</li>
+                <li>Disabled the transparent visual style of the translate selected text panel in chromium-based
+                    browsers.</li>
+            </ul>
+        </li>
+        <li>Fixed:
+            <ul>
+                <li>Translate Selected Text panel always appears on the left side of the screen in chromium-based
+                    browsers.</li>
+            </ul>
+        </li>
+    </ul>
+</section>
+<section>
+    <h4>9.5.4 - August 3, 2022</h4>
+    <ul>
+        <li>Changed donation button position.</li>
+    </ul>
+</section>
+<section>
+    <h4>9.5.3 - August 2, 2022</h4>
+    <ul>
+        <li>Fixed:
+            <ul>
+                <li>The button to listen to the selected text overlays some of the text</li>
+            </ul>
+        </li>
+    </ul>
+</section>
+<section>
+    <h4>9.5.2 - August 2, 2022</h4>
+    <ul>
+        <li>Fixed:
+            <ul>
+                <li>Link to translate via Yandex in new tab</li>
+                <li>Bing was not translating to these languages: <i>Hmong, Kurdish (Sorani), Mongolian, Norwegian and
+                        Serbian.</i></li>
+            </ul>
+        </li>
+        <li>Update interface translations</li>
+    </ul>
+</section>
+<section>
+    <h4>9.5.1 - June 23, 2022</h4>
+    <ul>
+        <li>Added:
+            <ul>
+                <li>Button to listen to the original text</li>
+            </ul>
+        </li>
+        <li>Fixed:
+            <ul>
+                <li>Transparency in modified versions of Firefox</li>
+            </ul>
+        </li>
+    </ul>
+</section>
+<section>
+    <h4>9.5 - June 18, 2022</h4>
+    <ul>
+        <li>Added:
+            <ul>
+                <li>Visual improvements in several parts of the extension. Thanks to: <i>CaganAgabey</i></li>
+                <li>Button to copy selected translated text</li>
+            </ul>
+        </li>
+        <li>Fixed:
+            <ul>
+                <li><strong>Fixed: Donation button doesn't work</strong></li>
+                <li>Bing translate does not work</li>
+                <li>Translate PDF with google translation only translates to Portuguese</li>
+                <li>Sometimes the translate selected text popup appears off screen.</li>
+                <li>When translating selected text on some websites, there is no way to manually copy the text.</li>
+                <li><em>Input of type reset</em> is not translated</li>
+            </ul>
+        </li>
+        <li>Changes:
+            <ul>
+                <li>Now you can translate into <em>about:blank</em></li>
+            </ul>
+        </li>
+        <li>Updated interface translations</li>
+        <li>General fixes and improvements.</li>
+    </ul>
+</section>
+<section>
+    <h4>9.4.2 - September 14, 2021</h4>
+    <ul>
+        <li>Fixed bug: Some texts disappear when translating with the option <b>Do not sort the google translate
+                results</b> enabled.</li>
+        <li>Updated interface translations</li>
+    </ul>
+</section>
+<section>
+    <h4>9.4.1</h4>
+    <ul>
+        <li>Fixed bug: youtube comments are not translated sometimes</li>
+        <li>Added: Translate PDF automatically after converting it into HTML</li>
+        <li>Updated interface translations</li>
+    </ul>
+</section>
+<section>
+    <h4>9.4 - September 1, 2021</h4>
+    <ul>
+        <li>Added:
+            <ul>
+                <li>PDF Translation
+                    <ul>
+                        <li>To translate a PDF it is necessary to convert it into HTML.</li>
+                        <li>You can convert using one of these services:
+                            <ul>
+                                <li><b><em>pdftohtml.translatewebpages.org</em></b></li>
+                                <li><b><em>translate.googleusercontent.com</em></b></li>
+                            </ul>
+                        </li>
+                        <li>Files uploaded to <b><em>pdftohtml.translatewebpages.org</em></b> will be deleted in 24
+                            hours.</li>
+                    </ul>
+                </li>
+            </ul>
+        </li>
+        <li>Changes:
+            <ul>
+                <li>Every time the extension updates the translation cache it will be automatically deleted.</li>
+                <li>Now all translated text nodes will be encapsulated in a FONT element
+                    <ul>
+                        <li>This allows the <em>"Show original text when hovering"</em> feature to work on more sites
+                        </li>
+                    </ul>
+                </li>
+                <li>Improved: Detection of which texts are being shown on the screen
+                    <ul>
+                        <li>Texts in iframes will only be translated when the iframe is visible</li>
+                    </ul>
+                </li>
+                <li>Improved: Translation appears a little faster when starting to translate the page.</li>
+                <li>Hide text translation panel if you click on an iframe</li>
+                <li>Stops playing audio if you close the tab</li>
+            </ul>
+        </li>
+        <li>Fixed:
+            <ul>
+                <li>Crash issues when translating certain sites</li>
+                <li>Parts of the page are not restored when using a text marker extension </li>
+                <li>After restarting the browser the option <em>"AutoTranslateWhenClickingALink"</em> stops working</li>
+                <li>Sometimes the extension doesn't work</li>
+            </ul>
+        </li>
+        <li>Updated interface translations</li>
+        <li>Bug fixes and general improvements</li>
+    </ul>
+</section>
+<section>
+    <h4>9.3 - August 10, 2021</h4>
+    <ul>
+        <li>Added: (These features need to be enabled in the settings)
+            <ul>
+                <li>Button to open the shortcut key manager in chromium-based browsers</li>
+                <li>Translate selected text when pressing <b>Ctrl</b> twice</li>
+                <li>Translate the text over the mouse cursor when pressing <b>Ctrl</b> twice</li>
+                <li>Translate the page by clicking once on the button in the address bar. (To see the popup,
+                    right-click)</li>
+            </ul>
+        </li>
+        <li>Changes:
+            <ul>
+                <li>Do not hide the selected text translation panel when switching tabs</li>
+                <li>Show the panel to translate the selected text, even if there is a translation error</li>
+                <li>Some settings that are not used on mobile devices have been hidden</li>
+            </ul>
+        </li>
+        <li>Fixed:
+            <ul>
+                <li>Problem with <i>CSP</i> when showing translation panel on some sites</li>
+                <li>When typing text to translate, key events are triggered in the page listeners</li>
+                <li>Translate selected text button reappears when clicking a scroll bar</li>
+                <li>The "Show translated when hovering" panel is shown while translating the selected text</li>
+                <li>Some features don't work sometimes</li>
+                <li>Some parts of the page are not restored when the <b>Do not sort the google translate results</b>
+                    option is enabled.</li>
+            </ul>
+        </li>
+        <li>Updated interface translations</li>
+        <li>Bug fixes and general improvements</li>
+    </ul>
+</section>
+<section>
+    <h4>9.2 - July 9, 2021</h4>
+    <ul>
+        <li>The <b>webNavigation</b> permission is now optional. If you use the
+            <code>Automatically translate when clicking on a link that takes you to the same domain as the current site</code>
+            option, enable it again in the translation settings.
+        </li>
+        <li>Now the button to translate selected text is automatically hidden when you press any key</li>
+        <li>Updated interface translations</li>
+        <li>Bug fixes and general improvements</li>
+    </ul>
+</section>
+<section>
+    <h4>9.1 - June 29, 2021</h4>
+    <ul>
+        <li>Added:
+            <ul>
+                <li>Bing as a text translation service</li>
+                <li>Do not sort the google translate results</li>
+                <li>Automatically translate when clicking on a link that takes you to the same domain as the current
+                    site</li>
+                <li>Translate dynamically created content
+                    <ul>
+                        <li>This feature already exists, but now you can choose to disable it.</li>
+                    </ul>
+                </li>
+            </ul>
+        </li>
+        <li>The old interface is enabled by default</li>
+        <li>Bug fixes and general improvements</li>
+    </ul>
+</section>
+<section>
+    <h4>9.0.4 - May 17, 2021</h4>
+    <ul>
+        <li>Updated interface translations</li>
+    </ul>
+</section>
+<section>
+    <h4>9.0.3 - May 12, 2021</h4>
+    <ul>
+        <li>Fixed
+            <ul>
+                <li>Some settings are not saved when using Firefox Mobile</li>
+            </ul>
+        </li>
+        <li>Updated interface translations</li>
+    </ul>
+</section>
+<section>
+    <h4>9.0.2 - May 11, 2021</h4>
+    <ul>
+        <li>Fixed
+            <ul>
+                <li>There is no way to change the shortcut keys when using a keyboard with a Russian layout.</li>
+            </ul>
+        </li>
+    </ul>
+</section>
+<section>
+    <h4>9.0.1 - May 10, 2021</h4>
+    <ul>
+        <li>Fixed
+            <ul>
+                <li>Text direction in RTL languages</li>
+                <li>The context menu entry "Translate selected text" is not working in version 9.0 if you disable the
+                    option "Show the button to translate the selected text"</li>
+                <li>A randomly occurring bug that stops the extension working.</li>
+            </ul>
+        </li>
+        <li>Updated interface translations</li>
+    </ul>
+</section>
+<section>
+    <h4>9.0 - May 10, 2021</h4>
+    <ul>
+        <li>Added
+            <ul>
+                <li>DeepL as a translation service
+                    <ul>
+                        <li>Only for translation of selected text (not when hovering)</li>
+                        <li>When you translate for the first time, the DeepL website will open. Keep the tab open and
+                            the next texts will be translated without having to change the tab.</li>
+                    </ul>
+                </li>
+                <li>Storage options
+                    <ul>
+                        <li>Translation cache
+                            <ul>
+                                <li>View used space</li>
+                                <li>Delete the cache*</li>
+                            </ul>
+                        </li>
+                        <li>Personal settings
+                            <ul>
+                                <li>Backup to file</li>
+                                <li>Restore from file*</li>
+                                <li>Restore default configuration*</li>
+                            </ul>
+                        </li>
+                        <li>* After using these options the extension will be reloaded </li>
+                    </ul>
+                </li><li>Shortcuts
+                    <ul>
+                        <li>Options for changing keyboard shortcuts</li>
+                        <li>Default shortcuts
+                            <ul>
+                                <li><kbd>Ctrl+Alt+T</kbd> Switch between the translated and the original page</li>
+                                <li><kbd>Ctrl+Alt+S</kbd> Translate selected text</li>
+                                <li><kbd>Ctrl+Alt+Q</kbd> Switch between translation services</li>
+                                <li><kbd>Alt+0</kbd> Restore page to original</li>
+                                <li><kbd>Alt+1</kbd> <kbd>Alt+2</kbd> <kbd>Alt+3</kbd> Translate to specific target
+                                    languages</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </li>
+                <li>When to translate selected text
+                    <ul>
+                        <li>View original text</li>
+                        <li>Translate the text you type in place of the original text</li>
+                        <li>You can also drag this popup</li>
+                    </ul>
+                </li>
+                <li>Option to control audio speed (tts)</li>
+                <li>Option to hide the button in the address bar</li>
+                <li>Option to translate the <kbd>PRE</kbd> tag</li>
+                <li>More options in the 3-point menu, and the old popup options button
+                    <ul>
+                        <li>Show original text when hovering</li>
+                        <li>Show translation when hovering over this site</li>
+                        <li>Show translation when hovering over websites in PAGE_LANGUAGE</li>
+                    </ul>
+                </li>
+            </ul>
+        </li>
+        <li>Changes
+            <ul>
+                <li>The language for page and text translation may now be different</li>
+                <li>The page and text translation service can now be different</li>
+                <li>When an HTML element has a notranslate attribute, its attributes will not be translated</li>
+                <li>When translating the page with Google, the text formatting will be maintained</li>
+                <li>The <kbd>PRE</kbd> tag is translated by default</li>
+                <li>When using the old popup or in the popup the additional translation languages have been hidden, the
+                    automatic translation of the page (the one that happens as soon as you open the site), will use
+                    targetLanguage1, instead of your previous preference.</li>
+            </ul>
+        </li>
+        <li>Fixed
+            <ul>
+                <li>Translation with Yandex</li>
+                <li>Text formatting when showing original when hovering</li>
+                <li>Among others</li>
+            </ul>
+        </li>
+        <li>Updated interface translations</li>
+    </ul>
+</section>
+<section>
+    <h4>8.9.3 - April 4, 2021</h4>
+    <ul>
+        <li>When you click to translate the selected text in the context menu, the translation will only be done in the
+            popup in the address bar if it is not possible to inject the scripts on the page. That is, only if the page
+            is in read mode or is from some domain without permission for scripts like "addons.mozilla.org".</li>
+    </ul>
+</section>
+<section>
+    <h4>8.9.2 - April 3, 2021</h4>
+    <ul>
+        <li>Updated interface translations</li>
+    </ul>
+</section>
+<section>
+    <h4>8.9.1 - April 2, 2021</h4>
+    <ul>
+        <li>Fixed: Translation of the text selected by the context menu does not work if using dark mode</li>
+        <li>Updated interface translations</li>
+    </ul>
+</section>
+<section>
+    <h4>8.9 - March 30, 2021</h4>
+    <ul>
+        <li>Changes:
+            <ul>
+                <li>Now when clicking on "Translate selected text" in the context menu, the text will be translated in
+                    the popup in the address bar</li>
+                <li>Translate selected text on pages that are not possible to inject scripts such as
+                    "addons.mozilla.org" and "about:reader". Only by the button in the context menu</li>
+            </ul>
+        </li>
+        <li>Fixed:
+            <ul>
+                <li>Sometimes the popup is not displayed correctly</li>
+                <li>Parts of the page are not restored when you click "Original"</li>
+                <li>The pop up shown when translating when hovering, disappears and appears when you click into another
+                    target language or translation service</li>
+                <li>Among others</li>
+            </ul>
+        </li>
+        <li>Optimization in the translation of dynamically created elements</li>
+        <li>Updated interface translations</li>
+    </ul>
+</section>
+<section>
+    <h4>8.8 - March 29, 2021</h4>
+    <ul>
+        <li>Added:
+            <ul>
+                <li>In the 3-point menu
+                    <ul>
+                        <li>Option to always translate this site</li>
+                        <li>Option to translate the selected text</li>
+                        <li>These options appear only if the checkboxes that perform the same function are hidden</li>
+                    </ul>
+                </li>
+                <li>Button to open crowdin in settings</li>
+            </ul>
+        </li>
+        <li>Fixed:
+            <ul>
+                <li>Icons do not turn blue when the site is translated (when using themes)</li>
+                <li>Some pages that use shadowRoot are not translated.</li>
+            </ul>
+        </li>
+        <li>Changed the default value of popupPanelSection from 2 to 1</li>
+        <li>Updated interface translations</li>
+    </ul>
+</section>
+<section>
+    <h4>8.7 - March 23, 2021</h4>
+    <ul>
+        <li>Added:
+            <ul>
+                <li>Help title on some popup buttons</li>
+                <li>A message teaching you to switch between the new and the old interface quickly.</li>
+            </ul>
+        </li>
+        <li>Changes:
+            <ul>
+                <li>In private tabs:
+                    <ul>
+                        <li>Do not save translation cache</li>
+                        <li>Do not translate automatically</li>
+                    </ul>
+                </li>
+                <li>Now when you click on a translate button, the order of the buttons will not be changed
+                    automatically.</li>
+            </ul>
+        </li>
+        <li>Fixed:
+            <ul>
+                <li>tts does not work on long texts</li>
+                <li>among other bugs</li>
+            </ul>
+        </li>
+        <li>Updated interface translations</li>
+    </ul>
+</section>
+<section>
+    <h4>8.6.1 - March 19, 2021</h4>
+    <ul>
+        <li>Fixed bug: text to speech does not work on some sites</li>
+    </ul>
+</section>
+<section>
+    <h4>8.6 - March 19, 2021</h4>
+    <ul>
+        <li>Added in the popup to translate selected text and translate when hovering
+            <ul>
+                <li>Keep text formatting</li>
+                <li>Buttons to change the target language</li>
+                <li>Buttons to change the translation service</li>
+                <li>Button to listen to the translated text</li>
+            </ul>
+        </li>
+        <li>Updated interface translations</li>
+        <li>Fixed bugs</li>
+    </ul>
+</section>
+<section>
+    <h4>8.5.2 - March 16, 2021</h4>
+    <ul>
+        <li>Fixed a bug where parts of the page were not restored</li>
+    </ul>
+</section>
+<section>
+    <h4>8.5.1 - March 16, 2021</h4>
+    <ul>
+        <li>Fixed translating with yandex</li>
+        <li>Updated interface translations</li>
+    </ul>
+</section>
+<section>
+    <h4>8.5 - March 15, 2021</h4>
+    <ul>
+        <li>Added a button in the popup to switch between the old interface and the new one</li>
+        <li>Updated interface translations</li>
+    </ul>
+</section>
+<section>
+    <h4>8.4.2 - March 14, 2021</h4>
+    <ul>
+        <li>Updated interface translations</li>
+    </ul>
+</section>
+<section>
+    <h4>8.4.1 - March 13, 2021</h4>
+    <ul>
+        <li>Updated interface translations</li>
+    </ul>
+</section>
+<section>
+    <h4>8.4 - March 13, 2021</h4>
+    <ul>
+        <li>Added option to use the old popup interface in settings</li>
+        <li>Added "Show the button to translate the selected text" checkbox in the popup </li>
+        <li>Added an option in the mobile popup to switch the translation of selected text</li>
+        <li>The default value of "Do not show if the page language is the target language" is now "no"
+        </li>
+        <li>Now when a site is marked to never be translated, "✔" will appear next to the option "Never
+            translate this site". The same goes for other options like "Never translate this language"
+        </li>
+        <li>Fixed bugs</li>
+        <li>Updated interface translations</li>
+    </ul>
+</section>
+<section>
+    <h4>8.3 - March 13, 2021</h4>
+    <ul>
+        <li>Added the following settings to show the "translate selected text button":
+            <ul>
+                <li>Do not show if the page language is the target language (default: yes)</li>
+                <li>Do not show if the page language is unknown (default: no)</li>
+                <li>Do not show if the selected text language is the target language (default: yes)</li>
+                <li>Do not show if the selected text language is unknown (default: no)</li>
+            </ul>
+        </li>
+        <li>Added options to hide the context menu buttons</li>
+        <li>Fixed bugs</li>
+        <li>Updated interface translations</li>
+    </ul>
+</section>
+<section>
+    <h4>8.2.2 - March 12, 2021</h4>
+    <ul>
+        <li>Fixed bugs</li>
+        <li>Updated interface translations</li>
+    </ul>
+</section>
+<section>
+    <h4>8.2.1 - March 11, 2021</h4>
+    <ul>
+        <li>Fixed bugs</li>
+    </ul>
+</section>
+<section>
+    <h4>8.2 - March 11, 2021</h4>
+    <ul>
+        <li>Added in the popup
+            <ul>
+                <li>Checkbox to always translate this site</li>
+                <li>Checkbox to show the original text when hovering</li>
+                <li>Buttons to expand and contract popup sessions</li>
+            </ul>
+        </li>
+        <li>Show original text when hovering is now disabled by default</li>
+        <li>Added translation for shadowRoot elements</li>
+        <li>Now when the site is translated, the pop up icon will turn blue</li>
+        <li>Updated interface translations</li>
+        <li>Fixed some bugs</li>
+    </ul>
+</section>
+<section>
+    <h4>8.1.1 - March 10, 2021</h4>
+    <ul>
+        <li>Updated interface translations for: Korean and Chinese Simplified</li>
+    </ul>
+</section>
+<section>
+    <h4>8.1 - March 9, 2021</h4>
+    <ul>
+        <li>Added in the popup
+            <ul>
+                <li>The first button now contains the text "Original", its functionality is and has
+                    always been to show the original text</li>
+                <li>Checkbox to always translate a language</li>
+                <li>Checkbox to translate when hovering on this site</li>
+            </ul>
+        </li>
+        <li>Fixed
+            <ul>
+                <li>Text "undefined" in translation</li>
+                <li>Some elements not being translated</li>
+                <li>Among other bugs</li>
+            </ul>
+        </li>
+        <li>Because privacy issues, hover translation is disabled by default. It is necessary to
+            activate individually for each site</li>
+        <li>Updated interface translations for
+            <ul>
+                <li>Turkish</li>
+                <li>German</li>
+                <li>Vietnamese</li>
+                <li>Chinese Traditional</li>
+                <li>Japanese</li>
+            </ul>
+        </li>
+    </ul>
+</section>
+<section>
+    <h4>8.0.4 - March 7, 2021</h4>
+    <ul>
+        <li>Fixed bugs</li>
+        <li>Updated interface translations for
+            <ul>
+                <li>Russian</li>
+                <li>Turkish</li>
+                <li>Romanian</li>
+                <li>Italian</li>
+            </ul>
+        </li>
+    </ul>
+</section>
+<section>
+    <h4>8.0.3 - March 7, 2021</h4>
+    <ul>
+        <li>Fixed zh-cn translations</li>
+        <li>Fixed some bugs</li>
+    </ul>
+</section>
+<section>
+    <h4>8.0.2 - March 7, 2021</h4>
+    <ul>
+        <li>Do not translate when hovering if the page language is the same as the target language</li>
+        <li>Do not show the button to translate the selected text if the page language is the same as
+            the target language</li>
+    </ul>
+</section>
+<section>
+    <h4>8.0.1 - March 6, 2021</h4>
+    <ul>
+        <li>Fixed bug that page to change language does not appear</li>
+    </ul>
+</section>
+<section>
+    <h4>8.0 - March 6, 2021</h4>
+    <ul>
+        <li>Added
+            <ul>
+                <li>new design</li>
+                <li>show translated text when hovering</li>
+                <li>shortcut keys to translate the page</li>
+                <li>save the translations to allow you to translate the pages even without internet (it
+                    will only work on pages that you have already translated 1 time)</li>
+                <li>Switch the translation service without having to reload the page</li>
+                <li>dark mode for the popups that appear on the pages</li>
+            </ul>
+        </li>
+        <li>New donation options</li>
+        <li>Refactored github code</li>
+        <li>Update interface translations</li>
+        <li>Fixed some bugs</li>
+    </ul>
+</section>
+<section>
+    <h4>7.7.2 - February 18, 2021</h4>
+    <ul>
+        <li>Update interface translations</li>
+    </ul>
+</section>
+<section>
+    <h4>7.7 - December 3, 2020</h4>
+    <ul>
+        <li>Fixed</li>
+        <ul>
+            <li>HTML tags with editable content are no longer translated</li>
+            <li>Google translation working in China</li>
+            <li>Dark mode on the settings page</li>
+        </ul>
+        <li>Improved interface translations for
+            <ul>
+                <li>Vietnamese</li>
+            </ul>
+        </li>
+    </ul>
+</section>
+<section>
+    <h4>7.6 - December 1, 2020</h4>
+    <ul>
+        <li>Fixed bug that the extension stops translating with Google</li>
+        <li>Added interface translation for
+            <ul>
+                <li>Vietnamese</li>
+                <li>Ukrainian</li>
+            </ul>
+        </li>
+        <li>Improved interface translations for
+            <ul>
+                <li>Chinese Simplified</li>
+                <li>Croatian</li>
+                <li>Turkish</li>
+                <li>Slovenian</li>
+            </ul>
+        </li>
+    </ul>
+</section>
+<section>
+    <h4>7.5 - September 16, 2020</h4>
+    <ul>
+        <li>Updated interface translations</li>
+        <li>Fixed some bugs</li>
+    </ul>
+</section>
+<section>
+    <h4>7.4 - September 15, 2020</h4>
+    <ul>
+        <li>Show original text when hovering</li>
+        <li>Added option to never translate a language</li>
+        <li>Now the release notes page will appear at most once every 3 weeks</li>
+        <li>When a website has the url or language set to never be translated, the mobile popup and the
+            button for translating selected text will not appear</li>
+        <li>Added option to hide the button to translate the selected text from the context menu</li>
+        <li>Dark mode added for mobile popup</li>
+        <li>Updated interface translations</li>
+        <li>Fixed several bugs</li>
+    </ul>
+</section>
+<section>
+    <h4>7.3.x - September 9th and 10th, 2020</h4>
+    <ul>
+        <li>Fixed button colors in the address bar</li>
+        <li>Added option to translate selected text through the context menu</li>
+        <li>Increased button size to translate selected text for mobile devices</li>
+        <li>Updated translations</li>
+        <li>Fixed some bugs</li>
+    </ul>
+</section>
+<section>
+    <h4>7.3 - September 9, 2020</h4>
+    <ul>
+        <li>Added the toolbar button again</li>
+        <li>Fixed some bugs</li>
+        <li>Updated interface translations</li>
+    </ul>
+</section>
+<section>
+    <h4>7.2 - September 8, 2020</h4>
+    <ul>
+        <li>Added a button to translate the selected text</li>
+        <li>Option to switch between dark and light mode</li>
+        <li>Option to hide the version notes page when updating</li>
+        <li>Removed toolbar icon</li>
+        <li>Change the style of the address bar icon</li>
+        <li>Fixed some bugs</li>
+        <li>Updated interface translations</li>
+    </ul>
+</section>
+<section>
+    <h4>7.1 - August 27, 2020</h4>
+    <ul>
+        <li>Added the option "Always translate this site" in the popup</li>
+        <li>Fixed some bugs</li>
+        <li>Updated interface translations</li>
+    </ul>
+</section>
+<section>
+    <h4>7.0 - August 11, 2020</h4>
+    <ul>
+        <li>Added dark mode</li>
+        <li>Added button to show original page in the context menu</li>
+        <li>Updated interface translations</li>
+    </ul>
+</section>
+<section>
+    <h4>6.9 - August 9, 2020</h4>
+    <ul>
+        <li>The button to open the popup was placed in the address bar again</li>
+        <li>Elements with the class "notranslate" are now not translated</li>
+        <li>Improved privacy</li>
+        <li>Updated interface translations</li>
+    </ul>
+</section>
+<section>
+    <h4>6.8 - August 8, 2020</h4>
+    <ul>
+        <li>Removed translation using widgets. <i>Reason: widgets load external scripts, which goes
+                against Firefox's extension policy</i></li>
+        <li>Added the "Translate this site" button on Firefox Mobile</li>
+        <li>Change popup layout for desktop</li>
+        <li>Updated interface translations</li>
+        <li>Fixed several bugs</li>
+    </ul>
+</section>
+<section>
+    <h4>6.7 - August 4, 2020</h4>
+    <ul>
+        <li>Fixed some bugs</li>
+        <li>Added translation of the interface to new languages</li>
+        <li>Added the shortcut "Alt + T" to translate the page</li>
+    </ul>
+</section>
+<section>
+    <h4>6.6 - August 2, 2020</h4>
+    <ul>
+        <li>Added interface translation for Dutch</li>
+        <li>Improve the translation algorithm</li>
+    </ul>
+</section>
+<section>
+    <h4>6.5 - July 31, 2020</h4>
+    <ul>
+        <li>Fixed some bugs</li>
+        <li>Updated interface translations</li>
+    </ul>
+</section>
+<section>
+    <h4>6.3 - July 30, 2020</h4>
+    <ul>
+        <li>Now the translations are super fast</li>
+        <li>The title of the sites are translated</li>
+        <li>Polish interface translation added</li>
+    </ul>
+</section>
+<section>
+    <h4>6.2 - July 29, 2020</h4>
+    <ul>
+        <li>Added translation for html attributes</li>
+        <li>Dynamically created 'iframes' are now automatically translated</li>
+        <li>Improved language detection</li>
+        <li>Updated interface translation</li>
+        <li>Fixed several bugs</li>
+    </ul>
+</section>
+<section>
+    <h4>6.1 - July 26, 2020</h4>
+    <ul>
+        <li>Support for translating sites into Traditional Chinese (zh-TW)</li>
+        <li>Added interface translation for Japanese and Traditional Chinese</li>
+        <li>Updated some interface translations</li>
+        <li>Fixed some bugs</li>
+    </ul>
+</section>
+<section>
+    <h4>6.0 - July 25, 2020</h4>
+    <ul>
+        <li>Added translation for dynamically created elements</li>
+        <li>Added option to use widgets instead of the new algorithm</li>
+        <li>Improved language detection on mobile devices</li>
+    </ul>
+</section>
+<section>
+    <h4>5.8, 5.9 - July 7, 2020</h4>
+    <ul>
+        <li>Improved translation algorithm</li>
+        <li>Some fixes and improvements</li>
+    </ul>
+</section>
+<section>
+    <h4>5.7 - July 6, 2020</h4>
+    <ul>
+        <li>Updated interface translations</li>
+    </ul>
+</section>
+<section>
+    <h4>5.6 - July 4, 2020</h4>
+    <ul>
+        <li>Added option to translate in the context menu</li>
+        <li>Some fixes and improvements</li>
+    </ul>
+</section>
+<section>
+    <h4>5.5.2, 5.5.3 - July 4, 2020</h4>
+    <ul>
+        <li>Some fixes and improvements</li>
+    </ul>
+</section>
+<section>
+    <h4>5.5.1 - July 3, 2020</h4>
+    <ul>
+        <li>Some fixes</li>
+    </ul>
+</section>
+<section>
+    <h4>5.5 - July 2, 2020</h4>
+    <ul>
+        <li>Some fixes</li>
+    </ul>
+</section>
+<section>
+    <h4>5.1, 5.2, 5.3, 5.4 - July 2, 2020</h4>
+    <ul>
+        <li>Added button to switch between Google and Yandex</li>
+        <li>Added a new translation algorithm which is independent of Google and Yandex widgets. This improved privacy,
+            allowed more websites to be translated, and made the extension work alongside the NoScript extension</li>
+        <li>Some fixes</li>
+    </ul>
+</section>
+<section>
+    <h4>5.0 - May 2, 2020</h4>
+    <ul>
+        <li>Added Yandex as translation service</li>
+        <li>Added option to set the translation service in the extension's settings page</li>
+        <li>Some fixes</li>
+    </ul>
+</section>
+<section>
+    <h4>4.7, 4.8, 4.9 - April 30, 2020</h4>
+    <ul>
+        <li>Fixed: An extension configuration is not saved</li>
+    </ul>
+</section>
+<section>
+    <h4>4.6 - April 28, 2020</h4>
+    <ul>
+        <li>From this version, the configuration page is opened when the extension is installed</li>
+    </ul>
+</section>
+<section>
+    <h4>4.5 - April 28, 2020</h4>
+    <ul>
+        <li>Added option to change the target language on the extension settings page</li>
+        <li>Added option to show mobile popup only when three fingers touch the screen</li>
+        <li>Some fixes and improvements</li>
+    </ul>
+</section>
+<section>
+    <h4>4.4 - April 27, 2020</h4>
+    <ul>
+        <li>Now the <b>Change languages</b> button no longer shows the translation widget, instead the target language
+            selection takes place in the extension's own interface</li>
+        <li>Some fixes and improvements</li>
+    </ul>
+</section>
+<section>
+    <h4>4.2, 4.3 - April 26, 2020</h4>
+    <ul>
+        <li>Added support for viewing/removing sites and languages from the <b>Never translate these sites</b> and
+            <b>Automatically translate these languages</b> lists in the settings page
+        </li>
+        <li>Added localization for language names</li>
+        <li>Some improvements and fixes</li>
+    </ul>
+</section>
+<section>
+    <h4>4.1 - April 24, 2020</h4>
+    <ul>
+        <li>Some fixes</li>
+    </ul>
+</section>
+<section>
+    <h4>4.0 - April 10, 2020</h4>
+    <ul>
+        <li>Use Google instead of Yandex to detect language on Firefox Mobile</li>
+    </ul>
+</section>
+<section>
+    <h4>3.9 - April 10, 2020</h4>
+    <ul>
+        <li>Detect language in Firefox Mobile using Yandex</li>
+        <li>Added settings page, but without any options</li>
+        <li>Some fixes</li>
+    </ul>
+</section>
+<section>
+    <h4>3.4, 3.5, 3.6, 3.7, 3.8 - April 6, 2020</h4>
+    <ul>
+        <li>Use <i><code>chrome.tabs.detectLanguage</code></i> instead of the <i>lang</i> attribute of the <i>html</i>
+            tag
+            to detect the language of the site</li>
+        <li>Added options on the mobile popup</li>
+        <li>Added translations for the mobile popup interface</li>
+        <li>Some fixes</li>
+    </ul>
+</section>
+<section>
+    <h4>3.3 - April 3, 2020</h4>
+    <ul>
+        <li>Added <b>Change languages</b> button. This button just shows the google bar</li>
+        <li>Add donate button</li>
+        <li>Removed button to rate extension</li>
+        <li>Removed button <b>Show google bar</b></li>
+        <li>Fixed some bugs</li>
+    </ul>
+</section>
+<section>
+    <h4>3.2 - March 17, 2020</h4>
+    <ul>
+        <li>Some fixes on mobile popup (again)</li>
+    </ul>
+</section>
+<section>
+    <h4>3.0.3, 3.0.4, 3.1 - March 15, 2020</h4>
+    <ul>
+        <li>Some fixes on mobile popup</li>
+    </ul>
+</section>
+<section>
+    <h4>3.0, 3.0.1, 3.0.2 - March 14, 2020</h4>
+    <ul>
+        <li>Added Google Translate icon on mobile popup</li>
+        <li>Google bar close button has been hidden</li>
+        <li>The mobile popup has been improved</li>
+        <li>Fixed possible HTML injection via crowdin translations</li>
+    </ul>
+</section>
+<section>
+    <h4>2.8, 2.9, 2.9.1 - March 14, 2020</h4>
+    <div style="margin-left: 30px;">
+        <p>These versions existed and were released on the same day. These versions were probably released to test bugs
+            in Firefox Mobile, in preparation for version 3.0.</p>
+    </div>
+</section>
+<section>
+    <h4>2.7 - March 14, 2020</h4>
+    <ul>
+        <li>UI improvements</li>
+        <li>Added option <b>Never translate this site</b></li>
+        <li>Added option <b>Show google bar</b></li>
+        <li>Fixed some bugs</li>
+        <li>Refactored some codes</li>
+    </ul>
+</section>
+<section>
+    <h4>2.6 - March 12, 2020</h4>
+    <ul>
+        <li>Revamped the extension's UI</li>
+        <li>Extension icon moved to address bar</li>
+        <li>Added button to rate extension</li>
+        <li>Added option <b>Always translate from [...]</b></li>
+        <li>Fixed several bugs</li>
+    </ul>
+</section>
+<section>
+    <h4>2.0, 2.1, 2.2, 2.3, 2.4, 2.5 - February 28, 2020</h4>
+    <div style="margin-left: 30px;">
+        <p>All these versions were released on the same day and only fixed mobile popup visual bugs.</p>
+        <p>At that time I didn't know that it was possible to load the extension in Firefox Mobile using <a href="https://github.com/mozilla/web-ext" target="_blank">webext</a>, it took me years to know that.
+            Then I uploaded a new version for every change I made to try to fix the bug.</p>
+    </div>
+</section>
+<section>
+    <h4>1.9 - February 19, 2020</h4>
+    <ul>
+        <li>Use <b>activeTab</b> permission instead of <b>tabs</b></li>
+        <li>Hide mobile popup when using extension on Firefox Desktop</li>
+        <li>Show mobile popup even if language is unknown</li>
+    </ul>
+</section>
+<section>
+    <h4>1.8 - February 18, 2020</h4>
+    <ul>
+        <li>Added button to close translation popup</li>
+        <li>Added experimental support for Firefox Mobile</li>
+    </ul>
+</section>
+<section>
+    <h4>1.7 - February 18, 2020</h4>
+    <ul>
+        <li>Added <b>Open on google translate</b> option to open the site for translation in Google Translate</li>
+    </ul>
+</section>
+<section>
+    <h4>1.6 - February 14, 2020</h4>
+    <ul>
+        <li>Fixed some bugs</li>
+    </ul>
+</section>
+<section>
+    <h4>1.5 - February 14, 2020</h4>
+    <ul>
+        <li>Improved the extension interface</li>
+        <li>Added <b>Automatically translate</b> option to automatically translate the site when opening it</li>
+    </ul>
+</section>
+<section>
+    <h4>1.4 - February 11, 2020</h4>
+    <div style="margin-left: 30px;">
+        <p>In this version, the Google Translate Widget is injected but is hidden, the objective is that you use the
+            Widget options through the extension's interface.</p>
+        <p>In the extension interface there were only two options:
+        </p><dl>
+            <dt>Translate</dt>
+            <dd>This option injected the Google Translate Widget into the page, this widget was hidden.</dd>
+            <dt>Show original</dt>
+            <dd>Restores the page, but the Widget is still injected.</dd>
+        </dl>
+        <p>There was nothing left, not even an option to change the target language.</p>
+    </div>
+</section>
+<section>
+    <h4>1.0, 1.2, 1.3 - February 9, 2020</h4>
+    <div style="margin-left: 30px;">
+        <p>The first version was released on February 9, 2020.</p>
+        <p>Versions 1.2 and 1.3 also existed and were released on the same day as version 1.0, I don't know what exactly
+            was changed in them but it was insignificant.</p>
+        <p>The only thing the extension did in this version was inject the Google Translate widget into the website.
+        </p>
+        <p>This Google Widget allows you to translate the website into any language with the same quality as the Chrome
+            translator.</p>
+        <p>
+            I learned a lot about <i>HTML</i>, <i>CSS</i> and <i>JAVASCRIPT</i> on the <i>W3Schools</i> website.
+            And it was even thanks to <i>W3Schools</i> that I learned that this Google Translate Widget existed and how
+            to use it, perhaps without this site, <i>TWP</i> would never have existed.
+        </p>
+        <p>Learn you also about the Google Translate Widget: <a href="https://www.w3schools.com/howto/howto_google_translate.asp" target="_blank">How TO - Google
+                Translate</a></p>
+    </div>
+</section></div>
+      </div>
+    </div>
+
+    <script src="chrome-extension://lpfanhbckoffhgkncoohkflmgooghpoh/lib/polyfill.js"></script>
+    <script src="chrome-extension://lpfanhbckoffhgkncoohkflmgooghpoh/lib/checkedLastError.js"></script>
+    <script src="chrome-extension://lpfanhbckoffhgkncoohkflmgooghpoh/lib/stuff.js"></script>
+    <script src="chrome-extension://lpfanhbckoffhgkncoohkflmgooghpoh/lib/languages.js"></script>
+    <script src="chrome-extension://lpfanhbckoffhgkncoohkflmgooghpoh/lib/config.js"></script>
+    <script src="chrome-extension://lpfanhbckoffhgkncoohkflmgooghpoh/lib/platformInfo.js"></script>
+    <script src="chrome-extension://lpfanhbckoffhgkncoohkflmgooghpoh/lib/i18n.js"></script>
+    <script src="chrome-extension://lpfanhbckoffhgkncoohkflmgooghpoh/options/options.js"></script>
+
+
+</div></body></html>

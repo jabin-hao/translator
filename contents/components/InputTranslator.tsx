@@ -236,7 +236,7 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose }) => {
               onClick={() => {
                 if (translatedText.trim()) {
                   navigator.clipboard.writeText(translatedText);
-                  message.info('已复制');
+                  message.success('已复制');
                 } else {
                   message.warning('没有可复制的内容');
                 }
