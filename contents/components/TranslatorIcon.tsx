@@ -1,4 +1,5 @@
 import React from 'react';
+import '../index.css';
 
 interface TranslatorIconProps {
   x: number;
@@ -15,23 +16,24 @@ const TranslatorIcon: React.FC<TranslatorIconProps> = ({ x, y, onClick }) => {
 
   return (
     <div
-      style={{
-        position: "fixed",
-        width: 32,
-        height: 32,
-        background: "white",
-        border: "2px solid #2386e1",
-        borderRadius: "50%",
-        cursor: "pointer",
+      className="translator-icon"
+      style={{ 
+        left: x + 10, 
+        top: y - 10,
+        position: 'fixed',
+        width: '32px',
+        height: '32px',
+        background: 'white',
+        border: '2px solid #2386e1',
+        borderRadius: '50%',
+        cursor: 'pointer',
         zIndex: 2147483647,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
-        pointerEvents: "auto",
-        userSelect: "none",
-        left: x + 10,
-        top: y - 10
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+        pointerEvents: 'auto',
+        userSelect: 'none'
       }}
       tabIndex={0}
       onClick={e => {

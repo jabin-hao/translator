@@ -9,6 +9,11 @@
   border: 1px solid #d9d9d9 !important;
 }
 
+/* Card body去除默认padding，方便自定义 */
+.ant-card-body {
+  padding: 0 !important;
+}
+
 .ant-select {
   background: white !important;
 }
@@ -19,4 +24,105 @@
 
 .ant-btn {
   background: white !important;
+}
+
+/* TranslatorResult 组件样式 */
+.translator-copy-icon {
+  font-size: 18px;
+  color: #888;
+  cursor: pointer;
+  transition: color 0.2s;
+  vertical-align: middle;
+}
+.translator-copy-icon:hover {
+  color: #2386e1;
+}
+
+.translator-result-content {
+  position: relative;
+  width: 100%;
+  min-height: 20px;
+}
+
+.translator-result-text {
+  padding-top: 4px;
+  word-break: break-all;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+  line-height: 1.4;
+}
+
+/* TranslatorResult Footer区域样式 */
+.translator-result-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 4px;
+  margin-top: 8px;
+  width: 100%;
+}
+
+.translator-result-lang-abbr {
+  display: flex;
+  gap: 4px;
+}
+
+/* InputTranslator 组件样式 */
+.input-translator-content {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.input-translator-language-selector {
+  margin-bottom: 0;
+  margin-top: 0;
+}
+
+.input-translator-translation-area {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.input-translator-text-area {
+  flex: 1;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.input-translator-result-area {
+  flex: 1;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.input-translator-result-textarea {
+  background-color: #f5f5f5;
+}
+
+.input-translator-actions {
+  margin-top: 24px;
+  width: 100%;
+}
+
+.input-translator-actions-space {
+  justify-content: center;
+  width: 100%;
+}
+
+/* Select 组件自定义样式 */
+.custom-select .ant-select-selector {
+  min-height: 28px !important;
+  height: 28px !important;
+  line-height: 26px !important;
+  padding: 0 8px !important;
+}
+
+.custom-select .ant-select-selection-item {
+  line-height: 26px !important;
+}
+
+.custom-select .ant-select-arrow {
+  margin-top: -4px;
 }

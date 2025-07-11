@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useEffect } from 'react';
+import '../index.css';
 import { 
   Card, 
   Input, 
@@ -15,6 +16,7 @@ import {
   SwapOutlined, 
   CloseOutlined 
 } from '@ant-design/icons';
+
 // 自定义翻译SVG图标组件
 const MyTranslationIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
@@ -36,6 +38,7 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose }) => {
   const [sourceLang, setSourceLang] = useState('auto');
   const [targetLang, setTargetLang] = useState('zh');
   const [isTranslating, setIsTranslating] = useState(false);
+  const [engine, setEngine] = useState('google');
 
   // 按下Esc关闭悬浮窗
   useEffect(() => {
@@ -72,7 +75,7 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose }) => {
     setIsTranslating(true);
     try {
       // 这里可以调用翻译API，暂时使用模拟翻译
-      const mockTranslation = `翻译结果: ${inputText} (${sourceLang} → ${targetLang})`;
+      const mockTranslation = `翻译结果: ${inputText}`;
       setTranslatedText(mockTranslation);
       message.success('翻译完成');
     } catch (error) {
@@ -87,30 +90,31 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose }) => {
     if (sourceLang !== 'auto') {
       setSourceLang(targetLang);
       setTargetLang(sourceLang);
-      message.info('已交换语言');
+      message.success('已交换语言');
     }
   };
 
   const handleClear = () => {
     setInputText('');
     setTranslatedText('');
-    message.info('已清空内容');
+    message.success('已清空内容');
   };
 
   return (
     <Card
+      className="input-translator-card"
       style={{
-        position: "fixed",
-        bottom: 20,
-        left: "50%",
-        transform: "translateX(-50%)",
-        width: 700,
+        position: 'fixed',
+        bottom: '20px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: '600px',
+        maxWidth: '90vw',
         zIndex: 2147483647,
-        boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
-        borderRadius: 12,
-        // 让 header 高度自适应 select
-        // 这里不直接设置高度，样式在 style 标签里覆盖
+        boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+        borderRadius: '12px'
       }}
+      styles={{ body: { padding: '8px 8px' } }}
       title={
         <Space className="custom-card-header" align="center">
           <MyTranslationIcon />
@@ -126,9 +130,9 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose }) => {
         />
       }
     >
-      <Space direction="vertical" style={{ width: '100%' }} size="small">
+      <div className="input-translator-content" style={{ width: '100%' }}>
         {/* 语言选择 */}
-        <Space size={4} style={{ marginBottom: 0, marginTop: 0 }}>
+        <Space size={4} className="input-translator-language-selector">
           <Select
             value={sourceLang}
             onChange={setSourceLang}
@@ -164,13 +168,28 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose }) => {
               <Option key={lang.code} value={lang.code}>{lang.name}</Option>
             ))}
           </Select>
+
+          {/* 搜索引擎选择器 */}
+          <Select
+            value={engine}
+            onChange={setEngine}
+            style={{ width: 100 }}
+            placeholder="搜索引擎"
+            size="small"
+            className="custom-select"
+            getPopupContainer={triggerNode => triggerNode.parentNode}
+          >
+            <Option value="google">谷歌</Option>
+            <Option value="bing">必应</Option>
+            <Option value="baidu">百度</Option>
+          </Select>
         </Space>
 
         <Divider style={{ margin: '8px 0' }} />
 
         {/* 翻译区域 */}
-        <div style={{ display: "flex", gap: 16 }}>
-          <div style={{ flex: 1 }}>
+        <div className="input-translator-translation-area" style={{ width: '100%', display: 'flex', gap: '16px' }}>
+          <div className="input-translator-text-area" style={{ flex: 1, minWidth: 0, width: '100%' }}>
             <TextArea
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
@@ -181,20 +200,20 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose }) => {
             />
           </div>
 
-          <div style={{ flex: 1 }}>
+          <div className="input-translator-result-area" style={{ flex: 1, minWidth: 0, width: '100%' }}>
             <TextArea
               value={translatedText}
               placeholder="翻译结果..."
               rows={6}
               readOnly
-              style={{ backgroundColor: '#f5f5f5' }}
+              className="input-translator-result-textarea"
             />
           </div>
         </div>
 
         {/* 操作按钮 */}
-        <div style={{ marginTop: 24, width: '100%' }}>
-          <Space style={{ justifyContent: 'center', width: '100%' }}>
+        <div className="input-translator-actions" style={{ marginTop: '40px', width: '100%' }}>
+          <Space className="input-translator-actions-space" style={{ justifyContent: 'center', width: '100%' }}>
             { !translatedText.trim() ? (
               <Button 
                 type="primary" 
@@ -217,7 +236,7 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose }) => {
               onClick={() => {
                 if (translatedText.trim()) {
                   navigator.clipboard.writeText(translatedText);
-                  message.success('已复制');
+                  message.info('已复制');
                 } else {
                   message.warning('没有可复制的内容');
                 }
@@ -228,21 +247,7 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose }) => {
             </Button>
           </Space>
         </div>
-      </Space>
-      <style>{`
-        .custom-select .ant-select-selector {
-          min-height: 28px !important;
-          height: 28px !important;
-          line-height: 26px !important;
-          padding: 0 8px !important;
-        }
-        .custom-select .ant-select-selection-item {
-          line-height: 26px !important;
-        }
-        .custom-select .ant-select-arrow {
-          margin-top: -4px;
-        }
-      `}</style>
+      </div>
     </Card>
   );
 };

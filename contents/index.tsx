@@ -4,11 +4,14 @@ export const getRootContainer = async () => {
   const root = document.createElement("div")
   document.body.appendChild(root)
   shadowRoot = root.attachShadow({ mode: "open" })
+  
   return shadowRoot
 }
 
 import React, { useEffect, useRef, useState } from 'react';
 import { StyleProvider } from '@ant-design/cssinjs';
+import { message } from 'antd';
+import './index.css';
 import TranslatorIcon from './components/TranslatorIcon';
 import TranslatorResult from './components/TranslatorResult';
 import InputTranslator from './components/InputTranslator';
@@ -29,6 +32,18 @@ const ContentScript = () => {
   const lastCtrlPressRef = useRef<number>(0);
   const doubleClickThreshold = 300;
   const ctrlPressedRef = useRef<boolean>(false);
+
+  // 配置message组件
+  useEffect(() => {
+    message.config({
+      top: 20,
+      duration: 2.5,
+      maxCount: 3,
+      rtl: false,
+      prefixCls: 'ant-message',
+      getContainer: () => document.body,
+    });
+  }, []);
 
   const showTranslationIcon = (text: string, rect: DOMRect) => {
     // 验证rect的值，确保它们是有效的数字
@@ -51,6 +66,19 @@ const ContentScript = () => {
 
   useEffect(() => {
     const handleMouseUp = (e: MouseEvent) => {
+      // 检查点击是否发生在翻译结果悬浮窗内部
+      const target = e.target as Element;
+      if (target && (result || showInputTranslator)) {
+        // 检查点击的元素是否在翻译结果区域内
+        // 由于使用了Shadow DOM，需要从shadowRoot中查找
+        const resultElement = shadowRoot?.querySelector('[data-translator-result]');
+        const inputTranslatorElement = shadowRoot?.querySelector('.input-translator-card');
+        if ((resultElement && resultElement.contains(target)) || 
+            (inputTranslatorElement && inputTranslatorElement.contains(target))) {
+          return; // 如果点击在结果区域或输入翻译器内，不关闭悬浮窗
+        }
+      }
+      
       const selection = window.getSelection();
       const text = selection?.toString().trim();
       setResult(null);
@@ -114,28 +142,34 @@ const ContentScript = () => {
   }, []);
 
   return (
-    <StyleProvider hashPriority="high" container={shadowRoot}>
-      {icon && (
-        <TranslatorIcon
-          x={icon.x}
-          y={icon.y}
-          text={icon.text}
-          onClick={handleTranslation}
-        />
-      )}
-      {result && (
-        <TranslatorResult
-          x={result.x}
-          y={result.y}
-          text={result.text}
-        />
-      )}
-      {showInputTranslator && (
-        <InputTranslator
-          onClose={() => setShowInputTranslator(false)}
-        />
-      )}
-    </StyleProvider>
+    <>
+      <StyleProvider hashPriority="high" container={shadowRoot}>
+        {icon && (
+          <TranslatorIcon
+            x={icon.x}
+            y={icon.y}
+            text={icon.text}
+            onClick={handleTranslation}
+          />
+        )}
+        {result && (
+          <TranslatorResult
+            x={result.x}
+            y={result.y}
+            text={result.text}
+          />
+        )}
+        {showInputTranslator && (
+          <InputTranslator
+            onClose={() => setShowInputTranslator(false)}
+          />
+        )}
+      </StyleProvider>
+      {/* 为message组件提供样式支持 */}
+      <StyleProvider hashPriority="high" container={document.body}>
+        <div style={{ display: 'none' }}></div>
+      </StyleProvider>
+    </>
   );
 };
 
