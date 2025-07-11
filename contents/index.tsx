@@ -1,3 +1,5 @@
+import 'antd/dist/reset.css';
+
 let shadowRoot: ShadowRoot | null = null
 
 export const getRootContainer = async () => {

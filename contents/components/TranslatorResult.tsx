@@ -77,7 +77,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text }) => {
         top: y + 10,
         position: 'fixed',
         maxWidth: 'min(90vw, 480px)',
-        minWidth: '120px',
+        minWidth: '320px',
         zIndex: 2147483647,
         fontSize: '14px',
         lineHeight: 1.4,
@@ -105,7 +105,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text }) => {
                 type={targetLang === lang ? 'primary' : 'default'}
                 size="small"
                 onClick={(e) => handleLangClick(e, lang)}
-                style={{ minWidth: '32px', padding: '0 8px' }}
+                style={{ minWidth: '32px', padding: '0 8px', marginRight: '8px' }}
               >
                 {getLangAbbr(lang)}
               </Button>
@@ -113,13 +113,14 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text }) => {
           </div>
 
           {/* 右侧：复制和朗读按钮 */}
-          <Space size="small">
+          <div className="translator-result-action-buttons">
             <Button
               type="text"
               icon={<SoundOutlined />}
               size="small"
               onClick={handleSpeak}
               title="朗读"
+              style={{ marginRight: '4px' }}
             />
             <Button
               type="text"
@@ -128,7 +129,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text }) => {
               onClick={handleCopy}
               title="复制"
             />
-          </Space>
+          </div>
         </div>
       </div>
     </Card>

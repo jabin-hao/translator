@@ -26,6 +26,11 @@
   background: white !important;
 }
 
+/* 确保message组件正确显示 */
+.ant-message {
+  z-index: 2147483647 !important;
+}
+
 /* TranslatorResult 组件样式 */
 .translator-copy-icon {
   font-size: 18px;
@@ -60,11 +65,27 @@
   padding: 0 4px;
   margin-top: 8px;
   width: 100%;
+  flex-wrap: nowrap;
 }
 
 .translator-result-lang-abbr {
   display: flex;
-  gap: 4px;
+  gap: 0;
+  flex-shrink: 0;
+}
+
+.translator-result-lang-abbr .ant-btn {
+  margin-right: 8px;
+}
+
+.translator-result-lang-abbr .ant-btn:last-child {
+  margin-right: 0;
+}
+
+.translator-result-action-buttons {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 /* InputTranslator 组件样式 */
