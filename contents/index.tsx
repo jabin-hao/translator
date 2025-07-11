@@ -142,34 +142,28 @@ const ContentScript = () => {
   }, []);
 
   return (
-    <>
-      <StyleProvider hashPriority="high" container={shadowRoot}>
-        {icon && (
-          <TranslatorIcon
-            x={icon.x}
-            y={icon.y}
-            text={icon.text}
-            onClick={handleTranslation}
-          />
-        )}
-        {result && (
-          <TranslatorResult
-            x={result.x}
-            y={result.y}
-            text={result.text}
-          />
-        )}
-        {showInputTranslator && (
-          <InputTranslator
-            onClose={() => setShowInputTranslator(false)}
-          />
-        )}
-      </StyleProvider>
-      {/* 为message组件提供样式支持 */}
-      <StyleProvider hashPriority="high" container={document.body}>
-        <div style={{ display: 'none' }}></div>
-      </StyleProvider>
-    </>
+    <StyleProvider hashPriority="high" container={shadowRoot}>
+      {icon && (
+        <TranslatorIcon
+          x={icon.x}
+          y={icon.y}
+          text={icon.text}
+          onClick={handleTranslation}
+        />
+      )}
+      {result && (
+        <TranslatorResult
+          x={result.x}
+          y={result.y}
+          text={result.text}
+        />
+      )}
+      {showInputTranslator && (
+        <InputTranslator
+          onClose={() => setShowInputTranslator(false)}
+        />
+      )}
+    </StyleProvider>
   );
 };
 

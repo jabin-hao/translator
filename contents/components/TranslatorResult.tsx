@@ -23,11 +23,10 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text }) => {
     if (text) {
       try {
         await navigator.clipboard.writeText(text);
-        console.log('复制成功，尝试显示message'); // 调试日志
         message.success('已复制');
       } catch (err) {
-        console.error('复制失败', err);
         message.error('复制失败，可能是浏览器限制或权限问题');
+        console.error('复制失败', err);
       }
     } else {
       message.warning('没有可复制的内容');
