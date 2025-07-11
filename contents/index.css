@@ -58,34 +58,14 @@
 }
 
 /* TranslatorResult Footer区域样式 */
-.translator-result-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 4px;
-  margin-top: 8px;
-  width: 100%;
-  flex-wrap: nowrap;
-}
+/* 已移除，全部用内联样式 */
 
 .translator-result-lang-abbr {
-  display: flex;
-  gap: 0;
-  flex-shrink: 0;
-}
-
-.translator-result-lang-abbr .ant-btn {
-  margin-right: 8px;
-}
-
-.translator-result-lang-abbr .ant-btn:last-child {
-  margin-right: 0;
+  /* 已移除，全部用内联样式 */
 }
 
 .translator-result-action-buttons {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
+  /* 已移除，全部用内联样式 */
 }
 
 /* InputTranslator 组件样式 */

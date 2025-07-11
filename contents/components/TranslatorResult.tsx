@@ -96,16 +96,36 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text }) => {
         
         {/* Footer区域 */}
         <Divider style={{ margin: '12px 0 8px 0' }} />
-        <div className="translator-result-footer">
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            width: '100%',
+            padding: '0 4px',
+            marginTop: 8,
+            flexWrap: 'nowrap',
+          }}
+        >
           {/* 左侧：主要翻译语言缩写按钮 */}
-          <div className="translator-result-lang-abbr">
-            {['zh', 'en', 'ja'].map(lang => (
+          <div
+            style={{
+              display: 'flex',
+              gap: 0,
+              flexShrink: 0,
+            }}
+          >
+            {['zh', 'en', 'ja'].map((lang, idx) => (
               <Button
                 key={lang}
                 type={targetLang === lang ? 'primary' : 'default'}
                 size="small"
                 onClick={(e) => handleLangClick(e, lang)}
-                style={{ minWidth: '32px', padding: '0 8px', marginRight: '8px' }}
+                style={{
+                  minWidth: '32px',
+                  padding: '0 8px',
+                  marginRight: idx !== 2 ? '8px' : 0,
+                }}
               >
                 {getLangAbbr(lang)}
               </Button>
@@ -113,7 +133,13 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text }) => {
           </div>
 
           {/* 右侧：复制和朗读按钮 */}
-          <div className="translator-result-action-buttons">
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              flexShrink: 0,
+            }}
+          >
             <Button
               type="text"
               icon={<SoundOutlined />}
