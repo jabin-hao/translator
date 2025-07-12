@@ -81,7 +81,6 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text }) => {
         zIndex: 2147483647,
         fontSize: '14px',
         lineHeight: 1.4,
-        color: '#333',
         pointerEvents: 'auto',
         padding: 0
       }}

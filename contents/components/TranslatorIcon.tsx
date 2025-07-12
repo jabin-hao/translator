@@ -23,7 +23,7 @@ const TranslatorIcon: React.FC<TranslatorIconProps> = ({ x, y, onClick }) => {
         position: 'fixed',
         width: '32px',
         height: '32px',
-        background: 'white',
+        background: 'var(--card-bg)',
         border: '2px solid #2386e1',
         borderRadius: '50%',
         cursor: 'pointer',
@@ -31,7 +31,7 @@ const TranslatorIcon: React.FC<TranslatorIconProps> = ({ x, y, onClick }) => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+        boxShadow: 'var(--shadow)',
         pointerEvents: 'auto',
         userSelect: 'none'
       }}

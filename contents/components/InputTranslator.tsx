@@ -111,7 +111,6 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose }) => {
         width: '600px',
         maxWidth: '90vw',
         zIndex: 2147483647,
-        boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
         borderRadius: '12px'
       }}
       styles={{ body: { padding: '8px 8px' } }}
