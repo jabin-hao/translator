@@ -8,8 +8,7 @@ import {
   Select, 
   Space, 
   Typography, 
-  Divider,
-  message 
+  Divider
 } from 'antd';
 import { 
   TranslationOutlined, 
@@ -30,9 +29,10 @@ const { Option } = Select;
 
 interface InputTranslatorProps {
   onClose: () => void;
+  showMessage: (type: 'success' | 'error' | 'warning' | 'info', content: string) => void;
 }
 
-const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose }) => {
+const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage }) => {
   const [inputText, setInputText] = useState('');
   const [translatedText, setTranslatedText] = useState('');
   const [sourceLang, setSourceLang] = useState('auto');
@@ -68,7 +68,7 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose }) => {
 
   const handleTranslate = async () => {
     if (!inputText.trim()) {
-      message.warning('请输入要翻译的文字');
+      showMessage('warning', '请输入要翻译的文字');
       return;
     }
     
@@ -77,10 +77,10 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose }) => {
       // 这里可以调用翻译API，暂时使用模拟翻译
       const mockTranslation = `翻译结果: ${inputText}`;
       setTranslatedText(mockTranslation);
-      message.success('翻译完成');
+      showMessage('success', '翻译完成');
     } catch (error) {
       setTranslatedText('翻译失败，请重试');
-      message.error('翻译失败，请重试');
+      showMessage('error', '翻译失败，请重试');
     } finally {
       setIsTranslating(false);
     }
@@ -90,14 +90,14 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose }) => {
     if (sourceLang !== 'auto') {
       setSourceLang(targetLang);
       setTargetLang(sourceLang);
-      message.success('已交换语言');
+      showMessage('success', '已交换语言');
     }
   };
 
   const handleClear = () => {
     setInputText('');
     setTranslatedText('');
-    message.success('已清空内容');
+    showMessage('success', '已清空内容');
   };
 
   return (
@@ -235,9 +235,9 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose }) => {
               onClick={() => {
                 if (translatedText.trim()) {
                   navigator.clipboard.writeText(translatedText);
-                  message.success('已复制');
+                  showMessage('success', '已复制');
                 } else {
-                  message.warning('没有可复制的内容');
+                  showMessage('warning', '没有可复制的内容');
                 }
               }}
               disabled={!translatedText.trim()}

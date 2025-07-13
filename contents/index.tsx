@@ -12,7 +12,7 @@ export const getRootContainer = async () => {
 
 import React, { useEffect, useRef, useState } from 'react';
 import { StyleProvider } from '@ant-design/cssinjs';
-import { message, ConfigProvider, theme } from 'antd';
+import { message, ConfigProvider, theme, App } from 'antd';
 import { Storage } from '@plasmohq/storage';
 import './index.css';
 import TranslatorIcon from './components/TranslatorIcon';
@@ -99,6 +99,38 @@ function applyThemeToShadowRoot(themeMode: string, shadowRoot: ShadowRoot) {
       border: 2px solid #2386e1 !important;
       box-shadow: var(--shadow) !important;
     }
+
+    /* Message组件样式 */
+    .ant-message {
+      z-index: 2147483647 !important;
+    }
+
+    .ant-message-notice {
+      background: var(--card-bg) !important;
+      border: 1px solid var(--card-border) !important;
+      color: var(--text-primary) !important;
+      box-shadow: var(--shadow) !important;
+    }
+
+    .ant-message-notice-content {
+      color: var(--text-primary) !important;
+    }
+
+    .ant-message-success .anticon {
+      color: #52c41a !important;
+    }
+
+    .ant-message-error .anticon {
+      color: #ff4d4f !important;
+    }
+
+    .ant-message-warning .anticon {
+      color: #faad14 !important;
+    }
+
+    .ant-message-info .anticon {
+      color: #1890ff !important;
+    }
   `;
   
   // 移除旧的样式元素（如果存在）
@@ -110,6 +142,71 @@ function applyThemeToShadowRoot(themeMode: string, shadowRoot: ShadowRoot) {
   // 添加新的样式元素
   shadowRoot.appendChild(style);
 }
+
+// 在App组件内部使用message的组件
+const AppContent = ({ 
+  icon, 
+  result, 
+  showInputTranslator, 
+  handleTranslation, 
+  setShowInputTranslator 
+}: {
+  icon: { x: number; y: number; text: string } | null;
+  result: { x: number; y: number; text: string } | null;
+  showInputTranslator: boolean;
+  handleTranslation: () => void;
+  setShowInputTranslator: (show: boolean) => void;
+}) => {
+  // 创建message适配器函数
+  const showMessage = (type: 'success' | 'error' | 'warning' | 'info', content: string) => {
+    console.log('showMessage called:', type, content); // 调试信息
+    
+    // 使用全局message对象，但确保在ConfigProvider内部
+    const messageInstance = message;
+    
+    switch (type) {
+      case 'success':
+        messageInstance.success(content);
+        break;
+      case 'error':
+        messageInstance.error(content);
+        break;
+      case 'warning':
+        messageInstance.warning(content);
+        break;
+      case 'info':
+        messageInstance.info(content);
+        break;
+    }
+  };
+
+  return (
+    <>
+      {icon && (
+        <TranslatorIcon
+          x={icon.x}
+          y={icon.y}
+          text={icon.text}
+          onClick={handleTranslation}
+        />
+      )}
+      {result && (
+        <TranslatorResult
+          x={result.x}
+          y={result.y}
+          text={result.text}
+          showMessage={showMessage}
+        />
+      )}
+      {showInputTranslator && (
+        <InputTranslator
+          onClose={() => setShowInputTranslator(false)}
+          showMessage={showMessage}
+        />
+      )}
+    </>
+  );
+};
 
 const ContentScript = () => {
   const [icon, setIcon] = useState<{
@@ -292,26 +389,22 @@ const ContentScript = () => {
           algorithm: actualTheme === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm,
         }}
       >
-        {icon && (
-          <TranslatorIcon
-            x={icon.x}
-            y={icon.y}
-            text={icon.text}
-            onClick={handleTranslation}
+        <App
+          message={{
+            top: 20,
+            duration: 2.5,
+            maxCount: 3,
+            getContainer: () => document.body,
+          }}
+        >
+          <AppContent 
+            icon={icon} 
+            result={result} 
+            showInputTranslator={showInputTranslator} 
+            handleTranslation={handleTranslation} 
+            setShowInputTranslator={setShowInputTranslator} 
           />
-        )}
-        {result && (
-          <TranslatorResult
-            x={result.x}
-            y={result.y}
-            text={result.text}
-          />
-        )}
-        {showInputTranslator && (
-          <InputTranslator
-            onClose={() => setShowInputTranslator(false)}
-          />
-        )}
+        </App>
       </ConfigProvider>
     </StyleProvider>
   );

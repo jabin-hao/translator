@@ -15,7 +15,7 @@ const storage = new Storage();
 const menuItems = [
   {
     key: 'language',
-    icon: <Icon icon="material-symbols:language-outline" width={22} />,
+    icon: <Icon icon="material-symbols:language" width={22} />,
     label: '语言设置',
   },
   {
@@ -60,62 +60,49 @@ function getActualTheme(themeMode: string): 'light' | 'dark' {
 }
 
 const OptionsIndex = () => {
+  // 尝试同步从localStorage获取主题
+  const getInitialThemeMode = () => {
+    try {
+      const local = window.localStorage.getItem(THEME_KEY);
+      if (local) return local;
+    } catch {}
+    return 'auto';
+  };
+  const [themeMode, setThemeMode] = useState(getInitialThemeMode);
+  const [actualTheme, setActualTheme] = useState(() => getActualTheme(getInitialThemeMode()));
   const [selectedKey, setSelectedKey] = useState('language');
-  const [themeMode, setThemeMode] = useState('auto');
-  const [actualTheme, setActualTheme] = useState<'light' | 'dark'>('light');
 
-  // 初始化主题
+  // 只在themeMode变化或系统主题变化时更新actualTheme
   useEffect(() => {
-    const initTheme = async () => {
-      const savedTheme = await getInitTheme();
-      setThemeMode(savedTheme);
-      const actual = getActualTheme(savedTheme);
-      setActualTheme(actual);
-    };
-    initTheme();
-    
-    // 监听系统主题变化（仅在 auto 模式下）
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = () => {
-      if (themeMode === 'auto') {
-        const actual = getActualTheme('auto');
-        setActualTheme(actual);
-      }
-    };
-    
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
+    if (themeMode === 'auto') {
+      const updateTheme = () => setActualTheme(getActualTheme('auto'));
+      updateTheme();
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      mediaQuery.addEventListener('change', updateTheme);
+      return () => mediaQuery.removeEventListener('change', updateTheme);
+    } else {
+      setActualTheme(getActualTheme(themeMode));
+    }
   }, [themeMode]);
 
-  // 监听storage变化
+  // 监听storage变化（多标签页同步）
   useEffect(() => {
-    const handleStorageChange = async () => {
-      const savedTheme = await getInitTheme();
-      setThemeMode(savedTheme);
-      const actual = getActualTheme(savedTheme);
-      setActualTheme(actual);
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === THEME_KEY) {
+        const next = e.newValue || 'auto';
+        setThemeMode(next);
+      }
     };
-
-    // 监听storage变化
-    storage.watch({
-      [THEME_KEY]: handleStorageChange
-    });
-
-    return () => {
-      storage.unwatch({
-        [THEME_KEY]: handleStorageChange
-      });
-    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
   // 切换主题
-  const handleThemeSwitch = async () => {
+  const handleThemeSwitch = () => {
     const idx = themeOrder.indexOf(themeMode);
     const next = themeOrder[(idx + 1) % themeOrder.length];
     setThemeMode(next);
-    const actual = getActualTheme(next);
-    setActualTheme(actual);
-    await storage.set(THEME_KEY, next);
+    window.localStorage.setItem(THEME_KEY, next);
   };
 
   let content = null;
@@ -176,7 +163,7 @@ const OptionsIndex = () => {
               <Button
                 type="text"
                 icon={<Icon icon="mdi:github" width={20} height={20} />}
-                onClick={() => window.open('https://github.com/your-repo', '_blank')}
+                onClick={() => window.open('https://github.com/Bugbyebyebye/translator', '_blank')}
                 style={{ color: actualTheme === 'dark' ? '#ffffff' : '#333333' }}
               />
             </Tooltip>

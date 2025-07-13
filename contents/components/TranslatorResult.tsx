@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, Button, message, Space, Divider } from 'antd';
+import { Card, Button, Space, Divider } from 'antd';
 import { CopyOutlined, SoundOutlined } from '@ant-design/icons';
 import '../index.css';
 
@@ -7,9 +7,10 @@ interface TranslatorResultProps {
   x: number;
   y: number;
   text: string;
+  showMessage: (type: 'success' | 'error' | 'warning' | 'info', content: string) => void;
 }
 
-const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text }) => {
+const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text, showMessage }) => {
   const [targetLang, setTargetLang] = useState('zh');
 
   // 验证坐标值，如果无效则不渲染
@@ -23,13 +24,13 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text }) => {
     if (text) {
       try {
         await navigator.clipboard.writeText(text);
-        message.success('已复制');
+        showMessage('success', '已复制');
       } catch (err) {
-        message.error('复制失败，可能是浏览器限制或权限问题');
+        showMessage('error', '复制失败，可能是浏览器限制或权限问题');
         console.error('复制失败', err);
       }
     } else {
-      message.warning('没有可复制的内容');
+      showMessage('warning', '没有可复制的内容');
     }
   };
 
@@ -40,9 +41,9 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text }) => {
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = targetLang === 'zh' ? 'zh-CN' : targetLang;
       speechSynthesis.speak(utterance);
-      message.success('开始朗读');
+      showMessage('success', '开始朗读');
     } else {
-      message.warning('没有可朗读的内容');
+      showMessage('warning', '没有可朗读的内容');
     }
   };
 
