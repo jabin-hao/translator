@@ -7,6 +7,7 @@ import GeneralSettings from './components/GeneralSettings';
 import About from './components/About';
 import LanguageSettings from './components/LanguageSettings';
 import PluginIcon from 'components/PluginIcon';
+import TranslateSettings from './components/TranslateSettings'; // 新增
 
 const { Text } = Typography;
 
@@ -22,6 +23,11 @@ const menuItems = [
     key: 'general',
     icon: <Icon icon="material-symbols:settings-outline" width={22} />,
     label: '通用设置',
+  },
+  {
+    key: 'translate',
+    icon: <Icon icon="material-symbols:g-translate" width={22} />, // 新增图标
+    label: '翻译设置',
   },
   {
     key: 'about',
@@ -109,7 +115,9 @@ const OptionsIndex = () => {
   if (selectedKey === 'language') {
     content = <LanguageSettings />;
   } else if (selectedKey === 'general') {
-    content = <GeneralSettings />;
+    content = <GeneralSettings themeMode={themeMode} setThemeMode={setThemeMode} />;
+  } else if (selectedKey === 'translate') {
+    content = <TranslateSettings />;
   } else if (selectedKey === 'about') {
     content = <About />;
   }

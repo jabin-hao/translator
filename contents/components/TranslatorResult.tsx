@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, Button, Space, Divider } from 'antd';
 import { CopyOutlined, SoundOutlined } from '@ant-design/icons';
 import '../index.css';
@@ -8,15 +8,70 @@ interface TranslatorResultProps {
   y: number;
   text: string;
   showMessage: (type: 'success' | 'error' | 'warning' | 'info', content: string) => void;
+  autoRead?: boolean; // 新增
 }
 
-const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text, showMessage }) => {
+const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text, showMessage, autoRead }) => {
   const [targetLang, setTargetLang] = useState('zh');
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const utterRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  // 验证坐标值，如果无效则不渲染
-  if (typeof x !== 'number' || typeof y !== 'number' || isNaN(x) || isNaN(y)) {
-    return null;
-  }
+  // 自动朗读
+  useEffect(() => {
+    if (autoRead && text) {
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+      }
+      const utter = new window.SpeechSynthesisUtterance(text);
+      utter.lang = targetLang === 'zh' ? 'zh-CN' : targetLang;
+      utter.onend = () => setIsSpeaking(false);
+      utter.onerror = () => setIsSpeaking(false);
+      utterRef.current = utter;
+      setIsSpeaking(true);
+      window.speechSynthesis.speak(utter);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoRead, text, targetLang]);
+
+  // 停止朗读
+  const stopSpeak = () => {
+    window.speechSynthesis.cancel();
+    setIsSpeaking(false);
+  };
+
+  // 手动朗读/停止
+  const handleSpeak = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (!text) {
+      showMessage('warning', '没有可朗读的内容');
+      return;
+    }
+    if (isSpeaking) {
+      stopSpeak();
+      showMessage('info', '已停止朗读');
+    } else {
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+      }
+      const utter = new window.SpeechSynthesisUtterance(text);
+      utter.lang = targetLang === 'zh' ? 'zh-CN' : targetLang;
+      utter.onend = () => setIsSpeaking(false);
+      utter.onerror = () => setIsSpeaking(false);
+      utterRef.current = utter;
+      setIsSpeaking(true);
+      window.speechSynthesis.speak(utter);
+      showMessage('success', '开始朗读');
+    }
+  };
+
+  // 组件卸载时停止朗读
+  useEffect(() => {
+    return () => {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+    };
+  }, []);
 
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -31,19 +86,6 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text, showMes
       }
     } else {
       showMessage('warning', '没有可复制的内容');
-    }
-  };
-
-  const handleSpeak = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    if (text) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = targetLang === 'zh' ? 'zh-CN' : targetLang;
-      speechSynthesis.speak(utterance);
-      showMessage('success', '开始朗读');
-    } else {
-      showMessage('warning', '没有可朗读的内容');
     }
   };
 
@@ -68,6 +110,11 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text, showMes
     };
     return langMap[langCode] || langCode.toUpperCase();
   };
+
+  // 验证坐标值，如果无效则不渲染
+  if (typeof x !== 'number' || typeof y !== 'number' || isNaN(x) || isNaN(y)) {
+    return null;
+  }
 
   return (
     <Card
@@ -141,11 +188,11 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text, showMes
             }}
           >
             <Button
-              type="text"
+              type={isSpeaking ? 'primary' : 'text'}
               icon={<SoundOutlined />}
               size="small"
               onClick={handleSpeak}
-              title="朗读"
+              title={isSpeaking ? '停止朗读' : '朗读'}
               style={{ marginRight: '4px' }}
             />
             <Button

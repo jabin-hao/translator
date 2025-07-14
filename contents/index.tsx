@@ -143,19 +143,37 @@ function applyThemeToShadowRoot(themeMode: string, shadowRoot: ShadowRoot) {
   shadowRoot.appendChild(style);
 }
 
+// 新增：调用后台翻译API的方法
+function callTranslateAPI(text: string, from: string, to: string, engine = 'google'): Promise<string> {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(
+      {
+        type: 'translate',
+        payload: { text, from, to, engine }
+      },
+      (response) => {
+        if (response?.result) resolve(response.result)
+        else reject(response?.error || '翻译失败')
+      }
+    )
+  })
+}
+
 // 在App组件内部使用message的组件
 const AppContent = ({ 
   icon, 
   result, 
   showInputTranslator, 
   handleTranslation, 
-  setShowInputTranslator 
+  setShowInputTranslator,
+  autoRead
 }: {
   icon: { x: number; y: number; text: string } | null;
   result: { x: number; y: number; text: string } | null;
   showInputTranslator: boolean;
   handleTranslation: () => void;
   setShowInputTranslator: (show: boolean) => void;
+  autoRead: boolean;
 }) => {
   // 创建message适配器函数
   const showMessage = (type: 'success' | 'error' | 'warning' | 'info', content: string) => {
@@ -196,6 +214,7 @@ const AppContent = ({
           y={result.y}
           text={result.text}
           showMessage={showMessage}
+          autoRead={autoRead}
         />
       )}
       {showInputTranslator && (
@@ -286,6 +305,41 @@ const ContentScript = () => {
     };
   }, [shadowRoot]);
 
+  // 翻译设置相关 state
+  const [engine, setEngine] = useState('google');
+  const [autoRead, setAutoRead] = useState(false);
+  const engineRef = useRef(engine);
+  const autoReadRef = useRef(autoRead);
+
+  // 保持 ref 与 state 同步
+  useEffect(() => { engineRef.current = engine; }, [engine]);
+  useEffect(() => { autoReadRef.current = autoRead; }, [autoRead]);
+
+  // 初始化时读取设置
+  useEffect(() => {
+    storage.get('translate_settings').then((data) => {
+      if (data && typeof data === 'object') {
+        setEngine((data as any)?.engine || 'google');
+        setAutoRead(!!(data as any)?.autoRead);
+      }
+    });
+  }, []);
+
+  // 监听 storage 变化
+  useEffect(() => {
+    const handler = (changes, area) => {
+      if (area === 'local' && changes['translate_settings']) {
+        const data = changes['translate_settings'].newValue;
+        if (data && typeof data === 'object') {
+          setEngine((data as any)?.engine || 'google');
+          setAutoRead(!!(data as any)?.autoRead);
+        }
+      }
+    };
+    chrome.storage.onChanged.addListener(handler);
+    return () => chrome.storage.onChanged.removeListener(handler);
+  }, []);
+
   const showTranslationIcon = (text: string, rect: DOMRect) => {
     // 验证rect的值，确保它们是有效的数字
     if (isNaN(rect.left) || isNaN(rect.bottom) || isNaN(rect.right) || isNaN(rect.top)) {
@@ -299,10 +353,22 @@ const ContentScript = () => {
     resultPosRef.current = { x, y, text };
   };
 
-  const handleTranslation = () => {
+  const handleTranslation = async () => {
     const { x, y, text } = resultPosRef.current || { x: icon?.x || 0, y: (icon?.y || 0) + 40, text: icon?.text || "" };
-    setResult({ x, y, text });
     setIcon(null);
+    try {
+      const translated = await callTranslateAPI(text, 'auto', 'zh-CN', engineRef.current); // 用最新的 engine
+      setResult({ x, y, text: translated });
+      // 自动朗读
+      if (autoReadRef.current && translated) {
+        if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
+        const utter = new window.SpeechSynthesisUtterance(translated);
+        utter.lang = 'zh-CN';
+        window.speechSynthesis.speak(utter);
+      }
+    } catch (e) {
+      setResult({ x, y, text: '翻译失败: ' + e });
+    }
   };
 
   useEffect(() => {
@@ -403,6 +469,7 @@ const ContentScript = () => {
             showInputTranslator={showInputTranslator} 
             handleTranslation={handleTranslation} 
             setShowInputTranslator={setShowInputTranslator} 
+            autoRead={autoRead}
           />
         </App>
       </ConfigProvider>
