@@ -166,6 +166,7 @@ const AppContent = ({
   showInputTranslator, 
   handleTranslation, 
   setShowInputTranslator,
+  setIcon, // 新增
   autoRead,
   engine
 }: {
@@ -174,6 +175,7 @@ const AppContent = ({
   showInputTranslator: boolean;
   handleTranslation: () => void;
   setShowInputTranslator: (show: boolean) => void;
+  setIcon: (icon: any) => void; // 新增
   autoRead: boolean;
   engine: string;
 }) => {
@@ -207,7 +209,10 @@ const AppContent = ({
           x={icon.x}
           y={icon.y}
           text={icon.text}
-          onClick={handleTranslation}
+          onClick={() => {
+            setIcon(null); // 点击后立即隐藏图标
+            handleTranslation();
+          }}
         />
       )}
       {result && (
@@ -389,16 +394,14 @@ const ContentScript = () => {
         }
       }
       
-      const selection = window.getSelection();
-      const text = selection?.toString().trim();
+      // 关闭悬浮窗时，清除选区并隐藏icon
       setResult(null);
-      if (text && text.length > 0 && selection && selection.rangeCount > 0) {
-        const rect = selection.getRangeAt(0).getBoundingClientRect();
-        showTranslationIcon(text, rect);
-      } else {
-        setIcon(null);
-        resultPosRef.current = null;
+      if (window.getSelection) {
+        const sel = window.getSelection();
+        if (sel) sel.removeAllRanges();
       }
+      setIcon(null);
+      resultPosRef.current = null;
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -479,6 +482,7 @@ const ContentScript = () => {
             showInputTranslator={showInputTranslator} 
             handleTranslation={handleTranslation} 
             setShowInputTranslator={setShowInputTranslator} 
+            setIcon={setIcon} // 新增
             autoRead={autoRead}
             engine={engine}
           />

@@ -64,6 +64,15 @@ function getSpeechLang(lang: string) {
   }
 }
 
+// 获取可用 voice，优先选用目标语言
+const getVoice = (lang: string) => {
+  const voices = window.speechSynthesis.getVoices();
+  // 优先找完全匹配，其次找前缀匹配
+  let voice = voices.find(v => v.lang === lang);
+  if (!voice) voice = voices.find(v => v.lang.startsWith(lang.split('-')[0]));
+  return voice || voices[0];
+};
+
 const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text, showMessage, autoRead, engine }) => {
   const [targetLang, setTargetLang] = useState('');
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -127,6 +136,11 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text, showMes
       }
       const utter = new window.SpeechSynthesisUtterance(translatedText);
       utter.lang = getSpeechLang(targetLang);
+      const voice = getVoice(utter.lang);
+      if (utter.lang.startsWith('ja') && (!voice || !voice.lang.startsWith('ja'))) {
+        showMessage('warning', '未检测到日语语音，已用默认语音朗读');
+      }
+      if (voice) utter.voice = voice;
       utter.onend = () => setIsSpeaking(false);
       utter.onerror = () => setIsSpeaking(false);
       utterRef.current = utter;
@@ -159,6 +173,11 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text, showMes
       }
       const utter = new window.SpeechSynthesisUtterance(translatedText);
       utter.lang = getSpeechLang(targetLang);
+      const voice = getVoice(utter.lang);
+      if (utter.lang.startsWith('ja') && (!voice || !voice.lang.startsWith('ja'))) {
+        showMessage('warning', '未检测到日语语音，已用默认语音朗读');
+      }
+      if (voice) utter.voice = voice;
       utter.onend = () => setIsSpeaking(false);
       utter.onerror = () => setIsSpeaking(false);
       utterRef.current = utter;
