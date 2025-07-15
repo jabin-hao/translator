@@ -1,6 +1,6 @@
 import 'antd/dist/reset.css';
 import React, { useState, useEffect } from 'react';
-import { Menu, Button, Tooltip, Space, Avatar, Typography, ConfigProvider, theme } from 'antd';
+import { Menu, Button, Tooltip, Space, Avatar, Typography, ConfigProvider, theme, App } from 'antd';
 import { Icon } from '@iconify/react';
 import { Storage } from '@plasmohq/storage';
 import GeneralSettings from './components/GeneralSettings';

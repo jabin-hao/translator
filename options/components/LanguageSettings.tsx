@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, Select, Button, List, Tag, Space, Divider, message } from 'antd';
+import { Card, Select, Button, List, Tag, Space, Divider, App } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { Storage } from '@plasmohq/storage';
 import { LANGUAGES, UI_LANGUAGES } from '../../lib/languages';
@@ -19,6 +19,7 @@ const setLocal = async (key, val) => {
 };
 
 const LanguageSettings: React.FC = () => {
+  const { message } = App.useApp();
   // 状态
   const [uiLang, setUiLang] = useState('default');
   const [pageTargetLang, setPageTargetLang] = useState('zh-CN');
@@ -36,15 +37,20 @@ const LanguageSettings: React.FC = () => {
       const [ui, page, text, fav, never, always] = await Promise.all([
         getLocal('uiLang', 'default'),
         getLocal('pageTargetLang', 'zh-CN'),
-        getLocal('textTargetLang', 'zh-CN'),
+        getLocal('textTargetLang', ''), // 默认空
         getLocal('favoriteLangs', []),
         getLocal('neverLangs', []),
         getLocal('alwaysLangs', [])
       ]);
-      
       setUiLang(ui);
       setPageTargetLang(page);
-      setTextTargetLang(text);
+      // 划词翻译目标语言优先级：用户设置 > favoriteLangs[0] > 浏览器语言
+      let textLang = text;
+      if (!textLang) {
+        if (fav && fav.length > 0) textLang = fav[0];
+        else textLang = navigator.language.startsWith('zh') ? 'zh-CN' : (navigator.language.startsWith('en') ? 'en' : 'zh-CN');
+      }
+      setTextTargetLang(textLang);
       setFavoriteLangs(fav);
       setNeverLangs(never);
       setAlwaysLangs(always);
@@ -112,7 +118,7 @@ const LanguageSettings: React.FC = () => {
     <Card 
       title="语言设置" 
       style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
-      bodyStyle={{ padding: 0, flex: 1, display: 'flex', flexDirection: 'column' }}
+      styles={{ body: { padding: 0, flex: 1, display: 'flex', flexDirection: 'column' } }}
     >
       <div style={{ flex: 1, overflow: 'auto', padding: '24px' }}>
         {/* 界面语言 */}
@@ -131,7 +137,7 @@ const LanguageSettings: React.FC = () => {
           <b>网页翻译目标语言：</b>
           <Select
             value={pageTargetLang}
-            options={LANGUAGES}
+            options={LANGUAGES.map(l => ({ label: l.label, value: l.code }))}
             onChange={val => { setPageTargetLang(val); save('pageTargetLang', val); }}
             style={{ width: 200, marginLeft: 16 }}
           />
@@ -141,7 +147,7 @@ const LanguageSettings: React.FC = () => {
           <b>划词翻译目标语言：</b>
           <Select
             value={textTargetLang}
-            options={LANGUAGES}
+            options={LANGUAGES.map(l => ({ label: l.label, value: l.code }))}
             onChange={val => { setTextTargetLang(val); save('textTargetLang', val); }}
             style={{ width: 200, marginLeft: 16 }}
           />

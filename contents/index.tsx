@@ -252,6 +252,10 @@ const ContentScript = () => {
   const lastCtrlPressRef = useRef<number>(0);
   const doubleClickThreshold = 300;
   const ctrlPressedRef = useRef<boolean>(false);
+  // 新增：划词翻译目标语言
+  const [textTargetLang, setTextTargetLang] = useState('');
+  // 新增：偏好语言
+  const [favoriteLangs, setFavoriteLangs] = useState<string[]>([]);
 
   // 主题检测和应用
   useEffect(() => {
@@ -333,15 +337,18 @@ const ContentScript = () => {
     });
   }, []);
 
-  // 监听 storage 变化
+  // 新增：初始化textTargetLang和favoriteLangs，并监听storage变化
   useEffect(() => {
+    storage.get('textTargetLang').then(val => {
+      if (val) setTextTargetLang(val);
+    });
+    storage.get('favoriteLangs').then(val => {
+      if (Array.isArray(val)) setFavoriteLangs(val);
+    });
     const handler = (changes, area) => {
-      if (area === 'local' && changes['translate_settings']) {
-        const data = changes['translate_settings'].newValue;
-        if (data && typeof data === 'object') {
-          setEngine((data as any)?.engine || 'google');
-          setAutoRead(!!(data as any)?.autoRead);
-        }
+      if (area === 'local') {
+        if (changes['textTargetLang']) setTextTargetLang(changes['textTargetLang'].newValue);
+        if (changes['favoriteLangs']) setFavoriteLangs(changes['favoriteLangs'].newValue || []);
       }
     };
     chrome.storage.onChanged.addListener(handler);
@@ -364,14 +371,20 @@ const ContentScript = () => {
   const handleTranslation = async () => {
     const { x, y, text } = resultPosRef.current || { x: icon?.x || 0, y: (icon?.y || 0) + 40, text: icon?.text || "" };
     setIcon(null);
+    // 优先用textTargetLang，没有则用favoriteLangs[0]，再没有用浏览器语言
+    let targetLang = textTargetLang;
+    if (!targetLang) {
+      if (favoriteLangs && favoriteLangs.length > 0) targetLang = favoriteLangs[0];
+      else targetLang = navigator.language.startsWith('zh') ? 'zh-CN' : (navigator.language.startsWith('en') ? 'en' : 'zh-CN');
+    }
     try {
-      const translated = await callTranslateAPI(text, 'auto', 'zh-CN', engineRef.current); // 用最新的 engine
+      const translated = await callTranslateAPI(text, 'auto', targetLang, engineRef.current); // 用最新的 engine
       setResult({ x, y, text: translated });
       // 自动朗读
       if (autoReadRef.current && translated) {
         if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
         const utter = new window.SpeechSynthesisUtterance(translated);
-        utter.lang = 'zh-CN';
+        utter.lang = targetLang;
         window.speechSynthesis.speak(utter);
       }
     } catch (e) {
@@ -394,14 +407,20 @@ const ContentScript = () => {
         }
       }
       
-      // 关闭悬浮窗时，清除选区并隐藏icon
       setResult(null);
-      if (window.getSelection) {
-        const sel = window.getSelection();
-        if (sel) sel.removeAllRanges();
+      setIcon(null); // 关闭悬浮窗时，icon 必须立即消失
+      const selection = window.getSelection();
+      const text = selection?.toString().trim();
+      if (text && text.length > 0 && selection && selection.rangeCount > 0) {
+        const rect = selection.getRangeAt(0).getBoundingClientRect();
+        showTranslationIcon(text, rect);
+      } else {
+        if (window.getSelection) {
+          const sel = window.getSelection();
+          if (sel) sel.removeAllRanges();
+        }
+        resultPosRef.current = null;
       }
-      setIcon(null);
-      resultPosRef.current = null;
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
