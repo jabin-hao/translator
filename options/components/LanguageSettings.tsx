@@ -61,6 +61,10 @@ const LanguageSettings: React.FC = () => {
 
   // 偏好语言
   const handleAddFav = async () => {
+    if (favoriteLangs.length >= 3) {
+      message.warning('最多只能选择三种偏好语言');
+      return;
+    }
     if (addFav && !favoriteLangs.includes(addFav)) {
       const next = [...favoriteLangs, addFav];
       setFavoriteLangs(next);
@@ -149,13 +153,13 @@ const LanguageSettings: React.FC = () => {
           <Space>
             <Select
               value={addFav}
-              options={LANGUAGES.filter(l => !favoriteLangs.includes(l.value))}
+              options={LANGUAGES.filter(l => !favoriteLangs.includes(l.code)).map(l => ({ label: l.label, value: l.code }))}
               onChange={setAddFav}
               style={{ width: 160 }}
               placeholder="选择语言"
               allowClear
             />
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleAddFav} disabled={!addFav}>添加</Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleAddFav} disabled={!addFav || favoriteLangs.length >= 3}>添加</Button>
           </Space>
           <div style={{ marginTop: 8 }}>
             {favoriteLangs.map(lang => (
@@ -165,7 +169,7 @@ const LanguageSettings: React.FC = () => {
                 onClose={() => handleRemoveFav(lang)}
                 color="blue"
               >
-                {LANGUAGES.find(l => l.value === lang)?.label || lang}
+                {LANGUAGES.find(l => l.code === lang)?.label || lang}
               </Tag>
             ))}
           </div>
@@ -176,7 +180,7 @@ const LanguageSettings: React.FC = () => {
           <Space>
             <Select
               value={addNever}
-              options={LANGUAGES.filter(l => !neverLangs.includes(l.value))}
+              options={LANGUAGES.filter(l => !neverLangs.includes(l.code)).map(l => ({ label: l.label, value: l.code }))}
               onChange={setAddNever}
               style={{ width: 160 }}
               placeholder="选择语言"
@@ -192,7 +196,7 @@ const LanguageSettings: React.FC = () => {
                 onClose={() => handleRemoveNever(lang)}
                 color="red"
               >
-                {LANGUAGES.find(l => l.value === lang)?.label || lang}
+                {LANGUAGES.find(l => l.code === lang)?.label || lang}
               </Tag>
             ))}
           </div>
@@ -203,7 +207,7 @@ const LanguageSettings: React.FC = () => {
           <Space>
             <Select
               value={addAlways}
-              options={LANGUAGES.filter(l => !alwaysLangs.includes(l.value))}
+              options={LANGUAGES.filter(l => !alwaysLangs.includes(l.code)).map(l => ({ label: l.label, value: l.code }))}
               onChange={setAddAlways}
               style={{ width: 160 }}
               placeholder="选择语言"
@@ -219,7 +223,7 @@ const LanguageSettings: React.FC = () => {
                 onClose={() => handleRemoveAlways(lang)}
                 color="green"
               >
-                {LANGUAGES.find(l => l.value === lang)?.label || lang}
+                {LANGUAGES.find(l => l.code === lang)?.label || lang}
               </Tag>
             ))}
           </div>

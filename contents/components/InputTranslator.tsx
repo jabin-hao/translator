@@ -32,6 +32,22 @@ interface InputTranslatorProps {
   showMessage: (type: 'success' | 'error' | 'warning' | 'info', content: string) => void;
 }
 
+// 调用后台翻译API
+function callTranslateAPI(text: string, from: string, to: string, engine = 'google'): Promise<string> {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(
+      {
+        type: 'translate',
+        payload: { text, from, to, engine }
+      },
+      (response) => {
+        if (response?.result) resolve(response.result)
+        else reject(response?.error || '翻译失败')
+      }
+    )
+  })
+}
+
 const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage }) => {
   const [inputText, setInputText] = useState('');
   const [translatedText, setTranslatedText] = useState('');
@@ -74,13 +90,12 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage 
     
     setIsTranslating(true);
     try {
-      // 这里可以调用翻译API，暂时使用模拟翻译
-      const mockTranslation = `翻译结果: ${inputText}`;
-      setTranslatedText(mockTranslation);
+      const result = await callTranslateAPI(inputText, sourceLang, targetLang, engine);
+      setTranslatedText(result);
       showMessage('success', '翻译完成');
     } catch (error) {
       setTranslatedText('翻译失败，请重试');
-      showMessage('error', '翻译失败，请重试');
+      showMessage('error', typeof error === 'string' ? error : '翻译失败，请重试');
     } finally {
       setIsTranslating(false);
     }

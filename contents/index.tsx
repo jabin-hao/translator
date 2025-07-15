@@ -166,7 +166,8 @@ const AppContent = ({
   showInputTranslator, 
   handleTranslation, 
   setShowInputTranslator,
-  autoRead
+  autoRead,
+  engine
 }: {
   icon: { x: number; y: number; text: string } | null;
   result: { x: number; y: number; text: string } | null;
@@ -174,6 +175,7 @@ const AppContent = ({
   handleTranslation: () => void;
   setShowInputTranslator: (show: boolean) => void;
   autoRead: boolean;
+  engine: string;
 }) => {
   // 创建message适配器函数
   const showMessage = (type: 'success' | 'error' | 'warning' | 'info', content: string) => {
@@ -215,6 +217,7 @@ const AppContent = ({
           text={result.text}
           showMessage={showMessage}
           autoRead={autoRead}
+          engine={engine}
         />
       )}
       {showInputTranslator && (
@@ -403,26 +406,33 @@ const ContentScript = () => {
         if (!ctrlPressedRef.current) {
           ctrlPressedRef.current = true;
           const now = Date.now();
-          
           if (now - lastCtrlPressRef.current < doubleClickThreshold) {
             const selection = window.getSelection();
             const text = selection?.toString().trim();
-            
             if (text && text.length > 0 && selection && selection.rangeCount > 0) {
-              // 有选中文字，显示翻译结果
+              // 有选中文字，自动翻译并显示结果
               const rect = selection.getRangeAt(0).getBoundingClientRect();
-              
-              // 验证坐标是否有效
               if (isNaN(rect.left) || isNaN(rect.bottom)) {
-                return; // 如果坐标无效，不显示结果
+                return;
               }
-              
               const x = rect.left;
               const y = rect.bottom;
-              setResult({ x, y, text });
               setIcon(null);
+              callTranslateAPI(text, 'auto', 'zh-CN', engineRef.current)
+                .then(translated => {
+                  setResult({ x, y, text: translated });
+                  // 自动朗读
+                  if (autoReadRef.current && translated) {
+                    if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
+                    const utter = new window.SpeechSynthesisUtterance(translated);
+                    utter.lang = 'zh-CN';
+                    window.speechSynthesis.speak(utter);
+                  }
+                })
+                .catch(e => {
+                  setResult({ x, y, text: '翻译失败: ' + e });
+                });
             } else {
-              // 没有选中文字，显示输入翻译器
               setShowInputTranslator(true);
             }
           }
@@ -470,6 +480,7 @@ const ContentScript = () => {
             handleTranslation={handleTranslation} 
             setShowInputTranslator={setShowInputTranslator} 
             autoRead={autoRead}
+            engine={engine}
           />
         </App>
       </ConfigProvider>
