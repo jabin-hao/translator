@@ -439,15 +439,21 @@ const ContentScript = () => {
               }
               const x = rect.left;
               const y = rect.bottom;
-              setIcon(null);
-              callTranslateAPI(text, 'auto', 'zh-CN', engineRef.current)
+              setIcon(null); // 双击Ctrl时也立即隐藏icon
+              // 复用handleTranslation的目标语言逻辑
+              let targetLang = textTargetLang;
+              if (!targetLang) {
+                if (favoriteLangs && favoriteLangs.length > 0) targetLang = favoriteLangs[0];
+                else targetLang = navigator.language.startsWith('zh') ? 'zh-CN' : (navigator.language.startsWith('en') ? 'en' : 'zh-CN');
+              }
+              callTranslateAPI(text, 'auto', targetLang, engineRef.current)
                 .then(translated => {
                   setResult({ x, y, text: translated });
                   // 自动朗读
                   if (autoReadRef.current && translated) {
                     if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
                     const utter = new window.SpeechSynthesisUtterance(translated);
-                    utter.lang = 'zh-CN';
+                    utter.lang = targetLang;
                     window.speechSynthesis.speak(utter);
                   }
                 })
