@@ -20,14 +20,14 @@ const menuItems = [
     label: '语言设置',
   },
   {
-    key: 'general',
-    icon: <Icon icon="material-symbols:settings-outline" width={22} />,
-    label: '通用设置',
-  },
-  {
     key: 'translate',
     icon: <Icon icon="material-symbols:g-translate" width={22} />, // 新增图标
     label: '翻译设置',
+  },
+  {
+    key: 'general',
+    icon: <Icon icon="material-symbols:settings-outline" width={22} />,
+    label: '通用设置',
   },
   {
     key: 'about',
