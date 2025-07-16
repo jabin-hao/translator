@@ -14,6 +14,7 @@ interface TranslatorResultProps {
   autoRead?: boolean; // 新增
   engine: string; // 新增
   onClose: () => void; // 新增
+  targetLang?: string; // 新增
 }
 
 const storage = new Storage();
@@ -42,7 +43,7 @@ const getVoice = (lang: string) => {
   return voice || voices[0];
 };
 
-const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text, showMessage, autoRead, engine, onClose }) => {
+const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text, showMessage, autoRead, engine, onClose, targetLang: propTargetLang }) => {
   const [targetLang, setTargetLang] = useState('');
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [favoriteLangs, setFavoriteLangs] = useState<string[]>([]);
@@ -69,15 +70,16 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text, showMes
     return () => chrome.storage.onChanged.removeListener(handler);
   }, []);
 
-  // favoriteLangs 变化时自动同步 targetLang
+  // targetLang 优先级：propTargetLang > favoriteLangs > 浏览器语言
   useEffect(() => {
-    if (favoriteLangs.length > 0) {
-      setTargetLang(prev => favoriteLangs.includes(prev) ? prev : favoriteLangs[0]);
+    if (propTargetLang) {
+      setTargetLang(propTargetLang);
+    } else if (favoriteLangs.length > 0) {
+      setTargetLang(favoriteLangs[0]);
     } else {
-      // 自动用浏览器语言并做微软/Google映射
       setTargetLang(getEngineLangCode(getBrowserLang(), 'bing'));
     }
-  }, [favoriteLangs]);
+  }, [propTargetLang, favoriteLangs]);
 
   // 翻译时始终用 props.engine
   useEffect(() => {

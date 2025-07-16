@@ -232,6 +232,7 @@ const AppContent = ({
           autoRead={autoRead}
           engine={engine}
           onClose={onCloseResult}
+          targetLang={textTargetLang}
         />
       )}
       {showInputTranslator && (
@@ -268,6 +269,10 @@ const ContentScript = () => {
   const [textTargetLang, setTextTargetLang] = useState('');
   // 新增：偏好语言
   const [favoriteLangs, setFavoriteLangs] = useState<string[]>([]);
+
+  // 新增：用 ref 保证 handleTranslation 始终用到最新的 textTargetLang
+  const textTargetLangRef = useRef(textTargetLang);
+  useEffect(() => { textTargetLangRef.current = textTargetLang }, [textTargetLang]);
 
   // 主题检测和应用
   useEffect(() => {
@@ -396,7 +401,7 @@ const ContentScript = () => {
     const { x, y, text } = resultPosRef.current || { x: icon?.x || 0, y: (icon?.y || 0) + 40, text: icon?.text || "" };
     setIcon(null);
     // 优先用textTargetLang，没有则用favoriteLangs[0]，再没有用浏览器语言
-    let targetLang = textTargetLang;
+    let targetLang = textTargetLangRef.current;
     if (!targetLang) {
       if (favoriteLangs && favoriteLangs.length > 0) targetLang = favoriteLangs[0];
       else targetLang = getBrowserLang();
@@ -487,7 +492,7 @@ const ContentScript = () => {
               const y = rect.bottom;
               setIcon(null); // 双击Ctrl时也立即隐藏icon
               // 复用handleTranslation的目标语言逻辑
-              let targetLang = textTargetLang;
+              let targetLang = textTargetLangRef.current;
               if (!targetLang) {
                 if (favoriteLangs && favoriteLangs.length > 0) targetLang = favoriteLangs[0];
                 else targetLang = getBrowserLang();
