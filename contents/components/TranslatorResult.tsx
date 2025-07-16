@@ -312,7 +312,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text, showMes
   );
 };
 
-export default TranslatorResult;
+export default TranslatorResult; 
 
 // 防御：onClose 默认空函数，防止未传时报错
 TranslatorResult.defaultProps = {

@@ -136,87 +136,89 @@ const OptionsIndex = () => {
         }
       }}
     >
-      <div style={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        flexDirection: 'column',
-        margin: 0,
-        padding: 0
-      }}>
-        {/* 顶部栏 */}
-        <div style={{
-          height: 56,
-          background: actualTheme === 'dark' 
-            ? 'linear-gradient(90deg, #2a2a2a 0%, #1a1a1a 100%)'
-            : 'linear-gradient(90deg, #f5faff 0%, #e3f0ff 100%)',
-          display: 'flex',
-          alignItems: 'center',
-          padding: '0 32px',
-          borderBottom: `1px solid ${actualTheme === 'dark' ? '#404040' : '#e3f0ff'}`,
-          position: 'sticky',
-          top: 0,
-          zIndex: 100,
+      <App>
+        <div style={{ 
+          minHeight: '100vh', 
+          display: 'flex', 
+          flexDirection: 'column',
+          margin: 0,
+          padding: 0
         }}>
-          <Space style={{ fontWeight: 700, fontSize: 18, color: actualTheme === 'dark' ? '#ffffff' : '#333333', letterSpacing: 2 }}>
-            <Avatar
-              size={32}
-              style={{ background: 'transparent', verticalAlign: 'middle' }}
-              icon={<PluginIcon size={28} />}
-            />
-            <Text style={{ fontFamily: 'Segoe UI, HarmonyOS Sans, Arial', marginLeft: 2, color: actualTheme === 'dark' ? '#ffffff' : '#333333' }}>翻译助手</Text>
-          </Space>
-          <div style={{ flex: 1 }} />
-          <Space size={18} style={{ marginLeft: 'auto' }}>
-            <Tooltip title="前往 GitHub 项目">
-              <Button
-                type="text"
-                icon={<Icon icon="mdi:github" width={20} height={20} />}
-                onClick={() => window.open('https://github.com/Bugbyebyebye/translator', '_blank')}
-                style={{ color: actualTheme === 'dark' ? '#ffffff' : '#333333' }}
-              />
-            </Tooltip>
-            <Tooltip title={`当前主题：${themeTextMap[themeMode]}`}>
-              <Button
-                type="text"
-                icon={themeIconMap[themeMode]}
-                onClick={handleThemeSwitch}
-                style={{ color: actualTheme === 'dark' ? '#ffffff' : '#333333' }}
-              />
-            </Tooltip>
-          </Space>
-        </div>
-
-        <div style={{ display: 'flex', flex: 1 }}>
-          {/* 侧边栏 */}
+          {/* 顶部栏 */}
           <div style={{
-            width: 200,
-            background: actualTheme === 'dark' ? '#1a1a1a' : '#ffffff',
-            borderRight: `1px solid ${actualTheme === 'dark' ? '#404040' : '#e3f0ff'}`,
+            height: 56,
+            background: actualTheme === 'dark' 
+              ? 'linear-gradient(90deg, #2a2a2a 0%, #1a1a1a 100%)'
+              : 'linear-gradient(90deg, #f5faff 0%, #e3f0ff 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            padding: '0 32px',
+            borderBottom: `1px solid ${actualTheme === 'dark' ? '#404040' : '#e3f0ff'}`,
+            position: 'sticky',
+            top: 0,
+            zIndex: 100,
           }}>
-            <Menu
-              mode="inline"
-              selectedKeys={[selectedKey]}
-              style={{
-                height: '100%',
-                borderRight: 0,
-                background: actualTheme === 'dark' ? '#1a1a1a' : '#ffffff',
-              }}
-              items={menuItems}
-              onClick={({ key }) => setSelectedKey(key)}
-            />
+            <Space style={{ fontWeight: 700, fontSize: 18, color: actualTheme === 'dark' ? '#ffffff' : '#333333', letterSpacing: 2 }}>
+              <Avatar
+                size={32}
+                style={{ background: 'transparent', verticalAlign: 'middle' }}
+                icon={<PluginIcon size={28} />}
+              />
+              <Text style={{ fontFamily: 'Segoe UI, HarmonyOS Sans, Arial', marginLeft: 2, color: actualTheme === 'dark' ? '#ffffff' : '#333333' }}>翻译助手</Text>
+            </Space>
+            <div style={{ flex: 1 }} />
+            <Space size={18} style={{ marginLeft: 'auto' }}>
+              <Tooltip title="前往 GitHub 项目">
+                <Button
+                  type="text"
+                  icon={<Icon icon="mdi:github" width={20} height={20} />}
+                  onClick={() => window.open('https://github.com/Bugbyebyebye/translator', '_blank')}
+                  style={{ color: actualTheme === 'dark' ? '#ffffff' : '#333333' }}
+                />
+              </Tooltip>
+              <Tooltip title={`当前主题：${themeTextMap[themeMode]}`}>
+                <Button
+                  type="text"
+                  icon={themeIconMap[themeMode]}
+                  onClick={handleThemeSwitch}
+                  style={{ color: actualTheme === 'dark' ? '#ffffff' : '#333333' }}
+                />
+              </Tooltip>
+            </Space>
           </div>
 
-          {/* 主内容区 */}
-          <div style={{ 
-            flex: 1, 
-            background: actualTheme === 'dark' ? '#141414' : '#f5f5f5',
-            margin: 0,
-            padding: 0
-          }}>
-            {content}
+          <div style={{ display: 'flex', flex: 1 }}>
+            {/* 侧边栏 */}
+            <div style={{
+              width: 200,
+              background: actualTheme === 'dark' ? '#1a1a1a' : '#ffffff',
+              borderRight: `1px solid ${actualTheme === 'dark' ? '#404040' : '#e3f0ff'}`,
+            }}>
+              <Menu
+                mode="inline"
+                selectedKeys={[selectedKey]}
+                style={{
+                  height: '100%',
+                  borderRight: 0,
+                  background: actualTheme === 'dark' ? '#1a1a1a' : '#ffffff',
+                }}
+                items={menuItems}
+                onClick={({ key }) => setSelectedKey(key)}
+              />
+            </div>
+
+            {/* 主内容区 */}
+            <div style={{ 
+              flex: 1, 
+              background: actualTheme === 'dark' ? '#141414' : '#f5f5f5',
+              margin: 0,
+              padding: 0
+            }}>
+              {content}
+            </div>
           </div>
         </div>
-      </div>
+      </App>
     </ConfigProvider>
   );
 };

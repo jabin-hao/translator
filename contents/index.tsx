@@ -449,19 +449,19 @@ const ContentScript = () => {
       if (text && text.length > 0 && selection && selection.rangeCount > 0) {
         // 只在不是点击 icon 时显示 icon
         if (!(icon && iconElement && path.includes(iconElement))) {
-          const rect = selection.getRangeAt(0).getBoundingClientRect();
-          showTranslationIcon(text, rect);
+        const rect = selection.getRangeAt(0).getBoundingClientRect();
+        showTranslationIcon(text, rect);
         }
         // 不要立刻清空 icon/result
         return;
       }
 
       // 4. 没有选中内容，且不是点击在弹窗/输入框/icon 内部，清空所有
-      if (window.getSelection) {
-        const sel = window.getSelection();
-        if (sel) sel.removeAllRanges();
-      }
-      resultPosRef.current = null;
+        if (window.getSelection) {
+          const sel = window.getSelection();
+          if (sel) sel.removeAllRanges();
+        }
+        resultPosRef.current = null;
       setResult(null);
       setIcon(null);
       setShowInputTranslator(false);
@@ -560,7 +560,7 @@ const ContentScript = () => {
             favoriteLangs={favoriteLangs}
             callTranslateAPI={callTranslateAPI}
             onCloseResult={() => setResult(null)}
-          />
+        />
         </App>
       </ConfigProvider>
     </StyleProvider>
