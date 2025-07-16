@@ -416,47 +416,56 @@ const ContentScript = () => {
     }
   };
 
+  // 修复 icon 一出现就消失、input 输入框无法输入的问题
   useEffect(() => {
-    if (!shadowRoot) return;
     const handleMouseUp = (e: MouseEvent) => {
-      // 检查点击是否发生在翻译结果悬浮窗或输入弹窗内部
-      if (showInputTranslator && shadowRoot) {
-        const inputTranslatorElement = shadowRoot.querySelector('.input-translator-card');
-        if (inputTranslatorElement) {
-          if (e.composedPath().includes(inputTranslatorElement)) {
-            return; // 点击在输入弹窗内部，不关闭
-          }
-        }
+      // 1. 获取 shadowRoot 下的弹窗、icon、result 节点
+      let inputTranslatorElement = null, resultElement = null, iconElement = null;
+      if (shadowRoot) {
+        inputTranslatorElement = shadowRoot.querySelector('.input-translator-card');
+        resultElement = shadowRoot.querySelector('[data-translator-result]');
+        iconElement = shadowRoot.querySelector('.translator-icon');
       }
-      if (result && shadowRoot) {
-        const resultElement = shadowRoot.querySelector('[data-translator-result]');
-        if (resultElement) {
-          if (e.composedPath().includes(resultElement)) {
-            return; // 点击在翻译结果内部，不关闭
-          }
-        }
+      const path = e.composedPath();
+
+      // 2. 如果点击在弹窗/输入框/icon 内部，直接 return
+      if (
+        (showInputTranslator && inputTranslatorElement && path.includes(inputTranslatorElement)) ||
+        (result && resultElement && path.includes(resultElement)) ||
+        (icon && iconElement && path.includes(iconElement))
+      ) {
+        return;
       }
-      // 先判断 selection，再清理 result/icon
+
+      // 3. 判断 selection
       const selection = window.getSelection();
       const text = selection?.toString().trim();
+
       if (text && text.length > 0 && selection && selection.rangeCount > 0) {
-        const rect = selection.getRangeAt(0).getBoundingClientRect();
-        showTranslationIcon(text, rect);
-      } else {
-        if (window.getSelection) {
-          const sel = window.getSelection();
-          if (sel) sel.removeAllRanges();
+        // 只在不是点击 icon 时显示 icon
+        if (!(icon && iconElement && path.includes(iconElement))) {
+          const rect = selection.getRangeAt(0).getBoundingClientRect();
+          showTranslationIcon(text, rect);
         }
-        resultPosRef.current = null;
+        // 不要立刻清空 icon/result
+        return;
       }
+
+      // 4. 没有选中内容，且不是点击在弹窗/输入框/icon 内部，清空所有
+      if (window.getSelection) {
+        const sel = window.getSelection();
+        if (sel) sel.removeAllRanges();
+      }
+      resultPosRef.current = null;
       setResult(null);
       setIcon(null);
+      setShowInputTranslator(false);
     };
-    shadowRoot.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('mouseup', handleMouseUp);
     return () => {
-      shadowRoot.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [showInputTranslator, result]);
+  }, [showInputTranslator, result, icon]);
 
   // 保持键盘事件监听在 document 上
   useEffect(() => {
