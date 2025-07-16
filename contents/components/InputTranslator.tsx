@@ -15,8 +15,8 @@ import {
   SwapOutlined, 
   CloseOutlined 
 } from '@ant-design/icons';
-import { getBrowserLang } from '../../lib/languages';
-import { LANGUAGES } from '../../lib/languages';
+import { getBrowserLang, LANGUAGES } from '../../lib/languages';
+import { sendToBackground } from '@plasmohq/messaging';
 import { TRANSLATE_ENGINES } from '../../lib/engines';
 
 // 自定义翻译SVG图标组件
@@ -38,20 +38,18 @@ interface InputTranslatorProps {
   callTranslateAPI: (text: string, from: string, to: string, engine: string) => Promise<string>;
 }
 
-// 调用后台翻译API
-function callTranslateAPI(text: string, from: string, to: string, engine = 'google'): Promise<string> {
-  return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage(
-      {
-        type: 'translate',
-        payload: { text, from, to, engine }
-      },
-      (response) => {
-        if (response?.result) resolve(response.result)
-        else reject(response?.error || '翻译失败')
-      }
-    )
-  })
+// 调用后台翻译API（Plasmo消息）
+async function callTranslateAPI(text: string, from: string, to: string, engine = 'google'): Promise<string> {
+  try {
+    const res = await sendToBackground({
+      name: 'translate',
+      body: { text, from, to, engine }
+    });
+    if (res?.result) return res.result;
+    throw new Error(res?.error || '翻译失败');
+  } catch (e) {
+    throw typeof e === 'string' ? e : (e?.message || '翻译失败');
+  }
 }
 
 const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage, engine: defaultEngine, defaultTargetLang, callTranslateAPI }) => {

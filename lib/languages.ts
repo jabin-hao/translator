@@ -6,19 +6,20 @@ export interface LanguageItem {
   bing?: string;      // Bing API code
   deepl?: string;     // DeepL API code
   yandex?: string;    // Yandex API code
+  speech?: string;    // TTS 语音代码
 }
 
 export const LANGUAGES: LanguageItem[] = [
-  { label: '中文（简体）', abbr: '简中', code: 'zh-CN', google: 'zh-CN', bing: 'zh-Hans', deepl: 'ZH', yandex: 'zh' },
-  { label: '中文（繁体）', abbr: '繁中', code: 'zh-TW', google: 'zh-TW', bing: 'zh-Hant', deepl: 'ZH', yandex: 'zh' },
-  { label: '英语', abbr: '英', code: 'en', google: 'en', bing: 'en', deepl: 'EN', yandex: 'en' },
-  { label: '日语', abbr: '日', code: 'ja', google: 'ja', bing: 'ja', deepl: 'JA', yandex: 'ja' },
-  { label: '韩语', abbr: '韩', code: 'ko', google: 'ko', bing: 'ko', deepl: 'KO', yandex: 'ko' },
-  { label: '法语', abbr: '法', code: 'fr', google: 'fr', bing: 'fr', deepl: 'FR', yandex: 'fr' },
-  { label: '德语', abbr: '德', code: 'de', google: 'de', bing: 'de', deepl: 'DE', yandex: 'de' },
-  { label: '西班牙语', abbr: '西', code: 'es', google: 'es', bing: 'es', deepl: 'ES', yandex: 'es' },
-  { label: '俄语', abbr: '俄', code: 'ru', google: 'ru', bing: 'ru', deepl: 'RU', yandex: 'ru' },
-  { label: '葡萄牙语', abbr: '葡', code: 'pt', google: 'pt', bing: 'pt', deepl: 'PT', yandex: 'pt' },
+  { label: '中文（简体）', abbr: '简中', code: 'zh-CN', google: 'zh-CN', bing: 'zh-Hans', deepl: 'ZH', yandex: 'zh', speech: 'zh-CN' },
+  { label: '中文（繁体）', abbr: '繁中', code: 'zh-TW', google: 'zh-TW', bing: 'zh-Hant', deepl: 'ZH', yandex: 'zh', speech: 'zh-TW' },
+  { label: '英语', abbr: '英', code: 'en', google: 'en', bing: 'en', deepl: 'EN', yandex: 'en', speech: 'en-US' },
+  { label: '日语', abbr: '日', code: 'ja', google: 'ja', bing: 'ja', deepl: 'JA', yandex: 'ja', speech: 'ja-JP' },
+  { label: '韩语', abbr: '韩', code: 'ko', google: 'ko', bing: 'ko', deepl: 'KO', yandex: 'ko', speech: 'ko-KR' },
+  { label: '法语', abbr: '法', code: 'fr', google: 'fr', bing: 'fr', deepl: 'FR', yandex: 'fr', speech: 'fr-FR' },
+  { label: '德语', abbr: '德', code: 'de', google: 'de', bing: 'de', deepl: 'DE', yandex: 'de', speech: 'de-DE' },
+  { label: '西班牙语', abbr: '西', code: 'es', google: 'es', bing: 'es', deepl: 'ES', yandex: 'es', speech: 'es-ES' },
+  { label: '俄语', abbr: '俄', code: 'ru', google: 'ru', bing: 'ru', deepl: 'RU', yandex: 'ru', speech: 'ru-RU' },
+  { label: '葡萄牙语', abbr: '葡', code: 'pt', google: 'pt', bing: 'pt', deepl: 'PT', yandex: 'pt', speech: 'pt-PT' },
 ];
 
 export const UI_LANGUAGES = [
@@ -52,4 +53,10 @@ export function getBrowserLang() {
   if (lang.startsWith('ru')) return 'ru';
   if (lang.startsWith('pt')) return 'pt';
   return 'en';
+}
+
+// 新增：获取 TTS 语音代码
+export function getSpeechLang(code: string): string {
+  const lang = LANGUAGES.find(l => l.code === code);
+  return lang?.speech || code;
 }

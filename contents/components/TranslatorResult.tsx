@@ -3,7 +3,8 @@ import { Card, Button, Space, Divider } from 'antd';
 import { CopyOutlined, SoundOutlined } from '@ant-design/icons';
 import '../index.css';
 import { Storage } from '@plasmohq/storage';
-import { getEngineLangCode } from '../../lib/languages';
+import { getEngineLangCode, getLangAbbr, getSpeechLang, LANGUAGES } from '../../lib/languages';
+import { sendToBackground } from '@plasmohq/messaging';
 
 interface TranslatorResultProps {
   x: number;
@@ -12,55 +13,23 @@ interface TranslatorResultProps {
   showMessage: (type: 'success' | 'error' | 'warning' | 'info', content: string) => void;
   autoRead?: boolean; // 新增
   engine: string; // 新增
+  onClose: () => void; // 新增
 }
 
 const storage = new Storage();
 const DEFAULT_TARGET_LANG = 'zh-CN';
 
-// 调用后台翻译API（与index.tsx保持一致）
-function callTranslateAPI(text: string, from: string, to: string, engine = 'google'): Promise<string> {
-  return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage(
-      {
-        type: 'translate',
-        payload: { text, from, to, engine }
-      },
-      (response) => {
-        if (response?.result) resolve(response.result)
-        else reject(response?.error || '翻译失败')
-      }
-    )
-  })
-}
-
-// 语音合成语言映射
-function getSpeechLang(lang: string) {
-  switch (lang) {
-    case 'zh':
-    case 'zh-CN':
-    case 'zh-Hans':
-      return 'zh-CN';
-    case 'zh-TW':
-    case 'zh-Hant':
-      return 'zh-TW';
-    case 'en':
-      return 'en-US';
-    case 'ja':
-      return 'ja-JP';
-    case 'ko':
-      return 'ko-KR';
-    case 'fr':
-      return 'fr-FR';
-    case 'de':
-      return 'de-DE';
-    case 'es':
-      return 'es-ES';
-    case 'ru':
-      return 'ru-RU';
-    case 'pt':
-      return 'pt-PT';
-    default:
-      return lang;
+// 调用后台翻译API（Plasmo消息）
+async function callTranslateAPI(text: string, from: string, to: string, engine = 'bing'): Promise<string> {
+  try {
+    const res = await sendToBackground({
+      name: 'translate',
+      body: { text, from, to, engine }
+    });
+    if (res?.result) return res.result;
+    throw new Error(res?.error || '翻译失败');
+  } catch (e) {
+    throw typeof e === 'string' ? e : (e?.message || '翻译失败');
   }
 }
 
@@ -73,7 +42,7 @@ const getVoice = (lang: string) => {
   return voice || voices[0];
 };
 
-const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text, showMessage, autoRead, engine }) => {
+const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text, showMessage, autoRead, engine, onClose }) => {
   const [targetLang, setTargetLang] = useState('');
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [favoriteLangs, setFavoriteLangs] = useState<string[]>([]);
@@ -219,26 +188,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text, showMes
     setTargetLang(lang);
   };
 
-  // 获取语言缩写
-  const getLangAbbr = (langCode: string) => {
-    const langMap: { [key: string]: string } = {
-      'zh': '中',
-      'zh-CN': '中',
-      'zh-Hans': '中',
-      'zh-TW': '繁',
-      'zh-Hant': '繁',
-      'en': '英',
-      'ja': '日',
-      'ko': '韩',
-      'fr': '法',
-      'de': '德',
-      'es': '西',
-      'ru': '俄',
-      'pt': '葡'
-    };
-    return langMap[langCode] || langCode.toUpperCase();
-  };
-
+  // 获取语言缩写直接用 getLangAbbr
   const getBrowserLang = () => {
     // 取 navigator.language，如 zh-CN、en-US，做一次映射
     const lang = navigator.language || 'zh-CN';
@@ -254,6 +204,19 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text, showMes
     if (lang.startsWith('pt')) return 'pt';
     return 'en'; // 兜底
   };
+
+  // esc 关闭
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onClose]);
 
   // 验证坐标值，如果无效则不渲染
   if (typeof x !== 'number' || typeof y !== 'number' || isNaN(x) || isNaN(y)) {
@@ -347,4 +310,9 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text, showMes
   );
 };
 
-export default TranslatorResult; 
+export default TranslatorResult;
+
+// 防御：onClose 默认空函数，防止未传时报错
+TranslatorResult.defaultProps = {
+  onClose: () => {},
+}; 

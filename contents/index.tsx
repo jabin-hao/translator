@@ -14,6 +14,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { StyleProvider } from '@ant-design/cssinjs';
 import { message, ConfigProvider, theme, App } from 'antd';
 import { Storage } from '@plasmohq/storage';
+import { sendToBackground } from '@plasmohq/messaging';
 import { getBrowserLang } from '../lib/languages';
 import './index.css';
 import TranslatorIcon from './components/TranslatorIcon';
@@ -144,20 +145,18 @@ function applyThemeToShadowRoot(themeMode: string, shadowRoot: ShadowRoot) {
   shadowRoot.appendChild(style);
 }
 
-// 新增：调用后台翻译API的方法
-function callTranslateAPI(text: string, from: string, to: string, engine = 'google'): Promise<string> {
-  return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage(
-      {
-        type: 'translate',
-        payload: { text, from, to, engine }
-      },
-      (response) => {
-        if (response?.result) resolve(response.result)
-        else reject(response?.error || '翻译失败')
-      }
-    )
-  })
+// 新增：调用后台翻译API的方法（Plasmo消息）
+async function callTranslateAPI(text: string, from: string, to: string, engine = 'google'): Promise<string> {
+  try {
+    const res = await sendToBackground({
+      name: 'translate',
+      body: { text, from, to, engine }
+    });
+    if (res?.result) return res.result;
+    throw new Error(res?.error || '翻译失败');
+  } catch (e) {
+    throw typeof e === 'string' ? e : (e?.message || '翻译失败');
+  }
 }
 
 // 在App组件内部使用message的组件
@@ -173,6 +172,7 @@ const AppContent = ({
   textTargetLang,
   favoriteLangs,
   callTranslateAPI,
+  onCloseResult, // 新增
 }: {
   icon: { x: number; y: number; text: string } | null;
   result: { x: number; y: number; text: string } | null;
@@ -185,6 +185,7 @@ const AppContent = ({
   textTargetLang: string;
   favoriteLangs: string[];
   callTranslateAPI: (text: string, from: string, to: string, engine: string) => Promise<string>;
+  onCloseResult: () => void; // 新增
 }) => {
   // 创建message适配器函数
   const showMessage = (type: 'success' | 'error' | 'warning' | 'info', content: string) => {
@@ -230,6 +231,7 @@ const AppContent = ({
           showMessage={showMessage}
           autoRead={autoRead}
           engine={engine}
+          onClose={onCloseResult}
         />
       )}
       {showInputTranslator && (
@@ -345,6 +347,18 @@ const ContentScript = () => {
         setAutoRead(!!(data as any)?.autoRead);
       }
     });
+    // 新增：监听 storage 变化，实时同步引擎设置
+    const handler = (changes, area) => {
+      if (area === 'local' && changes['translate_settings']) {
+        const data = changes['translate_settings'].newValue;
+        if (data && typeof data === 'object') {
+          setEngine(data.engine || 'google');
+          setAutoRead(!!data.autoRead);
+        }
+      }
+    };
+    chrome.storage.onChanged.addListener(handler);
+    return () => chrome.storage.onChanged.removeListener(handler);
   }, []);
 
   // 新增：初始化textTargetLang和favoriteLangs，并监听storage变化
@@ -422,8 +436,7 @@ const ContentScript = () => {
           }
         }
       }
-      setResult(null);
-      setIcon(null); // 关闭悬浮窗时，icon 必须立即消失
+      // 先判断 selection，再清理 result/icon
       const selection = window.getSelection();
       const text = selection?.toString().trim();
       if (text && text.length > 0 && selection && selection.rangeCount > 0) {
@@ -436,6 +449,8 @@ const ContentScript = () => {
         }
         resultPosRef.current = null;
       }
+      setResult(null);
+      setIcon(null);
     };
     shadowRoot.addEventListener('mouseup', handleMouseUp);
     return () => {
@@ -530,6 +545,7 @@ const ContentScript = () => {
             textTargetLang={textTargetLang}
             favoriteLangs={favoriteLangs}
             callTranslateAPI={callTranslateAPI}
+            onCloseResult={() => setResult(null)}
           />
         </App>
       </ConfigProvider>
