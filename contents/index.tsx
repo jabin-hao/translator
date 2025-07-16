@@ -14,6 +14,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { StyleProvider } from '@ant-design/cssinjs';
 import { message, ConfigProvider, theme, App } from 'antd';
 import { Storage } from '@plasmohq/storage';
+import { getBrowserLang } from '../lib/languages';
 import './index.css';
 import TranslatorIcon from './components/TranslatorIcon';
 import TranslatorResult from './components/TranslatorResult';
@@ -168,7 +169,10 @@ const AppContent = ({
   setShowInputTranslator,
   setIcon, // 新增
   autoRead,
-  engine
+  engine,
+  textTargetLang,
+  favoriteLangs,
+  callTranslateAPI,
 }: {
   icon: { x: number; y: number; text: string } | null;
   result: { x: number; y: number; text: string } | null;
@@ -178,6 +182,9 @@ const AppContent = ({
   setIcon: (icon: any) => void; // 新增
   autoRead: boolean;
   engine: string;
+  textTargetLang: string;
+  favoriteLangs: string[];
+  callTranslateAPI: (text: string, from: string, to: string, engine: string) => Promise<string>;
 }) => {
   // 创建message适配器函数
   const showMessage = (type: 'success' | 'error' | 'warning' | 'info', content: string) => {
@@ -229,6 +236,9 @@ const AppContent = ({
         <InputTranslator
           onClose={() => setShowInputTranslator(false)}
           showMessage={showMessage}
+          engine={engine}
+          defaultTargetLang={textTargetLang}
+          callTranslateAPI={callTranslateAPI}
         />
       )}
     </>
@@ -375,7 +385,7 @@ const ContentScript = () => {
     let targetLang = textTargetLang;
     if (!targetLang) {
       if (favoriteLangs && favoriteLangs.length > 0) targetLang = favoriteLangs[0];
-      else targetLang = navigator.language.startsWith('zh') ? 'zh-CN' : (navigator.language.startsWith('en') ? 'en' : 'zh-CN');
+      else targetLang = getBrowserLang();
     }
     try {
       const translated = await callTranslateAPI(text, 'auto', targetLang, engineRef.current); // 用最新的 engine
@@ -393,20 +403,25 @@ const ContentScript = () => {
   };
 
   useEffect(() => {
+    if (!shadowRoot) return;
     const handleMouseUp = (e: MouseEvent) => {
-      // 检查点击是否发生在翻译结果悬浮窗内部
-      const target = e.target as Element;
-      if (target && (result || showInputTranslator)) {
-        // 检查点击的元素是否在翻译结果区域内
-        // 由于使用了Shadow DOM，需要从shadowRoot中查找
-        const resultElement = shadowRoot?.querySelector('[data-translator-result]');
-        const inputTranslatorElement = shadowRoot?.querySelector('.input-translator-card');
-        if ((resultElement && resultElement.contains(target)) || 
-            (inputTranslatorElement && inputTranslatorElement.contains(target))) {
-          return; // 如果点击在结果区域或输入翻译器内，不关闭悬浮窗
+      // 检查点击是否发生在翻译结果悬浮窗或输入弹窗内部
+      if (showInputTranslator && shadowRoot) {
+        const inputTranslatorElement = shadowRoot.querySelector('.input-translator-card');
+        if (inputTranslatorElement) {
+          if (e.composedPath().includes(inputTranslatorElement)) {
+            return; // 点击在输入弹窗内部，不关闭
+          }
         }
       }
-      
+      if (result && shadowRoot) {
+        const resultElement = shadowRoot.querySelector('[data-translator-result]');
+        if (resultElement) {
+          if (e.composedPath().includes(resultElement)) {
+            return; // 点击在翻译结果内部，不关闭
+          }
+        }
+      }
       setResult(null);
       setIcon(null); // 关闭悬浮窗时，icon 必须立即消失
       const selection = window.getSelection();
@@ -422,7 +437,14 @@ const ContentScript = () => {
         resultPosRef.current = null;
       }
     };
+    shadowRoot.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      shadowRoot.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [showInputTranslator, result]);
 
+  // 保持键盘事件监听在 document 上
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Control' || e.ctrlKey) {
         if (!ctrlPressedRef.current) {
@@ -444,7 +466,7 @@ const ContentScript = () => {
               let targetLang = textTargetLang;
               if (!targetLang) {
                 if (favoriteLangs && favoriteLangs.length > 0) targetLang = favoriteLangs[0];
-                else targetLang = navigator.language.startsWith('zh') ? 'zh-CN' : (navigator.language.startsWith('en') ? 'en' : 'zh-CN');
+                else targetLang = getBrowserLang();
               }
               callTranslateAPI(text, 'auto', targetLang, engineRef.current)
                 .then(translated => {
@@ -468,23 +490,18 @@ const ContentScript = () => {
         }
       }
     };
-
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.key === 'Control' || !e.ctrlKey) {
         ctrlPressedRef.current = false;
       }
     };
-
-    document.addEventListener('mouseup', handleMouseUp);
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keyup', handleKeyUp);
-    
     return () => {
-      document.removeEventListener('mouseup', handleMouseUp);
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('keyup', handleKeyUp);
     };
-  }, []);
+  }, [textTargetLang, favoriteLangs]);
 
   return (
     <StyleProvider hashPriority="high" container={shadowRoot}>
@@ -498,7 +515,7 @@ const ContentScript = () => {
             top: 20,
             duration: 2.5,
             maxCount: 3,
-            getContainer: () => document.body,
+            getContainer: () => (shadowRoot?.host as HTMLElement) || document.body,
           }}
         >
           <AppContent 
@@ -510,6 +527,9 @@ const ContentScript = () => {
             setIcon={setIcon} // 新增
             autoRead={autoRead}
             engine={engine}
+            textTargetLang={textTargetLang}
+            favoriteLangs={favoriteLangs}
+            callTranslateAPI={callTranslateAPI}
           />
         </App>
       </ConfigProvider>

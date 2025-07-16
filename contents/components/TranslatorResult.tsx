@@ -302,17 +302,17 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text, showMes
           {favoriteLangs.length > 0 && (
             <div style={{ display: 'flex', gap: 0, flexShrink: 0 }}>
               {favoriteLangs.map((lang, idx) => (
-                <Button
-                  key={lang}
-                  type={targetLang === lang ? 'primary' : 'default'}
-                  size="small"
-                  onClick={(e) => handleLangClick(e, lang)}
+              <Button
+                key={lang}
+                type={targetLang === lang ? 'primary' : 'default'}
+                size="small"
+                onClick={(e) => handleLangClick(e, lang)}
                   style={{ minWidth: '32px', padding: '0 8px', marginRight: idx !== favoriteLangs.length - 1 ? '8px' : 0 }}
-                >
-                  {getLangAbbr(lang)}
-                </Button>
-              ))}
-            </div>
+              >
+                {getLangAbbr(lang)}
+              </Button>
+            ))}
+          </div>
           )}
 
           {/* 右侧：复制和朗读按钮 */}

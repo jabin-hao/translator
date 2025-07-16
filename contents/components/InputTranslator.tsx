@@ -15,6 +15,9 @@ import {
   SwapOutlined, 
   CloseOutlined 
 } from '@ant-design/icons';
+import { getBrowserLang } from '../../lib/languages';
+import { LANGUAGES } from '../../lib/languages';
+import { TRANSLATE_ENGINES } from '../../lib/engines';
 
 // 自定义翻译SVG图标组件
 const MyTranslationIcon = () => (
@@ -30,6 +33,9 @@ const { Option } = Select;
 interface InputTranslatorProps {
   onClose: () => void;
   showMessage: (type: 'success' | 'error' | 'warning' | 'info', content: string) => void;
+  engine: string;
+  defaultTargetLang: string;
+  callTranslateAPI: (text: string, from: string, to: string, engine: string) => Promise<string>;
 }
 
 // 调用后台翻译API
@@ -48,13 +54,19 @@ function callTranslateAPI(text: string, from: string, to: string, engine = 'goog
   })
 }
 
-const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage }) => {
+const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage, engine: defaultEngine, defaultTargetLang, callTranslateAPI }) => {
   const [inputText, setInputText] = useState('');
   const [translatedText, setTranslatedText] = useState('');
   const [sourceLang, setSourceLang] = useState('auto');
-  const [targetLang, setTargetLang] = useState('zh');
+  const [targetLang, setTargetLang] = useState(defaultTargetLang || getBrowserLang());
   const [isTranslating, setIsTranslating] = useState(false);
-  const [engine, setEngine] = useState('google');
+  const [engine, setEngine] = useState(defaultEngine);
+  useEffect(() => {
+    setTargetLang(defaultTargetLang || getBrowserLang());
+  }, [defaultTargetLang]);
+  useEffect(() => {
+    setEngine(defaultEngine);
+  }, [defaultEngine]);
 
   // 按下Esc关闭悬浮窗
   useEffect(() => {
@@ -69,25 +81,14 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage 
     };
   }, [onClose]);
 
-  const languages = [
-    { code: 'auto', name: '自动检测' },
-    { code: 'zh', name: '中文' },
-    { code: 'en', name: '英语' },
-    { code: 'ja', name: '日语' },
-    { code: 'ko', name: '韩语' },
-    { code: 'fr', name: '法语' },
-    { code: 'de', name: '德语' },
-    { code: 'es', name: '西班牙语' },
-    { code: 'ru', name: '俄语' },
-    { code: 'pt', name: '葡萄牙语' }
-  ];
+  const sourceLanguages = [{ label: '自动检测', code: 'auto' }, ...LANGUAGES];
+  const targetLanguages = LANGUAGES;
 
   const handleTranslate = async () => {
     if (!inputText.trim()) {
       showMessage('warning', '请输入要翻译的文字');
       return;
     }
-    
     setIsTranslating(true);
     try {
       const result = await callTranslateAPI(inputText, sourceLang, targetLang, engine);
@@ -156,8 +157,8 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage 
             size="small"
             className="custom-select"
           >
-            {languages.map(lang => (
-              <Option key={lang.code} value={lang.code}>{lang.name}</Option>
+            {sourceLanguages.map(lang => (
+              <Option key={lang.code} value={lang.code}>{lang.label}</Option>
             ))}
           </Select>
 
@@ -178,8 +179,8 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage 
             size="small"
             className="custom-select"
           >
-            {languages.filter(lang => lang.code !== 'auto').map(lang => (
-              <Option key={lang.code} value={lang.code}>{lang.name}</Option>
+            {targetLanguages.map(lang => (
+              <Option key={lang.code} value={lang.code}>{lang.label}</Option>
             ))}
           </Select>
 
@@ -193,9 +194,9 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage 
             className="custom-select"
             getPopupContainer={triggerNode => triggerNode.parentNode}
           >
-            <Option value="google">谷歌</Option>
-            <Option value="bing">必应</Option>
-            <Option value="baidu">百度</Option>
+            {TRANSLATE_ENGINES.map(e => (
+              <Option key={e.value} value={e.value} disabled={e.disabled}>{e.label}</Option>
+            ))}
           </Select>
         </Space>
 

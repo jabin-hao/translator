@@ -1,14 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Select, Switch, Divider, message } from 'antd';
 import { Storage } from '@plasmohq/storage';
-
-const ENGINE_OPTIONS = [
-  { label: 'Bing', value: 'bing' },
-  { label: 'Google', value: 'google' },
-  // 预留后续支持
-  { label: 'DeepL', value: 'deepl', disabled: true },
-  { label: 'Yandex', value: 'yandex', disabled: true },
-];
+import { TRANSLATE_ENGINES } from '../../lib/engines';
 
 const LOCAL_KEY = 'translate_settings';
 const storage = new Storage();
@@ -58,7 +51,7 @@ const TranslateSettings: React.FC = () => {
           <b>翻译引擎：</b>
           <Select
             value={engine}
-            options={ENGINE_OPTIONS}
+            options={TRANSLATE_ENGINES}
             onChange={handleEngineChange}
             style={{ width: 200, marginLeft: 16 }}
           />

@@ -38,3 +38,18 @@ export function getLangAbbr(code: string): string {
   const lang = LANGUAGES.find(l => l.code === code);
   return lang?.abbr || code.toUpperCase();
 }
+
+// 获取浏览器语言的通用函数
+export function getBrowserLang() {
+  const lang = navigator.language || 'zh-CN';
+  if (lang.startsWith('zh')) return lang.includes('TW') ? 'zh-TW' : 'zh-CN';
+  if (lang.startsWith('en')) return 'en';
+  if (lang.startsWith('ja')) return 'ja';
+  if (lang.startsWith('ko')) return 'ko';
+  if (lang.startsWith('fr')) return 'fr';
+  if (lang.startsWith('de')) return 'de';
+  if (lang.startsWith('es')) return 'es';
+  if (lang.startsWith('ru')) return 'ru';
+  if (lang.startsWith('pt')) return 'pt';
+  return 'en';
+}
