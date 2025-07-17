@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, Select, Switch, Divider, message } from 'antd';
 import { Storage } from '@plasmohq/storage';
 import { TRANSLATE_ENGINES } from '../../lib/engines';
+const { Option } = Select;
 
 const LOCAL_KEY = 'translate_settings';
 const storage = new Storage();
@@ -51,10 +52,17 @@ const TranslateSettings: React.FC = () => {
           <b>翻译引擎：</b>
           <Select
             value={engine}
-            options={TRANSLATE_ENGINES}
             onChange={handleEngineChange}
             style={{ width: 200, marginLeft: 16 }}
-          />
+            size="middle"
+          >
+            {TRANSLATE_ENGINES.map(e => (
+              <Option key={e.value} value={e.value} disabled={e.disabled}>
+                {e.icon && <img src={e.icon} alt={e.label} style={{ width: 16, height: 16, verticalAlign: 'middle', marginRight: 6 }} />}
+                {e.label}
+              </Option>
+            ))}
+          </Select>
         </div>
         <Divider />
         <div style={{ marginBottom: 24 }}>

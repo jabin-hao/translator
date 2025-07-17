@@ -190,14 +190,17 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage,
           <Select
             value={engine}
             onChange={setEngine}
-            style={{ width: 100 }}
+            style={{ width: 140 }}
             placeholder="搜索引擎"
             size="small"
             className="custom-select"
             getPopupContainer={triggerNode => triggerNode.parentNode}
           >
             {TRANSLATE_ENGINES.map(e => (
-              <Option key={e.value} value={e.value} disabled={e.disabled}>{e.label}</Option>
+              <Option key={e.value} value={e.value} disabled={e.disabled}>
+                {e.icon && <img src={e.icon} alt={e.label} style={{ width: 16, height: 16, verticalAlign: 'middle', marginRight: 6 }} />}
+                {e.label}
+              </Option>
             ))}
           </Select>
         </Space>

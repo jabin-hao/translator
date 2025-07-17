@@ -222,7 +222,7 @@ const AppContent = ({
           y={icon.y}
           text={icon.text}
           onClick={() => {
-            setIcon(null); // 点击后立即隐藏图标
+            // 不立即 setIcon(null)
             handleTranslation();
           }}
         />
@@ -464,6 +464,13 @@ const ContentScript = () => {
       document.removeEventListener('mouseup', handleMouseUp);
     };
   }, [showInputTranslator, result, icon]);
+
+  // 2. 监听 result 状态变化，result 出现后再 setIcon(null)
+  useEffect(() => {
+    if (result) {
+      setIcon(null);
+    }
+  }, [result]);
 
   // 保持键盘事件监听在 document 上
   useEffect(() => {
