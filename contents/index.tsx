@@ -15,7 +15,8 @@ import { StyleProvider } from '@ant-design/cssinjs';
 import { message, ConfigProvider, theme, App } from 'antd';
 import { Storage } from '@plasmohq/storage';
 import { sendToBackground } from '@plasmohq/messaging';
-import { getBrowserLang } from '../lib/languages';
+import { TRANSLATE_ENGINES } from '../lib/engines';
+import { getEngineLangCode, getBrowserLang } from '../lib/languages';
 import './index.css';
 import TranslatorIcon from './components/TranslatorIcon';
 import TranslatorResult from './components/TranslatorResult';
@@ -145,18 +146,21 @@ function applyThemeToShadowRoot(themeMode: string, shadowRoot: ShadowRoot) {
   shadowRoot.appendChild(style);
 }
 
-// 新增：调用后台翻译API的方法（Plasmo消息）
-async function callTranslateAPI(text: string, from: string, to: string, engine = 'google'): Promise<string> {
-  try {
-    const res = await sendToBackground({
-      name: 'translate',
-      body: { text, from, to, engine }
-    });
-    if (res?.result) return res.result;
-    throw new Error(res?.error || '翻译失败');
-  } catch (e) {
-    throw typeof e === 'string' ? e : (e?.message || '翻译失败');
-  }
+// 删除多引擎兜底翻译API，只保留如下：
+async function callTranslateAPI(
+  text: string,
+  from: string,
+  to: string,
+  engine = 'google'
+): Promise<{ result: string, engine: string }> {
+  const fromMapped = getEngineLangCode(from, engine);
+  const toMapped = getEngineLangCode(to, engine);
+  const res = await sendToBackground({
+    name: 'translate',
+    body: { text, from: fromMapped, to: toMapped, engine }
+  });
+  if (typeof res?.result === 'string') return { result: res.result, engine: res.engine || engine };
+  throw new Error(res?.error || '翻译失败');
 }
 
 // 在App组件内部使用message的组件
@@ -175,7 +179,7 @@ const AppContent = ({
   onCloseResult, // 新增
 }: {
   icon: { x: number; y: number; text: string } | null;
-  result: { x: number; y: number; text: string } | null;
+  result: { x: number; y: number; originalText: string } | null;
   showInputTranslator: boolean;
   handleTranslation: () => void;
   setShowInputTranslator: (show: boolean) => void;
@@ -184,7 +188,7 @@ const AppContent = ({
   engine: string;
   textTargetLang: string;
   favoriteLangs: string[];
-  callTranslateAPI: (text: string, from: string, to: string, engine: string) => Promise<string>;
+  callTranslateAPI: (text: string, from: string, to: string, engine: string) => Promise<{ result: string, engine: string }>;
   onCloseResult: () => void; // 新增
 }) => {
   // 创建message适配器函数
@@ -227,7 +231,8 @@ const AppContent = ({
         <TranslatorResult
           x={result.x}
           y={result.y}
-          text={result.text}
+          text={result.originalText}
+          originalText={result.originalText}
           showMessage={showMessage}
           autoRead={autoRead}
           engine={engine}
@@ -255,9 +260,9 @@ const ContentScript = () => {
     text: string
   } | null>(null);
   const [result, setResult] = useState<{
-    x: number
-    y: number
-    text: string
+    x: number;
+    y: number;
+    originalText: string;
   } | null>(null);
   const [showInputTranslator, setShowInputTranslator] = useState(false);
   const [actualTheme, setActualTheme] = useState<'light' | 'dark'>('light');
@@ -406,19 +411,7 @@ const ContentScript = () => {
       if (favoriteLangs && favoriteLangs.length > 0) targetLang = favoriteLangs[0];
       else targetLang = getBrowserLang();
     }
-    try {
-      const translated = await callTranslateAPI(text, 'auto', targetLang, engineRef.current); // 用最新的 engine
-      setResult({ x, y, text: translated });
-      // 自动朗读
-      if (autoReadRef.current && translated) {
-        if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
-        const utter = new window.SpeechSynthesisUtterance(translated);
-        utter.lang = targetLang;
-        window.speechSynthesis.speak(utter);
-      }
-    } catch (e) {
-      setResult({ x, y, text: '翻译失败: ' + e });
-    }
+    setResult({ x, y, originalText: text }); // 只存原文
   };
 
   // 修复 icon 一出现就消失、input 输入框无法输入的问题
@@ -498,8 +491,8 @@ const ContentScript = () => {
                 else targetLang = getBrowserLang();
               }
               callTranslateAPI(text, 'auto', targetLang, engineRef.current)
-                .then(translated => {
-                  setResult({ x, y, text: translated });
+                .then(({ result: translated, engine: usedEngine }) => {
+                  setResult({ x, y, originalText: text }); // 只存原文
                   // 自动朗读
                   if (autoReadRef.current && translated) {
                     if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
@@ -509,7 +502,7 @@ const ContentScript = () => {
                   }
                 })
                 .catch(e => {
-                  setResult({ x, y, text: '翻译失败: ' + e });
+                  setResult({ x, y, originalText: text }); // 只存原文
                 });
             } else {
               setShowInputTranslator(true);

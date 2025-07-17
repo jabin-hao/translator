@@ -3,13 +3,14 @@ import { Card, Button, Space, Divider } from 'antd';
 import { CopyOutlined, SoundOutlined } from '@ant-design/icons';
 import '../index.css';
 import { Storage } from '@plasmohq/storage';
-import { getEngineLangCode, getLangAbbr, getSpeechLang, LANGUAGES } from '../../lib/languages';
+import { getEngineLangCode, getLangAbbr, getSpeechLang, LANGUAGES, getBrowserLang } from '../../lib/languages';
 import { sendToBackground } from '@plasmohq/messaging';
 
 interface TranslatorResultProps {
   x: number;
   y: number;
-  text: string;
+  text: string; // 原文
+  originalText?: string; // 新增，原文
   showMessage: (type: 'success' | 'error' | 'warning' | 'info', content: string) => void;
   autoRead?: boolean; // 新增
   engine: string; // 新增
@@ -21,13 +22,13 @@ const storage = new Storage();
 const DEFAULT_TARGET_LANG = 'zh-CN';
 
 // 调用后台翻译API（Plasmo消息）
-async function callTranslateAPI(text: string, from: string, to: string, engine = 'bing'): Promise<string> {
+async function callTranslateAPI(text: string, from: string, to: string, engine = 'bing'): Promise<{ result: string, engine: string }> {
   try {
     const res = await sendToBackground({
       name: 'translate',
       body: { text, from, to, engine }
     });
-    if (res?.result) return res.result;
+    if (res?.result) return { result: res.result, engine };
     throw new Error(res?.error || '翻译失败');
   } catch (e) {
     throw typeof e === 'string' ? e : (e?.message || '翻译失败');
@@ -43,12 +44,14 @@ const getVoice = (lang: string) => {
   return voice || voices[0];
 };
 
-const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text, showMessage, autoRead, engine, onClose, targetLang: propTargetLang }) => {
-  const [targetLang, setTargetLang] = useState('');
+const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text, originalText, showMessage, autoRead, engine, onClose, targetLang: propTargetLang }) => {
+  // 所有 hooks 必须无条件执行
+  const [targetLang, setTargetLang] = useState<string | undefined>(undefined);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [favoriteLangs, setFavoriteLangs] = useState<string[]>([]);
   const [translatedText, setTranslatedText] = useState('');
   const [loading, setLoading] = useState(false);
+  const [usedEngine, setUsedEngine] = useState(engine);
   const originalTextRef = useRef(text);
   const utterRef = useRef<SpeechSynthesisUtterance | null>(null);
 
@@ -81,27 +84,30 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text, showMes
     }
   }, [propTargetLang, favoriteLangs]);
 
-  // 翻译时始终用 props.engine
+  // useEffect 依赖 originalText, targetLang, engine
   useEffect(() => {
-    originalTextRef.current = text;
+    if (!targetLang) return;
+    const srcText = originalText || text;
+    originalTextRef.current = srcText;
     setLoading(true);
-    if (targetLang) {
-      callTranslateAPI(text, 'auto', targetLang, engine)
-        .then(res => setTranslatedText(res))
-        .catch(() => setTranslatedText('翻译失败'))
-        .finally(() => setLoading(false));
-    } else {
-      // 不传 from/to，自动检测并自动目标语言
-      callTranslateAPI(text, 'auto', undefined)
-        .then(res => setTranslatedText(res))
-        .catch(() => setTranslatedText('翻译失败'))
-        .finally(() => setLoading(false));
-    }
-  }, [text, targetLang, engine]);
+    const engineTargetLang = getEngineLangCode(targetLang, engine);
+    callTranslateAPI(srcText, 'auto', engineTargetLang, engine)
+      .then(res => {
+        setTranslatedText(res.result ?? '');
+        setUsedEngine(res.engine || engine);
+        console.log('[TranslatorResult] 翻译成功', res);
+      })
+      .catch(err => {
+        setTranslatedText('翻译失败');
+        setUsedEngine('');
+        console.warn('[TranslatorResult] 翻译失败', err);
+      })
+      .finally(() => setLoading(false));
+  }, [originalText, text, targetLang, engine]);
 
   // 自动朗读
   useEffect(() => {
-    if (autoRead && translatedText) {
+    if (autoRead && translatedText && translatedText !== '翻译失败') {
       if (window.speechSynthesis.speaking) {
         window.speechSynthesis.cancel();
       }
@@ -121,6 +127,35 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text, showMes
     // 只依赖 autoRead 和 translatedText，保证翻译结果出来后自动朗读
   }, [autoRead, translatedText]);
 
+  // 组件卸载时停止朗读
+  useEffect(() => {
+    return () => {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+    };
+  }, []);
+
+  // esc 关闭
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onClose]);
+
+  // 重新翻译逻辑
+  const handleLangClick = async (e: React.MouseEvent, lang: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (lang === targetLang) return;
+    setTargetLang(lang);
+  };
+
   // 停止朗读
   const stopSpeak = () => {
     window.speechSynthesis.cancel();
@@ -131,7 +166,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text, showMes
   const handleSpeak = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    if (!translatedText) {
+    if (!translatedText || translatedText === '翻译失败') {
       showMessage('warning', '没有可朗读的内容');
       return;
     }
@@ -158,14 +193,6 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text, showMes
     }
   };
 
-  // 组件卸载时停止朗读
-  useEffect(() => {
-    return () => {
-      window.speechSynthesis.cancel();
-      setIsSpeaking(false);
-    };
-  }, []);
-
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
@@ -182,46 +209,15 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text, showMes
     }
   };
 
-  // 重新翻译逻辑
-  const handleLangClick = async (e: React.MouseEvent, lang: string) => {
-    e.stopPropagation();
-    e.preventDefault();
-    if (lang === targetLang) return;
-    setTargetLang(lang);
-  };
+  // hooks 顶层执行完毕，下面做条件渲染
+  const shouldHide = (
+    !targetLang ||
+    typeof x !== 'number' || typeof y !== 'number' ||
+    isNaN(x) || isNaN(y) ||
+    loading
+  );
 
-  // 获取语言缩写直接用 getLangAbbr
-  const getBrowserLang = () => {
-    // 取 navigator.language，如 zh-CN、en-US，做一次映射
-    const lang = navigator.language || 'zh-CN';
-    // 只取前两位或直接用
-    if (lang.startsWith('zh')) return lang.includes('TW') ? 'zh-TW' : 'zh-CN';
-    if (lang.startsWith('en')) return 'en';
-    if (lang.startsWith('ja')) return 'ja';
-    if (lang.startsWith('ko')) return 'ko';
-    if (lang.startsWith('fr')) return 'fr';
-    if (lang.startsWith('de')) return 'de';
-    if (lang.startsWith('es')) return 'es';
-    if (lang.startsWith('ru')) return 'ru';
-    if (lang.startsWith('pt')) return 'pt';
-    return 'en'; // 兜底
-  };
-
-  // esc 关闭
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [onClose]);
-
-  // 验证坐标值，如果无效则不渲染
-  if (typeof x !== 'number' || typeof y !== 'number' || isNaN(x) || isNaN(y)) {
+  if (shouldHide) {
     return null;
   }
 
@@ -252,6 +248,9 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text, showMes
         
         {/* Footer区域 */}
         <Divider style={{ margin: '12px 0 8px 0' }} />
+        <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
+          {usedEngine && translatedText !== '翻译失败' && `本次翻译由 ${LANGUAGES.find(e => e.code === usedEngine)?.label || usedEngine} 提供`}
+        </div>
         <div
           style={{
             display: 'flex',

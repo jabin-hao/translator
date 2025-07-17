@@ -35,17 +35,17 @@ interface InputTranslatorProps {
   showMessage: (type: 'success' | 'error' | 'warning' | 'info', content: string) => void;
   engine: string;
   defaultTargetLang: string;
-  callTranslateAPI: (text: string, from: string, to: string, engine: string) => Promise<string>;
+  callTranslateAPI: (text: string, from: string, to: string, engine: string) => Promise<{ result: string, engine: string }>;
 }
 
 // 调用后台翻译API（Plasmo消息）
-async function callTranslateAPI(text: string, from: string, to: string, engine = 'google'): Promise<string> {
+async function callTranslateAPI(text: string, from: string, to: string, engine = 'google'): Promise<{ result: string, engine: string }> {
   try {
     const res = await sendToBackground({
       name: 'translate',
       body: { text, from, to, engine }
     });
-    if (res?.result) return res.result;
+    if (res?.result) return { result: res.result, engine: res.engine || engine };
     throw new Error(res?.error || '翻译失败');
   } catch (e) {
     throw typeof e === 'string' ? e : (e?.message || '翻译失败');
@@ -59,6 +59,7 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage,
   const [targetLang, setTargetLang] = useState(defaultTargetLang || getBrowserLang());
   const [isTranslating, setIsTranslating] = useState(false);
   const [engine, setEngine] = useState(defaultEngine);
+  const [usedEngine, setUsedEngine] = useState<string>(engine);
   useEffect(() => {
     setTargetLang(defaultTargetLang || getBrowserLang());
   }, [defaultTargetLang]);
@@ -89,11 +90,13 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage,
     }
     setIsTranslating(true);
     try {
-      const result = await callTranslateAPI(inputText, sourceLang, targetLang, engine);
+      const { result, engine: realEngine } = await callTranslateAPI(inputText, sourceLang, targetLang, engine);
       setTranslatedText(result);
+      setUsedEngine(realEngine || engine);
       showMessage('success', '翻译完成');
     } catch (error) {
       setTranslatedText('翻译失败，请重试');
+      setUsedEngine(engine);
       showMessage('error', typeof error === 'string' ? error : '翻译失败，请重试');
     } finally {
       setIsTranslating(false);
@@ -111,6 +114,7 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage,
   const handleClear = () => {
     setInputText('');
     setTranslatedText('');
+    setUsedEngine(engine);
     showMessage('success', '已清空内容');
   };
 
@@ -221,6 +225,11 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage,
               readOnly
               className="input-translator-result-textarea"
             />
+            {translatedText && usedEngine && (
+              <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
+                本次翻译由 {TRANSLATE_ENGINES.find(e => e.value === usedEngine)?.label || usedEngine} 提供
+              </div>
+            )}
           </div>
         </div>
 
