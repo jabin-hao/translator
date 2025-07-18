@@ -10,11 +10,13 @@ const storage = new Storage();
 const defaultSettings = {
   engine: 'google',
   autoRead: false,
+  autoTranslate: true,
 };
 
 const TranslateSettings: React.FC = () => {
   const [engine, setEngine] = useState('google');
   const [autoRead, setAutoRead] = useState(false);
+  const [autoTranslate, setAutoTranslate] = useState(true);
 
   useEffect(() => {
     // 读取全局设置
@@ -22,14 +24,15 @@ const TranslateSettings: React.FC = () => {
       if (data && typeof data === 'object') {
         setEngine((data as any)?.engine || 'google');
         setAutoRead(!!(data as any)?.autoRead);
+        setAutoTranslate((data as any)?.autoTranslate ?? true);
       }
     });
   }, []);
 
   useEffect(() => {
     // 保存全局设置
-    storage.set(LOCAL_KEY, { engine, autoRead });
-  }, [engine, autoRead]);
+    storage.set(LOCAL_KEY, { engine, autoRead, autoTranslate });
+  }, [engine, autoRead, autoTranslate]);
 
   const handleEngineChange = (val: string) => {
     setEngine(val);
@@ -39,6 +42,11 @@ const TranslateSettings: React.FC = () => {
   const handleAutoReadChange = (checked: boolean) => {
     setAutoRead(checked);
     message.success('自动朗读设置已保存');
+  };
+
+  const handleAutoTranslateChange = (checked: boolean) => {
+    setAutoTranslate(checked);
+    message.success('自动翻译设置已保存');
   };
 
   return (
@@ -63,12 +71,29 @@ const TranslateSettings: React.FC = () => {
               </Option>
             ))}
           </Select>
+          <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
+            选择用于翻译的默认引擎，支持多引擎兜底
+          </div>
+        </div>
+        <Divider />
+        <div style={{ marginBottom: 24 }}>
+          <b>自动翻译：</b>
+          <Switch checked={autoTranslate} onChange={handleAutoTranslateChange} style={{ marginLeft: 16 }} />
+          <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
+            开启后划词/输入内容将自动翻译，无需手动点击
+          </div>
         </div>
         <Divider />
         <div style={{ marginBottom: 24 }}>
           <b>自动朗读翻译结果：</b>
           <Switch checked={autoRead} onChange={handleAutoReadChange} style={{ marginLeft: 16 }} />
+          <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
+            翻译完成后自动朗读结果（如支持）
+          </div>
         </div>
+      </div>
+      <div style={{padding: '0 24px 16px 24px', color: '#888', fontSize: 13}}>
+        所有设置均会自动保存，无需手动操作。
       </div>
     </Card>
   );

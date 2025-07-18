@@ -21,7 +21,7 @@ const setLocal = async (key, val) => {
 const LanguageSettings: React.FC = () => {
   const { message } = App.useApp();
   // 状态
-  const [uiLang, setUiLang] = useState('default');
+  // const [uiLang, setUiLang] = useState('default'); // 删除
   const [pageTargetLang, setPageTargetLang] = useState('zh-CN');
   const [textTargetLang, setTextTargetLang] = useState('zh-CN');
   const [favoriteLangs, setFavoriteLangs] = useState([]);
@@ -34,15 +34,15 @@ const LanguageSettings: React.FC = () => {
   // 初始化数据
   React.useEffect(() => {
     const initData = async () => {
-      const [ui, page, text, fav, never, always] = await Promise.all([
-        getLocal('uiLang', 'default'),
+      const [/*ui,*/ page, text, fav, never, always] = await Promise.all([
+        // getLocal('uiLang', 'default'), // 删除
         getLocal('pageTargetLang', 'zh-CN'),
         getLocal('textTargetLang', ''), // 默认空
         getLocal('favoriteLangs', []),
         getLocal('neverLangs', []),
         getLocal('alwaysLangs', [])
       ]);
-      setUiLang(ui);
+      // setUiLang(ui); // 删除
       setPageTargetLang(page);
       // 划词翻译目标语言优先级：用户设置 > favoriteLangs[0] > 浏览器语言
       let textLang = text;
@@ -121,17 +121,6 @@ const LanguageSettings: React.FC = () => {
       styles={{ body: { padding: 0, flex: 1, display: 'flex', flexDirection: 'column' } }}
     >
       <div style={{ flex: 1, overflow: 'auto', padding: '24px' }}>
-        {/* 界面语言 */}
-        <div style={{ marginBottom: 24 }}>
-          <b>扩展界面语言：</b>
-          <Select
-            value={uiLang}
-            options={UI_LANGUAGES}
-            onChange={val => { setUiLang(val); save('uiLang', val); }}
-            style={{ width: 200, marginLeft: 16 }}
-          />
-        </div>
-        <Divider />
         {/* 网页翻译目标语言 */}
         <div style={{ marginBottom: 24 }}>
           <b>网页翻译目标语言：</b>
@@ -141,6 +130,9 @@ const LanguageSettings: React.FC = () => {
             onChange={val => { setPageTargetLang(val); save('pageTargetLang', val); }}
             style={{ width: 200, marginLeft: 16 }}
           />
+          <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
+            设置网页整体翻译的目标语言
+          </div>
         </div>
         {/* 划词翻译目标语言 */}
         <div style={{ marginBottom: 24 }}>
@@ -151,6 +143,9 @@ const LanguageSettings: React.FC = () => {
             onChange={val => { setTextTargetLang(val); save('textTargetLang', val); }}
             style={{ width: 200, marginLeft: 16 }}
           />
+          <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
+            设置划词/输入翻译的默认目标语言
+          </div>
         </div>
         <Divider />
         {/* 偏好语言 */}
@@ -179,6 +174,9 @@ const LanguageSettings: React.FC = () => {
               </Tag>
             ))}
           </div>
+          <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
+            你常用的目标语言，优先用于自动选择
+          </div>
         </div>
         {/* 永不翻译语言 */}
         <div style={{ marginBottom: 24 }}>
@@ -205,6 +203,9 @@ const LanguageSettings: React.FC = () => {
                 {LANGUAGES.find(l => l.code === lang)?.label || lang}
               </Tag>
             ))}
+          </div>
+          <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
+            这些语言不会被自动翻译
           </div>
         </div>
         {/* 总是翻译语言 */}
@@ -233,7 +234,13 @@ const LanguageSettings: React.FC = () => {
               </Tag>
             ))}
           </div>
+          <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
+            这些语言会被自动翻译为你的目标语言
+          </div>
         </div>
+      </div>
+      <div style={{padding: '0 24px 16px 24px', color: '#888', fontSize: 13}}>
+        所有设置均会自动保存，无需手动操作。
       </div>
     </Card>
   );

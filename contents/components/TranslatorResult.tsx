@@ -102,7 +102,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({ x, y, text, origina
         setUsedEngine('');
         console.warn('[TranslatorResult] 翻译失败', err);
       })
-      .finally(() => setLoading(false));
+        .finally(() => setLoading(false));
   }, [originalText, text, targetLang, engine]);
 
   // 自动朗读
