@@ -17,24 +17,16 @@ interface TranslatorResultProps {
   engine: string; // 新增
   onClose: () => void; // 新增
   targetLang?: string; // 新增
+  callTranslateAPI: (
+    text: string,
+    from: string,
+    to: string,
+    engine: string
+  ) => Promise<{ result: string; engine: string }>;
 }
 
 const storage = new Storage();
 const DEFAULT_TARGET_LANG = 'zh-CN';
-
-// 调用后台翻译API（Plasmo消息）
-async function callTranslateAPI(text: string, from: string, to: string, engine = 'bing'): Promise<{ result: string, engine: string }> {
-  try {
-    const res = await sendToBackground({
-      name: 'translate',
-      body: { text, from, to, engine }
-    });
-    if (res?.result) return { result: res.result, engine };
-    throw new Error(res?.error || '翻译失败');
-  } catch (e) {
-    throw typeof e === 'string' ? e : (e?.message || '翻译失败');
-  }
-}
 
 // 获取可用 voice，优先选用目标语言
 const getVoice = (lang: string) => {
@@ -90,7 +82,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
     originalTextRef.current = srcText;
     setLoading(true);
     const engineTargetLang = getEngineLangCode(targetLang, props.engine);
-    callTranslateAPI(srcText, 'auto', engineTargetLang, props.engine)
+    props.callTranslateAPI(srcText, 'auto', engineTargetLang, props.engine)
       .then(res => {
         setTranslatedText(res.result ?? '');
         setUsedEngine(res.engine || props.engine);
@@ -248,7 +240,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
         {/* Footer区域 */}
         <Divider style={{ margin: '12px 0 8px 0' }} />
         <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
-          {usedEngine && translatedText !== '翻译失败' && `${t('本次翻译由')} ${t(LANGUAGES.find(e => e.code === usedEngine)?.label || usedEngine)} ${t('提供')}`}
+          {usedEngine && translatedText !== '翻译失败' && `${t('本次翻译由')} ${t('engine.' + usedEngine, { defaultValue: usedEngine })} ${t('提供')}`}
         </div>
         <div
           style={{

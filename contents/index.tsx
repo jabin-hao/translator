@@ -152,16 +152,24 @@ async function callTranslateAPI(
   text: string,
   from: string,
   to: string,
-  engine = 'google'
+  engine = 'bing'
 ): Promise<{ result: string, engine: string }> {
+  // console.log('[callTranslateAPI] 入参', { text, from, to, engine });
   const fromMapped = getEngineLangCode(from, engine);
   const toMapped = getEngineLangCode(to, engine);
-  const res = await sendToBackground({
-    name: 'translate',
-    body: { text, from: fromMapped, to: toMapped, engine }
-  });
-  if (typeof res?.result === 'string') return { result: res.result, engine: res.engine || engine };
-  throw new Error(res?.error || '翻译失败');
+  try {
+    // console.log('[callTranslateAPI] sendToBackground 请求', { text, from: fromMapped, to: toMapped, engine });
+    const res = await sendToBackground({
+      name: 'translate',
+      body: { text, from: fromMapped, to: toMapped, engine }
+    });
+    // console.log('[callTranslateAPI] 翻译结果', res)
+    if (typeof res?.result === 'string') return { result: res.result, engine: res.engine || engine };
+    throw new Error(res?.error || '翻译失败');
+  } catch (e) {
+    // console.error('[callTranslateAPI] 异常', e);
+    throw e;
+  }
 }
 
 // 在App组件内部使用message的组件
@@ -239,6 +247,7 @@ const AppContent = ({
           engine={engine}
           onClose={onCloseResult}
           targetLang={textTargetLang}
+          callTranslateAPI={callTranslateAPI} 
         />
       )}
       {showInputTranslator && (
