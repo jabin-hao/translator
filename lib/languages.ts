@@ -10,22 +10,19 @@ export interface LanguageItem {
 }
 
 export const LANGUAGES: LanguageItem[] = [
-  { label: '中文（简体）', abbr: '简中', code: 'zh-CN', google: 'zh-CN', bing: 'zh-Hans', deepl: 'ZH', yandex: 'zh', speech: 'zh-CN' },
-  { label: '中文（繁体）', abbr: '繁中', code: 'zh-TW', google: 'zh-TW', bing: 'zh-Hant', deepl: 'ZH', yandex: 'zh', speech: 'zh-TW' },
-  { label: '英语', abbr: '英', code: 'en', google: 'en', bing: 'en', deepl: 'EN', yandex: 'en', speech: 'en-US' },
-  { label: '日语', abbr: '日', code: 'ja', google: 'ja', bing: 'ja', deepl: 'JA', yandex: 'ja', speech: 'ja-JP' },
-  { label: '韩语', abbr: '韩', code: 'ko', google: 'ko', bing: 'ko', deepl: 'KO', yandex: 'ko', speech: 'ko-KR' },
-  { label: '法语', abbr: '法', code: 'fr', google: 'fr', bing: 'fr', deepl: 'FR', yandex: 'fr', speech: 'fr-FR' },
-  { label: '德语', abbr: '德', code: 'de', google: 'de', bing: 'de', deepl: 'DE', yandex: 'de', speech: 'de-DE' },
-  { label: '西班牙语', abbr: '西', code: 'es', google: 'es', bing: 'es', deepl: 'ES', yandex: 'es', speech: 'es-ES' },
-  { label: '俄语', abbr: '俄', code: 'ru', google: 'ru', bing: 'ru', deepl: 'RU', yandex: 'ru', speech: 'ru-RU' },
-  { label: '葡萄牙语', abbr: '葡', code: 'pt', google: 'pt', bing: 'pt', deepl: 'PT', yandex: 'pt', speech: 'pt-PT' },
+  { code: 'zh-CN', label: '中文（简体）', abbr: '简', google: 'zh-CN', bing: 'zh-Hans', deepl: 'ZH', yandex: 'zh', speech: 'zh-CN' },
+  { code: 'zh-TW', label: '中文（繁体）', abbr: '繁', google: 'zh-TW', bing: 'zh-Hant', deepl: 'ZH', yandex: 'zh', speech: 'zh-TW' },
+  { code: 'en', label: '英语', abbr: 'EN', google: 'en', bing: 'en', deepl: 'EN', yandex: 'en', speech: 'en-US' },
+  { code: 'ja', label: '日语', abbr: 'JA', google: 'ja', bing: 'ja', deepl: 'JA', yandex: 'ja', speech: 'ja-JP' },
+  { code: 'ko', label: '韩语', abbr: 'KO', google: 'ko', bing: 'ko', deepl: 'KO', yandex: 'ko', speech: 'ko-KR' },
+  { code: 'fr', label: '法语', abbr: 'FR', google: 'fr', bing: 'fr', deepl: 'FR', yandex: 'fr', speech: 'fr-FR' },
+  { code: 'de', label: '德语', abbr: 'DE', google: 'de', bing: 'de', deepl: 'DE', yandex: 'de', speech: 'de-DE' },
+  { code: 'es', label: '西班牙语', abbr: 'ES', google: 'es', bing: 'es', deepl: 'ES', yandex: 'es', speech: 'es-ES' },
+  { code: 'ru', label: '俄语', abbr: 'RU', google: 'ru', bing: 'ru', deepl: 'RU', yandex: 'ru', speech: 'ru-RU' },
+  { code: 'pt', label: '葡萄牙语', abbr: 'PT', google: 'pt', bing: 'pt', deepl: 'PT', yandex: 'pt', speech: 'pt-PT' },
 ];
 
-export const UI_LANGUAGES = [
-  { label: '跟随浏览器', value: 'default' },
-  ...LANGUAGES.map(l => ({ label: l.label, value: l.code }))
-];
+export const UI_LANGUAGES = LANGUAGES.map(l => ({ code: l.code, label: l.label }));
 
 // 获取指定引擎的API语言代码
 export function getEngineLangCode(code: string, engine: string): string {
@@ -59,4 +56,22 @@ export function getBrowserLang() {
 export function getSpeechLang(code: string): string {
   const lang = LANGUAGES.find(l => l.code === code);
   return lang?.speech || code;
+}
+
+// UI 语言 code 映射为 i18n 资源 key
+export function mapUiLangToI18nKey(lang: string | undefined): string {
+  const supported = ['zh', 'zh-TW', 'en', 'ja', 'ko', 'fr', 'de', 'es', 'ru', 'pt'];
+  if (!lang) return 'zh';
+  if (supported.includes(lang)) return lang;
+  if (lang.startsWith('zh-TW') || lang.startsWith('zh-HK') || lang.startsWith('zh-MO')) return 'zh-TW';
+  if (lang.startsWith('zh')) return 'zh';
+  if (lang.startsWith('en')) return 'en';
+  if (lang.startsWith('ja')) return 'ja';
+  if (lang.startsWith('ko')) return 'ko';
+  if (lang.startsWith('fr')) return 'fr';
+  if (lang.startsWith('de')) return 'de';
+  if (lang.startsWith('es')) return 'es';
+  if (lang.startsWith('ru')) return 'ru';
+  if (lang.startsWith('pt')) return 'pt';
+  return 'zh';
 }

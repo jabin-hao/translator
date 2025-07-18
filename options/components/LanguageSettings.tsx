@@ -3,6 +3,7 @@ import { Card, Select, Button, List, Tag, Space, Divider, App } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { Storage } from '@plasmohq/storage';
 import { LANGUAGES, UI_LANGUAGES } from '../../lib/languages';
+import { useTranslation } from 'react-i18next';
 
 const storage = new Storage();
 
@@ -19,6 +20,7 @@ const setLocal = async (key, val) => {
 };
 
 const LanguageSettings: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const { message } = App.useApp();
   // 状态
   // const [uiLang, setUiLang] = useState('default'); // 删除
@@ -116,51 +118,54 @@ const LanguageSettings: React.FC = () => {
 
   return (
     <Card 
-      title="语言设置" 
+      title={t('语言设置')} 
       style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
       styles={{ body: { padding: 0, flex: 1, display: 'flex', flexDirection: 'column' } }}
     >
       <div style={{ flex: 1, overflow: 'auto', padding: '24px' }}>
         {/* 网页翻译目标语言 */}
         <div style={{ marginBottom: 24 }}>
-          <b>网页翻译目标语言：</b>
+          <b>{t('网页翻译目标语言')}：</b>
           <Select
+            key={i18n.language}
             value={pageTargetLang}
-            options={LANGUAGES.map(l => ({ label: l.label, value: l.code }))}
+            options={LANGUAGES.map(l => ({ label: t('lang.' + l.code), value: l.code }))}
             onChange={val => { setPageTargetLang(val); save('pageTargetLang', val); }}
             style={{ width: 200, marginLeft: 16 }}
           />
           <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
-            设置网页整体翻译的目标语言
+            {t('设置网页整体翻译的目标语言')}
           </div>
         </div>
         {/* 划词翻译目标语言 */}
         <div style={{ marginBottom: 24 }}>
-          <b>划词翻译目标语言：</b>
+          <b>{t('划词翻译目标语言')}：</b>
           <Select
+            key={i18n.language}
             value={textTargetLang}
-            options={LANGUAGES.map(l => ({ label: l.label, value: l.code }))}
+            options={LANGUAGES.map(l => ({ label: t('lang.' + l.code), value: l.code }))}
             onChange={val => { setTextTargetLang(val); save('textTargetLang', val); }}
             style={{ width: 200, marginLeft: 16 }}
           />
           <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
-            设置划词/输入翻译的默认目标语言
+            {t('设置划词/输入翻译的默认目标语言')}
           </div>
         </div>
         <Divider />
         {/* 偏好语言 */}
         <div style={{ marginBottom: 24 }}>
-          <b>偏好语言：</b>
+          <b>{t('偏好语言')}：</b>
           <Space>
             <Select
+              key={i18n.language}
               value={addFav}
-              options={LANGUAGES.filter(l => !favoriteLangs.includes(l.code)).map(l => ({ label: l.label, value: l.code }))}
+              options={LANGUAGES.filter(l => !favoriteLangs.includes(l.code)).map(l => ({ label: t('lang.' + l.code), value: l.code }))}
               onChange={setAddFav}
               style={{ width: 160 }}
-              placeholder="选择语言"
+              placeholder={t('选择语言')}
               allowClear
             />
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleAddFav} disabled={!addFav || favoriteLangs.length >= 3}>添加</Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleAddFav} disabled={!addFav || favoriteLangs.length >= 3}>{t('添加')}</Button>
           </Space>
           <div style={{ marginTop: 8 }}>
             {favoriteLangs.map(lang => (
@@ -170,27 +175,28 @@ const LanguageSettings: React.FC = () => {
                 onClose={() => handleRemoveFav(lang)}
                 color="blue"
               >
-                {LANGUAGES.find(l => l.code === lang)?.label || lang}
+                {t('lang.' + lang)}
               </Tag>
             ))}
           </div>
           <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
-            你常用的目标语言，优先用于自动选择
+            {t('你常用的目标语言，优先用于自动选择')}
           </div>
         </div>
         {/* 永不翻译语言 */}
         <div style={{ marginBottom: 24 }}>
-          <b>永不翻译这些语言：</b>
+          <b>{t('永不翻译这些语言')}：</b>
           <Space>
             <Select
+              key={i18n.language}
               value={addNever}
-              options={LANGUAGES.filter(l => !neverLangs.includes(l.code)).map(l => ({ label: l.label, value: l.code }))}
+              options={LANGUAGES.filter(l => !neverLangs.includes(l.code)).map(l => ({ label: t('lang.' + l.code), value: l.code }))}
               onChange={setAddNever}
               style={{ width: 160 }}
-              placeholder="选择语言"
+              placeholder={t('选择语言')}
               allowClear
             />
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleAddNever} disabled={!addNever}>添加</Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleAddNever} disabled={!addNever}>{t('添加')}</Button>
           </Space>
           <div style={{ marginTop: 8 }}>
             {neverLangs.map(lang => (
@@ -200,27 +206,28 @@ const LanguageSettings: React.FC = () => {
                 onClose={() => handleRemoveNever(lang)}
                 color="red"
               >
-                {LANGUAGES.find(l => l.code === lang)?.label || lang}
+                {t('lang.' + lang)}
               </Tag>
             ))}
           </div>
           <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
-            这些语言不会被自动翻译
+            {t('这些语言不会被自动翻译')}
           </div>
         </div>
         {/* 总是翻译语言 */}
         <div style={{ marginBottom: 24 }}>
-          <b>总是翻译这些语言：</b>
+          <b>{t('总是翻译这些语言')}：</b>
           <Space>
             <Select
+              key={i18n.language}
               value={addAlways}
-              options={LANGUAGES.filter(l => !alwaysLangs.includes(l.code)).map(l => ({ label: l.label, value: l.code }))}
+              options={LANGUAGES.filter(l => !alwaysLangs.includes(l.code)).map(l => ({ label: t('lang.' + l.code), value: l.code }))}
               onChange={setAddAlways}
               style={{ width: 160 }}
-              placeholder="选择语言"
+              placeholder={t('选择语言')}
               allowClear
             />
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleAddAlways} disabled={!addAlways}>添加</Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleAddAlways} disabled={!addAlways}>{t('添加')}</Button>
           </Space>
           <div style={{ marginTop: 8 }}>
             {alwaysLangs.map(lang => (
@@ -230,17 +237,17 @@ const LanguageSettings: React.FC = () => {
                 onClose={() => handleRemoveAlways(lang)}
                 color="green"
               >
-                {LANGUAGES.find(l => l.code === lang)?.label || lang}
+                {t('lang.' + lang)}
               </Tag>
             ))}
           </div>
           <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
-            这些语言会被自动翻译为你的目标语言
+            {t('这些语言会被自动翻译为你的目标语言')}
           </div>
         </div>
       </div>
       <div style={{padding: '0 24px 16px 24px', color: '#888', fontSize: 13}}>
-        所有设置均会自动保存，无需手动操作。
+        {t('所有设置均会自动保存，无需手动操作。')}
       </div>
     </Card>
   );

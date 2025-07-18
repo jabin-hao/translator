@@ -16,11 +16,12 @@ import { message, ConfigProvider, theme, App } from 'antd';
 import { Storage } from '@plasmohq/storage';
 import { sendToBackground } from '@plasmohq/messaging';
 import { TRANSLATE_ENGINES } from '../lib/engines';
-import { getEngineLangCode, getBrowserLang } from '../lib/languages';
+import { getEngineLangCode, getBrowserLang, mapUiLangToI18nKey } from '../lib/languages';
 import './index.css';
 import TranslatorIcon from './components/TranslatorIcon';
 import TranslatorResult from './components/TranslatorResult';
 import InputTranslator from './components/InputTranslator';
+import i18n, { initI18n } from '../i18n';
 
 const storage = new Storage();
 
@@ -389,6 +390,25 @@ const ContentScript = () => {
     return () => chrome.storage.onChanged.removeListener(handler);
   }, []);
 
+  // 语言同步：初始化和监听storage变化
+  useEffect(() => {
+    // 初始化时读取
+    storage.get('uiLang').then((lang) => {
+      i18n.changeLanguage(mapUiLangToI18nKey(lang));
+    });
+    // 监听storage变化
+    if (chrome && chrome.storage && chrome.storage.onChanged) {
+      const handler = (changes, area) => {
+        if (area === 'local' && changes['uiLang']) {
+          const newLang = changes['uiLang'].newValue;
+          i18n.changeLanguage(mapUiLangToI18nKey(newLang));
+        }
+      };
+      chrome.storage.onChanged.addListener(handler);
+      return () => chrome.storage.onChanged.removeListener(handler);
+    }
+  }, []);
+
   const showTranslationIcon = (text: string, rect: DOMRect) => {
     // 验证rect的值，确保它们是有效的数字
     if (isNaN(rect.left) || isNaN(rect.bottom) || isNaN(rect.right) || isNaN(rect.top)) {
@@ -567,4 +587,14 @@ const ContentScript = () => {
   );
 };
 
-export default ContentScript; 
+// 新增：i18n异步初始化包装
+const ContentRoot = () => {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    initI18n().then(() => setReady(true));
+  }, []);
+  if (!ready) return null;
+  return <ContentScript />;
+};
+
+export default ContentRoot; 

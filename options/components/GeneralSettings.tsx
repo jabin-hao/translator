@@ -3,6 +3,7 @@ import { Select, Switch, Card, Radio, Divider, Button, message, Upload, Typograp
 import { Storage } from '@plasmohq/storage';
 import { LANGUAGES, UI_LANGUAGES } from '../../lib/languages';
 import { UploadOutlined, DownloadOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 
 const { Title, Paragraph } = Typography;
 
@@ -35,9 +36,10 @@ interface GeneralSettingsProps {
 }
 
 const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMode }) => {
+  const { t, i18n } = useTranslation();
   // 删除 targetLang 相关
   const [contentTheme, setContentTheme] = useState('auto');
-  const [uiLang, setUiLang] = useState('default');
+  const [uiLang, setUiLang] = useState('');
 
   useEffect(() => {
     const initData = async () => {
@@ -45,22 +47,12 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
         getInitSettings(),
         getInitContentTheme()
       ]);
-      // if (typeof settings === 'object' && settings !== null && 'autoTranslate' in settings) {
-      //   setAutoTranslate(settings.autoTranslate);
-      // }
       setContentTheme(savedContentTheme);
     };
     initData();
   }, []);
 
   useEffect(() => {
-    // const saveSettings = async () => {
-    //   await storage.set(
-    //     LOCAL_KEY,
-    //     { autoTranslate }
-    //   );
-    // };
-    // saveSettings();
   }, []); // 依赖项也去掉autoTranslate
 
   useEffect(() => {
@@ -70,19 +62,29 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
     saveContentTheme();
   }, [contentTheme]);
 
+  // 初始化和storage监听
+  const validLangCodes = ['default', ...LANGUAGES.map(l => l.code)];
+
   useEffect(() => {
     const getUiLang = async () => {
-      try {
-        const val = await storage.get('uiLang');
-        if (val) setUiLang(val);
-      } catch {}
+      let val = await storage.get('uiLang');
+      if (!val) {
+        // 自动检测浏览器语言
+        val = (navigator.language.includes('zh') && navigator.language.includes('TW')) ? 'zh-TW' :
+              (navigator.language.includes('zh') ? 'zh' :
+              (LANGUAGES.find(l => l.code === navigator.language) ? navigator.language : 'en'));
+      }
+      setUiLang(val);
+      await i18n.changeLanguage(val);
     };
     getUiLang();
   }, []);
+
   const saveUiLang = async (val) => {
     setUiLang(val);
     await storage.set('uiLang', val);
-    message.success('界面语言已保存');
+    await i18n.changeLanguage(val);
+    message.success(t('界面语言已保存'));
   };
 
   // 主题切换时同步 localStorage，保证多标签页同步
@@ -93,54 +95,57 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
 
   return (
     <Card 
-      title="通用设置" 
+      title={t('通用设置')} 
       style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
       bodyStyle={{ padding: 0, flex: 1, display: 'flex', flexDirection: 'column' }}
     >
       <div style={{ flex: 1, overflow: 'auto', padding: '24px' }}>
         {/* 界面语言设置 */}
         <div style={{ marginBottom: 24 }}>
-          <b>设置页面语言：</b>
+          <b>{t('设置页面语言')}：</b>
           <Select
+            key={i18n.language}
             value={uiLang}
-            options={UI_LANGUAGES}
+            options={UI_LANGUAGES.map(l => ({
+              value: l.code, // 必须是 zh, zh-TW, en 等
+              label: t('lang.' + l.code)
+            }))}
             onChange={saveUiLang}
             style={{ width: 200, marginLeft: 16 }}
           />
           <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
-            控制插件界面显示的语言
+            {t('控制插件界面显示的语言')}
           </div>
         </div>
         <Divider />
         <div style={{ marginBottom: 8 }}>
-          <b>设置页面主题：</b>
+          <b>{t('设置页面主题')}：</b>
           <Radio.Group value={themeMode} onChange={handleThemeChange} style={{ marginLeft: 16 }} buttonStyle='solid'>
-            <Radio.Button value="auto">自动</Radio.Button>
-            <Radio.Button value="light">日间</Radio.Button>
-            <Radio.Button value="dark">夜间</Radio.Button>
+            <Radio.Button value="auto">{t('自动')}</Radio.Button>
+            <Radio.Button value="light">{t('日间')}</Radio.Button>
+            <Radio.Button value="dark">{t('夜间')}</Radio.Button>
           </Radio.Group>
           <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
-            控制设置页面的主题样式
+            {t('控制设置页面的主题样式')}
           </div>
         </div>
         <Divider />
         <div style={{ marginBottom: 8 }}>
-          <b>悬浮窗组件主题：</b>
+          <b>{t('悬浮窗组件主题')}：</b>
           <Radio.Group value={contentTheme} onChange={e => setContentTheme(e.target.value)} style={{ marginLeft: 16 }} buttonStyle='solid'>
-            <Radio.Button value="auto">自动</Radio.Button>
-            <Radio.Button value="light">日间</Radio.Button>
-            <Radio.Button value="dark">夜间</Radio.Button>
+            <Radio.Button value="auto">{t('自动')}</Radio.Button>
+            <Radio.Button value="light">{t('日间')}</Radio.Button>
+            <Radio.Button value="dark">{t('夜间')}</Radio.Button>
           </Radio.Group>
           <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
-            控制翻译悬浮窗、输入翻译器等组件的主题样式<br />
-            自动：跟随系统/浏览器主题
+            {t('控制翻译悬浮窗、输入翻译器等组件的主题样式')}<br />
           </div>
         </div>
         <Divider />
         {/* 导入导出配置功能优化 */}
         <div style={{ marginBottom: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
-            <Title level={5} style={{ margin: 0, fontWeight: 'bold', fontSize: 13, flex: 'none' }}>配置导入/导出：</Title>
+            <Title level={5} style={{ margin: 0, fontWeight: 'bold', fontSize: 13, flex: 'none' }}>{t('配置导入/导出')}：</Title>
             <Space style={{ marginLeft: 8 }}>
               <Button
                 type="primary"
@@ -174,7 +179,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
                   message.success('配置已导出');
                 }}
               >
-                导出配置
+                {t('导出配置')}
               </Button>
               <Upload
                 accept="application/json"
@@ -207,18 +212,18 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
                 }}
               >
                 <Button icon={<UploadOutlined />}>
-                  导入配置
+                  {t('导入配置')}
                 </Button>
               </Upload>
             </Space>
           </div>
           <Paragraph type="secondary" style={{ marginBottom: 16, color: '#888', fontSize: 13 }}>
-            可将插件所有设置导出为 JSON 文件，或从 JSON 文件导入并完全覆盖当前配置。导入后页面会自动刷新。
+            {t('可将插件所有设置导出为 JSON 文件，或从 JSON 文件导入并完全覆盖当前配置。导入后页面会自动刷新。')}
           </Paragraph>
         </div>
       </div>
       <div style={{padding: '0 24px 16px 24px', color: '#888', fontSize: 13}}>
-        所有设置均会自动保存，无需手动操作。
+        {t('所有设置均会自动保存，无需手动操作。')}
       </div>
     </Card>
   );

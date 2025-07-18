@@ -18,6 +18,7 @@ import {
 import { getBrowserLang, LANGUAGES } from '../../lib/languages';
 import { sendToBackground } from '@plasmohq/messaging';
 import { TRANSLATE_ENGINES } from '../../lib/engines';
+import { useTranslation } from 'react-i18next';
 
 // 自定义翻译SVG图标组件
 const MyTranslationIcon = () => (
@@ -53,6 +54,7 @@ async function callTranslateAPI(text: string, from: string, to: string, engine =
 }
 
 const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage, engine: defaultEngine, defaultTargetLang, callTranslateAPI }) => {
+  const { t } = useTranslation();
   const [inputText, setInputText] = useState('');
   const [translatedText, setTranslatedText] = useState('');
   const [sourceLang, setSourceLang] = useState('auto');
@@ -80,12 +82,12 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage,
     };
   }, [onClose]);
 
-  const sourceLanguages = [{ label: '自动检测', code: 'auto' }, ...LANGUAGES];
-  const targetLanguages = LANGUAGES;
+  const sourceLanguages = [{ label: t('自动检测'), code: 'auto' }, ...LANGUAGES.map(l => ({ ...l, label: t('lang.' + l.code) }))];
+  const targetLanguages = LANGUAGES.map(l => ({ ...l, label: t('lang.' + l.code) }));
 
   const handleTranslate = async () => {
     if (!inputText.trim()) {
-      showMessage('warning', '请输入要翻译的文字');
+      showMessage('warning', t('请输入要翻译的文字'));
       return;
     }
     setIsTranslating(true);
@@ -93,11 +95,11 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage,
       const { result, engine: realEngine } = await callTranslateAPI(inputText, sourceLang, targetLang, engine);
       setTranslatedText(result);
       setUsedEngine(realEngine || engine);
-      showMessage('success', '翻译完成');
+      showMessage('success', t('翻译完成'));
     } catch (error) {
       setTranslatedText('翻译失败，请重试');
       setUsedEngine(engine);
-      showMessage('error', typeof error === 'string' ? error : '翻译失败，请重试');
+      showMessage('error', typeof error === 'string' ? error : t('翻译失败，请重试'));
     } finally {
       setIsTranslating(false);
     }
@@ -107,7 +109,7 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage,
     if (sourceLang !== 'auto') {
       setSourceLang(targetLang);
       setTargetLang(sourceLang);
-      showMessage('success', '已交换语言');
+      showMessage('success', t('已交换语言'));
     }
   };
 
@@ -115,7 +117,7 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage,
     setInputText('');
     setTranslatedText('');
     setUsedEngine(engine);
-    showMessage('success', '已清空内容');
+    showMessage('success', t('已清空内容'));
   };
 
   return (
@@ -135,7 +137,7 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage,
       title={
         <Space className="custom-card-header" align="center">
           <MyTranslationIcon />
-          <Title level={4} style={{ margin: 0, lineHeight: '36px', height: 36 }}>翻译工具</Title>
+          <Title level={4} style={{ margin: 0, lineHeight: '36px', height: 36 }}>{t('翻译工具')}</Title>
         </Space>
       }
       extra={
@@ -154,7 +156,7 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage,
             value={sourceLang}
             onChange={setSourceLang}
             style={{ width: 120 }}
-            placeholder="源语言"
+            placeholder={t('源语言')}
             getPopupContainer={triggerNode => triggerNode.parentNode}
             size="small"
             className="custom-select"
@@ -170,13 +172,15 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage,
             onClick={handleSwapLanguages}
             disabled={sourceLang === 'auto'}
             size="small"
-          />
+          >
+            {t('交换语言')}
+          </Button>
 
           <Select
             value={targetLang}
             onChange={setTargetLang}
             style={{ width: 120 }}
-            placeholder="目标语言"
+            placeholder={t('目标语言')}
             getPopupContainer={triggerNode => triggerNode.parentNode}
             size="small"
             className="custom-select"
@@ -191,7 +195,7 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage,
             value={engine}
             onChange={setEngine}
             style={{ width: 140 }}
-            placeholder="搜索引擎"
+            placeholder={t('搜索引擎')}
             size="small"
             className="custom-select"
             getPopupContainer={triggerNode => triggerNode.parentNode}
@@ -213,7 +217,7 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage,
             <TextArea
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              placeholder="请输入要翻译的文字..."
+              placeholder={t('请输入要翻译的文字...')}
               rows={6}
               showCount
               maxLength={1000}
@@ -223,14 +227,14 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage,
           <div className="input-translator-result-area" style={{ flex: 1, minWidth: 0, width: '100%' }}>
             <TextArea
               value={translatedText}
-              placeholder="翻译结果..."
+              placeholder={t('翻译结果...')}
               rows={6}
               readOnly
               className="input-translator-result-textarea"
             />
             {translatedText && usedEngine && (
               <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
-                本次翻译由 {TRANSLATE_ENGINES.find(e => e.value === usedEngine)?.label || usedEngine} 提供
+                {t('本次翻译由')} {TRANSLATE_ENGINES.find(e => e.value === usedEngine)?.label || usedEngine} {t('提供')}
               </div>
             )}
           </div>
@@ -246,7 +250,7 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage,
                 loading={isTranslating}
                 disabled={!inputText.trim()}
               >
-                {isTranslating ? "翻译中..." : "翻译"}
+                {isTranslating ? t('翻译中...') : t('翻译')}
               </Button>
             ) : (
               <Button 
@@ -254,21 +258,21 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage,
                 onClick={handleClear}
                 disabled={!inputText.trim() && !translatedText.trim()}
               >
-                清空
+                {t('清空')}
               </Button>
             )}
             <Button
               onClick={() => {
                 if (translatedText.trim()) {
                   navigator.clipboard.writeText(translatedText);
-                  showMessage('success', '已复制');
+                  showMessage('success', t('已复制'));
                 } else {
-                  showMessage('warning', '没有可复制的内容');
+                  showMessage('warning', t('没有可复制的内容'));
                 }
               }}
               disabled={!translatedText.trim()}
             >
-              复制
+              {t('复制')}
             </Button>
           </Space>
         </div>
