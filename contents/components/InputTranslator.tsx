@@ -233,9 +233,11 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage,
               className="input-translator-result-textarea"
             />
             {translatedText && usedEngine && (
-              <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
-                {t('本次翻译由')} {TRANSLATE_ENGINES.find(e => e.value === usedEngine)?.label || usedEngine} {t('提供')}
-              </div>
+              <>
+                <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
+                  {t('本次翻译由')} {t('engine.' + usedEngine, { defaultValue: usedEngine })} {t('提供')}
+                </div>
+              </>
             )}
           </div>
         </div>

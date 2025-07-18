@@ -75,5 +75,8 @@
   "作者": "Autor",
   "开源地址": "Open-Source-Repository",
   "版本": "Version",
-  "翻译助手": "Übersetzungsassistent"
+  "翻译助手": "Übersetzungsassistent",
+  "engine.bing": "Bing",
+  "engine.google": "Google",
+  "engine.deepl": "DeepL"
 }

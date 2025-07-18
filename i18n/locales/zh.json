@@ -75,5 +75,8 @@
   "作者": "作者",
   "开源地址": "开源地址",
   "版本": "版本",
-  "翻译助手": "翻译助手"
+  "翻译助手": "翻译助手",
+  "engine.bing": "Bing",
+  "engine.google": "Google",
+  "engine.deepl": "DeepL"
 } 

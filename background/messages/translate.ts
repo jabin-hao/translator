@@ -1,6 +1,7 @@
 import type { PlasmoMessaging } from "@plasmohq/messaging"
 import { bingTranslate } from '../translate/bing'
 import { googleTranslate } from '../translate/google'
+import { deeplTranslate } from '../translate/deepl'
 
 // 超时工具
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -16,7 +17,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   })
 }
 
-const ENGINES = ["google", "bing"];
+const ENGINES = ["google", "bing", "deepl"];
 
 const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
   const { text, from = 'auto', to = 'zh-CN', engine = 'bing' } = req.body
@@ -30,6 +31,8 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
         result = await withTimeout(bingTranslate(text, from, to), 5000)
       } else if (eng === 'google') {
         result = await withTimeout(googleTranslate(text, from, to), 5000)
+      } else if (eng === 'deepl') {
+        result = await withTimeout(deeplTranslate(text, from, to), 5000)
       } else {
         throw new Error('不支持的翻译引擎: ' + eng)
       }

@@ -75,5 +75,8 @@
   "作者": "작성자",
   "开源地址": "오픈 소스 저장소",
   "版本": "버전",
-  "翻译助手": "번역 도우미"
+  "翻译助手": "번역 도우미",
+  "engine.bing": "Bing",
+  "engine.google": "Google",
+  "engine.deepl": "DeepL"
 }

@@ -11,6 +11,6 @@ import yandexIcon from '../assets/yandex.svg?url';
 export const TRANSLATE_ENGINES = [
     { label: 'Bing', value: 'bing', icon: bingIcon },
     { label: 'Google', value: 'google', icon: googleIcon },
-    { label: 'DeepL', value: 'deepl', icon: deeplIcon, disabled: true },
+    { label: 'DeepL', value: 'deepl', icon: deeplIcon },
     { label: 'Yandex', value: 'yandex', icon: yandexIcon, disabled: true },
 ]; 
