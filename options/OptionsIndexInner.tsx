@@ -26,6 +26,13 @@ const themeTextMap = {
   dark: '夜间',
 };
 const themeOrder = ['auto', 'light', 'dark'];
+const getActualTheme = (themeMode: string): 'light' | 'dark' => {
+  if (themeMode === 'auto') {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  if (themeMode === 'light' || themeMode === 'dark') return themeMode;
+  return 'light';
+};
 
 async function getInitTheme() {
   try {
@@ -35,54 +42,42 @@ async function getInitTheme() {
   return 'auto';
 }
 
-function getActualTheme(themeMode: string): 'light' | 'dark' {
-  if (themeMode === 'auto') {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  }
-  return themeMode as 'light' | 'dark';
-}
-
 const OptionsIndexInner = () => {
   const { t, i18n } = useTranslation();
-  const getInitialThemeMode = () => {
+  const getInitialThemeMode = async () => {
     try {
-      const local = window.localStorage.getItem(THEME_KEY);
-      if (local) return local;
+      const theme = await storage.get(THEME_KEY);
+      if (theme) return theme;
     } catch {}
     return 'auto';
   };
-  const [themeMode, setThemeMode] = useState(getInitialThemeMode);
-  const [actualTheme, setActualTheme] = useState(() => getActualTheme(getInitialThemeMode()));
-  const [selectedKey, setSelectedKey] = useState('language');
+  const [themeMode, setThemeMode] = useState('auto');
+  const [actualTheme, setActualTheme] = useState('light');
+  const [selectedKey, setSelectedKey] = useState('general');
 
   useEffect(() => {
-    if (themeMode === 'auto') {
-      const updateTheme = () => setActualTheme(getActualTheme('auto'));
-      updateTheme();
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      mediaQuery.addEventListener('change', updateTheme);
-      return () => mediaQuery.removeEventListener('change', updateTheme);
-    } else {
-      setActualTheme(getActualTheme(themeMode));
-    }
-  }, [themeMode]);
-
-  useEffect(() => {
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === THEME_KEY) {
-        const next = e.newValue || 'auto';
-        setThemeMode(next);
+    // 初始化
+    getInitialThemeMode().then(mode => {
+      setThemeMode(mode);
+      setActualTheme(getActualTheme(mode));
+    });
+    // 监听 Plasmo Storage 变化
+    const handler = (val) => {
+      if (val !== themeMode) {
+        setThemeMode(val);
+        setActualTheme(getActualTheme(val));
       }
     };
-    window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
-  }, []);
+    storage.watch({ [THEME_KEY]: handler });
+    return () => { storage.unwatch({ [THEME_KEY]: handler }); };
+  }, [themeMode]);
 
-  const handleThemeSwitch = () => {
+  const handleThemeSwitch = async () => {
     const idx = themeOrder.indexOf(themeMode);
     const next = themeOrder[(idx + 1) % themeOrder.length];
     setThemeMode(next);
-    window.localStorage.setItem(THEME_KEY, next);
+    setActualTheme(getActualTheme(next));
+    await storage.set(THEME_KEY, next);
   };
 
   const menuItems = [

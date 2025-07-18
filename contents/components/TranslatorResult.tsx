@@ -64,15 +64,12 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
       if (Array.isArray(fav)) setFavoriteLangs(fav); // 允许空数组
     };
     fetchFav();
-    // 监听 storage 变化
-    const handler = (changes, area) => {
-      if (area === 'local' && changes['favoriteLangs']) {
-        const fav = changes['favoriteLangs'].newValue;
-        if (Array.isArray(fav)) setFavoriteLangs(fav); // 允许空数组
-      }
+    // Plasmo Storage watch
+    const handler = (val) => {
+      if (Array.isArray(val)) setFavoriteLangs(val);
     };
-    chrome.storage.onChanged.addListener(handler);
-    return () => chrome.storage.onChanged.removeListener(handler);
+    storage.watch({ favoriteLangs: handler });
+    return () => { storage.unwatch({ favoriteLangs: handler }); };
   }, []);
 
   // targetLang 优先级：propTargetLang > favoriteLangs > 浏览器语言

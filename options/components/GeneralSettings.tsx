@@ -88,9 +88,9 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
   };
 
   // 主题切换时同步 localStorage，保证多标签页同步
-  const handleThemeChange = (e) => {
+  const handleThemeChange = async (e) => {
     setThemeMode(e.target.value);
-    window.localStorage.setItem('plugin_theme_mode', e.target.value);
+    await storage.set('plugin_theme_mode', e.target.value);
   };
 
   return (

@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Card, Radio, Divider } from 'antd';
+import { Storage } from '@plasmohq/storage';
 
+const storage = new Storage();
 const THEME_KEY = 'plugin_theme_mode';
-const getInitTheme = () => {
+const getInitTheme = async () => {
   try {
-    const raw = localStorage.getItem(THEME_KEY);
+    const raw = await storage.get(THEME_KEY);
     if (raw) return raw;
   } catch {}
   return 'auto';
@@ -13,9 +15,9 @@ const getInitTheme = () => {
 const ThemeSettings: React.FC = () => {
   const [theme, setTheme] = useState(getInitTheme());
 
-  const handleChange = (e) => {
+  const handleChange = async (e) => {
     setTheme(e.target.value);
-    localStorage.setItem(THEME_KEY, e.target.value);
+    await storage.set(THEME_KEY, e.target.value);
   };
 
   return (
