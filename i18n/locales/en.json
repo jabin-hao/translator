@@ -86,5 +86,13 @@
   "翻译助手": "Translator Assistant",
   "engine.bing": "Bing",
   "engine.google": "Google",
-  "engine.deepl": "DeepL"
+  "engine.deepl": "DeepL",
+  "清空配置": "Clear Config",
+  "确定要清空所有配置吗？此操作不可恢复，将重置所有设置到默认状态。": "Are you sure you want to clear all configurations? This action cannot be undone and will reset all settings to default.",
+  "配置已清空，页面即将刷新": "Configuration cleared, page will refresh shortly",
+  "清空配置失败，请重试": "Failed to clear configuration, please try again",
+  "重置配置": "Reset Config",
+  "清空所有配置并重置到默认状态。此操作不可恢复，请谨慎使用。": "Clear all configurations and reset to default state. This action cannot be undone, please use with caution.",
+  "确定": "Confirm",
+  "取消": "Cancel"
 } 

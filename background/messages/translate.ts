@@ -26,7 +26,6 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
   let lastError = ''
   for (const eng of engines) {
     try {
-      console.log(`[translate] 尝试引擎: ${eng}`)
       let result: string
       if (eng === 'bing') {
         result = await withTimeout(bingTranslate(text, from, to), 5000)
@@ -37,11 +36,9 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
       } else {
         throw new Error('不支持的翻译引擎: ' + eng)
       }
-      console.log(`[translate] 成功使用引擎: ${eng}`)
       return res.send({ result, engine: eng })
     } catch (error) {
       lastError = error.message
-      console.warn(`[translate] 引擎 ${eng} 失败: ${lastError}`)
     }
   }
   res.send({ error: lastError || '所有翻译引擎均不可用' })

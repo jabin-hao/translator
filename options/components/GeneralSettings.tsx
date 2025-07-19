@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Select, Switch, Card, Radio, Divider, Button, message, Upload, Typography, Space } from 'antd';
+import { Select, Switch, Card, Radio, Divider, Button, message, Upload, Typography, Space, Modal } from 'antd';
 import { Storage } from '@plasmohq/storage';
 import { LANGUAGES, UI_LANGUAGES } from '../../lib/languages';
 import { UploadOutlined, DownloadOutlined } from '@ant-design/icons';
@@ -40,6 +40,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
   // 删除 targetLang 相关
   const [contentTheme, setContentTheme] = useState('auto');
   const [uiLang, setUiLang] = useState('');
+  const [clearConfigModalVisible, setClearConfigModalVisible] = useState(false);
 
   useEffect(() => {
     const initData = async () => {
@@ -69,21 +70,32 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
     const getUiLang = async () => {
       let val = await storage.get('uiLang');
       if (!val) {
-        // 自动检测浏览器语言
-        val = (navigator.language.includes('zh') && navigator.language.includes('TW')) ? 'zh-TW' :
-              (navigator.language.includes('zh') ? 'zh' :
-              (LANGUAGES.find(l => l.code === navigator.language) ? navigator.language : 'en'));
+        // 自动检测浏览器语言，使用正确的映射函数
+        const browserLang = navigator.language;
+        
+        // 使用 mapUiLangToI18nKey 函数来正确映射语言代码
+        const { mapUiLangToI18nKey } = await import('../../lib/languages');
+        val = mapUiLangToI18nKey(browserLang);
+        
+        // 保存检测到的语言到storage
+        await storage.set('uiLang', val);
       }
       setUiLang(val);
-      await i18n.changeLanguage(val);
+      // 只有当当前i18n语言与检测到的语言不同时才调用changeLanguage
+      if (i18n.language !== val) {
+        await i18n.changeLanguage(val);
+      }
     };
     getUiLang();
-  }, []);
+  }, [i18n.language]);
 
   const saveUiLang = async (val) => {
     setUiLang(val);
     await storage.set('uiLang', val);
-    await i18n.changeLanguage(val);
+    // 只有当语言真正改变时才调用changeLanguage
+    if (i18n.language !== val) {
+      await i18n.changeLanguage(val);
+    }
     message.success(t('界面语言已保存'));
   };
 
@@ -221,10 +233,61 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
             {t('可将插件所有设置导出为 JSON 文件，或从 JSON 文件导入并完全覆盖当前配置。导入后页面会自动刷新。')}
           </Paragraph>
         </div>
+        <Divider />
+        {/* 清空配置功能 */}
+        <div style={{ marginBottom: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+            <Title level={5} style={{ margin: 0, fontWeight: 'bold', fontSize: 13, flex: 'none' }}>{t('重置配置')}：</Title>
+            <Button
+              danger
+              style={{ marginLeft: 8 }}
+              onClick={() => setClearConfigModalVisible(true)}
+            >
+              {t('清空配置')}
+            </Button>
+          </div>
+          <Paragraph type="secondary" style={{ marginBottom: 16, color: '#888', fontSize: 13 }}>
+            {t('清空所有配置并重置到默认状态。此操作不可恢复，请谨慎使用。')}
+          </Paragraph>
+        </div>
       </div>
       <div style={{padding: '0 24px 16px 24px', color: '#888', fontSize: 13}}>
         {t('所有设置均会自动保存，无需手动操作。')}
       </div>
+      <Modal
+        title={t('清空配置')}
+        open={clearConfigModalVisible}
+        onOk={async () => {
+          try {
+            const keys = [
+              'uiLang',
+              'pageTargetLang',
+              'textTargetLang',
+              'favoriteLangs',
+              'neverLangs',
+              'alwaysLangs',
+              'translate_settings',
+              'popup_settings',
+              'plugin_theme_mode',
+              'content_theme_mode',
+            ];
+            // 清空所有配置
+            for (const key of keys) {
+              await storage.remove(key);
+            }
+            message.success(t('配置已清空，页面即将刷新'));
+            setTimeout(() => window.location.reload(), 1000);
+          } catch (err) {
+            message.error(t('清空配置失败，请重试'));
+          }
+          setClearConfigModalVisible(false);
+        }}
+        onCancel={() => setClearConfigModalVisible(false)}
+        okText={t('确定')}
+        cancelText={t('取消')}
+      >
+        <p>{t('确定要清空所有配置吗？此操作不可恢复，将重置所有设置到默认状态。')}</p>
+      </Modal>
     </Card>
   );
 };

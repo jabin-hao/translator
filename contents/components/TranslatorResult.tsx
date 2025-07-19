@@ -86,12 +86,10 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
       .then(res => {
         setTranslatedText(res.result ?? '');
         setUsedEngine(res.engine || props.engine);
-        console.log('[TranslatorResult] 翻译成功', res);
       })
       .catch(err => {
         setTranslatedText('翻译失败');
         setUsedEngine('');
-        console.warn('[TranslatorResult] 翻译失败', err);
       })
         .finally(() => setLoading(false));
   }, [props.originalText, props.text, targetLang, props.engine]);
@@ -193,7 +191,6 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
         props.showMessage('success', t('已复制'));
       } catch (err) {
         props.showMessage('error', t('复制失败，可能是浏览器限制或权限问题'));
-        console.error('复制失败', err);
       }
     } else {
       props.showMessage('warning', t('没有可复制的内容'));

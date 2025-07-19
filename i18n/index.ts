@@ -38,6 +38,7 @@ const detectLang = (lang: string | undefined) => {
 export async function initI18n() {
   const uiLang = await storage.get('uiLang');
   const lang = detectLang(uiLang);
+  
   await i18n
     .use(initReactI18next)
     .init({

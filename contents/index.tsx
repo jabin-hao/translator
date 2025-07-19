@@ -154,20 +154,16 @@ async function callTranslateAPI(
   to: string,
   engine = 'bing'
 ): Promise<{ result: string, engine: string }> {
-  // console.log('[callTranslateAPI] 入参', { text, from, to, engine });
   const fromMapped = getEngineLangCode(from, engine);
   const toMapped = getEngineLangCode(to, engine);
   try {
-    // console.log('[callTranslateAPI] sendToBackground 请求', { text, from: fromMapped, to: toMapped, engine });
     const res = await sendToBackground({
       name: 'translate',
       body: { text, from: fromMapped, to: toMapped, engine }
     });
-    // console.log('[callTranslateAPI] 翻译结果', res)
     if (typeof res?.result === 'string') return { result: res.result, engine: res.engine || engine };
     throw new Error(res?.error || '翻译失败');
   } catch (e) {
-    // console.error('[callTranslateAPI] 异常', e);
     throw e;
   }
 }
@@ -202,7 +198,6 @@ const AppContent = ({
 }) => {
   // 创建message适配器函数
   const showMessage = (type: 'success' | 'error' | 'warning' | 'info', content: string) => {
-    console.log('showMessage called:', type, content); // 调试信息
     
     // 使用全局message对象，但确保在ConfigProvider内部
     const messageInstance = message;
