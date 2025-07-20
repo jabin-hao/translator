@@ -350,6 +350,10 @@ const ContentScript = () => {
   const engineRef = useRef(engine);
   const autoReadRef = useRef(autoRead);
 
+  // 新增：快捷键设置状态
+  const [shortcutEnabled, setShortcutEnabled] = useState(true);
+  const [customShortcut, setCustomShortcut] = useState('');
+
   // 保持 ref 与 state 同步
   useEffect(() => { engineRef.current = engine; }, [engine]);
   useEffect(() => { autoReadRef.current = autoRead; }, [autoRead]);
@@ -369,6 +373,38 @@ const ContentScript = () => {
         if (data && typeof data === 'object') {
           setEngine(data.engine || 'google');
           setAutoRead(!!data.autoRead);
+        }
+      }
+    };
+    chrome.storage.onChanged.addListener(handler);
+    return () => chrome.storage.onChanged.removeListener(handler);
+  }, []);
+
+  // 新增：初始化快捷键设置，并监听storage变化
+  useEffect(() => {
+    storage.get('shortcut_settings').then((data) => {
+      if (data && typeof data === 'object') {
+        const enabled = (data as any)?.enabled !== false;
+        const shortcut = (data as any)?.customShortcut || '';
+        setShortcutEnabled(enabled);
+        setCustomShortcut(shortcut);
+        console.log('快捷键设置已加载:', { enabled, shortcut });
+      } else {
+        console.log('快捷键设置为空，使用默认值');
+      }
+    });
+    // 监听快捷键设置变化
+    const handler = (changes, area) => {
+      if (area === 'local' && changes['shortcut_settings']) {
+        const data = changes['shortcut_settings'].newValue;
+        if (data && typeof data === 'object') {
+          const enabled = data.enabled !== false;
+          const shortcut = data.customShortcut || '';
+          setShortcutEnabled(enabled);
+          setCustomShortcut(shortcut);
+          console.log('快捷键设置已更新:', { enabled, shortcut });
+          // 重置状态
+          lastCtrlPressRef.current = 0;
         }
       }
     };
@@ -496,65 +532,117 @@ const ContentScript = () => {
     }
   }, [result]);
 
-  // 保持键盘事件监听在 document 上
+  // 新增：双击快捷键检测状态
+  const [doubleClickState, setDoubleClickState] = useState<{
+    lastKey: string;
+    lastTime: number;
+    threshold: number;
+  }>({ lastKey: '', lastTime: 0, threshold: 300 });
+
+  // 组件外部
+  const lastCtrlPressTimeRef = useRef(0);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Control' || e.ctrlKey) {
-        if (!ctrlPressedRef.current) {
-          ctrlPressedRef.current = true;
-          const now = Date.now();
-          if (now - lastCtrlPressRef.current < doubleClickThreshold) {
-            const selection = window.getSelection();
-            const text = selection?.toString().trim();
-            if (text && text.length > 0 && selection && selection.rangeCount > 0) {
-              // 有选中文字，自动翻译并显示结果
-              const rect = selection.getRangeAt(0).getBoundingClientRect();
-              if (isNaN(rect.left) || isNaN(rect.bottom)) {
-                return;
-              }
-              const x = rect.left;
-              const y = rect.bottom;
-              setIcon(null); // 双击Ctrl时也立即隐藏icon
-              // 复用handleTranslation的目标语言逻辑
-              let targetLang = textTargetLangRef.current;
-              if (!targetLang) {
-                if (favoriteLangs && favoriteLangs.length > 0) targetLang = favoriteLangs[0];
-                else targetLang = getBrowserLang();
-              }
-              callTranslateAPI(text, 'auto', targetLang, engineRef.current)
-                .then(({ result: translated, engine: usedEngine }) => {
-                  setResult({ x, y, originalText: text }); // 只存原文
-                  // 自动朗读
-                  if (autoReadRef.current && translated) {
-                    if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
-                    const utter = new window.SpeechSynthesisUtterance(translated);
-                    utter.lang = targetLang;
-                    window.speechSynthesis.speak(utter);
-                  }
-                })
-                .catch(e => {
-                  setResult({ x, y, originalText: text }); // 只存原文
-                });
-            } else {
-              setShowInputTranslator(true);
-            }
+      let shouldTrigger = false;
+      let isDoubleCtrl = false;
+
+      // 检测双击Ctrl
+      if (e.key === 'Control') {
+        const now = Date.now();
+        if (now - lastCtrlPressTimeRef.current < 300) {
+          isDoubleCtrl = true;
+        }
+        lastCtrlPressTimeRef.current = now;
+      }
+
+      // 检查自定义快捷键
+      let isCustomShortcut = false;
+      if (customShortcut) {
+        const isCtrlPressed = e.ctrlKey || e.key === 'Control';
+        const isAltPressed = e.altKey || e.key === 'Alt';
+        const isShiftPressed = e.shiftKey || e.key === 'Shift';
+        const isMetaPressed = e.metaKey || e.key === 'Meta';
+        const pressedKeys = [];
+        if (isCtrlPressed) pressedKeys.push('ctrl');
+        if (isAltPressed) pressedKeys.push('alt');
+        if (isShiftPressed) pressedKeys.push('shift');
+        if (isMetaPressed) pressedKeys.push('meta');
+        let keyName = e.key.toLowerCase();
+        if (keyName === ' ') keyName = 'space';
+        if (keyName === 'enter') keyName = 'enter';
+        if (keyName === 'escape') keyName = 'escape';
+        if (keyName === 'tab') keyName = 'tab';
+        if (keyName === 'backspace') keyName = 'backspace';
+        if (keyName === 'delete') keyName = 'delete';
+        if (!['control', 'alt', 'shift', 'meta'].includes(keyName)) {
+          pressedKeys.push(keyName);
+        }
+        const currentCombination = pressedKeys.join('+');
+        if (currentCombination === customShortcut) {
+          isCustomShortcut = true;
+        }
+      }
+
+      const selection = window.getSelection();
+      const text = selection?.toString().trim();
+
+      if (text && text.length > 0 && selection && selection.rangeCount > 0) {
+        // 有选中文字
+        if (customShortcut) {
+          if (isCustomShortcut) {
+            shouldTrigger = true;
           }
-          lastCtrlPressRef.current = now;
+        } else {
+          if (isDoubleCtrl) {
+            shouldTrigger = true;
+          }
+        }
+        if (shouldTrigger) {
+          const selection = window.getSelection();
+          const text = selection?.toString().trim();
+          if (text && text.length > 0 && selection && selection.rangeCount > 0) {
+            if (!shortcutEnabled) return;
+            const rect = selection.getRangeAt(0).getBoundingClientRect();
+            if (isNaN(rect.left) || isNaN(rect.bottom)) {
+              return;
+            }
+            const x = rect.left;
+            const y = rect.bottom;
+            setIcon(null);
+            let targetLang = textTargetLangRef.current;
+            if (!targetLang) {
+              if (favoriteLangs && favoriteLangs.length > 0) targetLang = favoriteLangs[0];
+              else targetLang = getBrowserLang();
+            }
+            callTranslateAPI(text, 'auto', targetLang, engineRef.current)
+              .then(({ result: translated, engine: usedEngine }) => {
+                setResult({ x, y, originalText: text });
+              })
+              .catch(e => {
+                setResult({ x, y, originalText: text });
+              });
+          } else {
+            setShowInputTranslator(true);
+          }
+        }
+      } else {
+        // 没有选中文字，双击Ctrl始终唤起输入组件
+        if (isDoubleCtrl) {
+          setShowInputTranslator(true);
         }
       }
     };
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key === 'Control' || !e.ctrlKey) {
-        ctrlPressedRef.current = false;
-      }
-    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {};
+
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keyup', handleKeyUp);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('keyup', handleKeyUp);
     };
-  }, [textTargetLang, favoriteLangs]);
+  }, [shortcutEnabled, customShortcut, textTargetLang, favoriteLangs]);
 
   return (
     <StyleProvider hashPriority="high" container={shadowRoot}>

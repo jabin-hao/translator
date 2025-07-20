@@ -139,7 +139,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
           </Radio.Group>
           <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
             {t('控制设置页面的主题样式')}
-          </div>
+        </div>
         </div>
         <Divider />
         <div style={{ marginBottom: 8 }}>
@@ -174,6 +174,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
                     'popup_settings',
                     'plugin_theme_mode',
                     'content_theme_mode',
+                    'shortcut_settings',
                   ];
                   const data = {};
                   for (const key of keys) {
@@ -211,6 +212,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
                       'popup_settings',
                       'plugin_theme_mode',
                       'content_theme_mode',
+                      'shortcut_settings',
                     ];
                     for (const key of keys) {
                       await storage.set(key, json[key]);
@@ -270,6 +272,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
               'popup_settings',
               'plugin_theme_mode',
               'content_theme_mode',
+              'shortcut_settings',
             ];
             // 清空所有配置
             for (const key of keys) {
