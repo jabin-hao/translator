@@ -142,7 +142,7 @@ const TranslateSettings: React.FC = () => {
         <Divider />
         
         {/* 朗读引擎设置 */}
-        <div style={{ marginBottom: 24 }}>
+        {/* <div style={{ marginBottom: 24 }}>
           <b>{t('朗读引擎')}：</b>
           <Select
             value={speechEngine}
@@ -162,7 +162,7 @@ const TranslateSettings: React.FC = () => {
         </div>
         
         {/* 朗读参数设置 */}
-        <div style={{ marginBottom: 24, marginLeft: 24 }}>
+        {/*<div style={{ marginBottom: 24, marginLeft: 24 }}>
           <div style={{ marginBottom: 12 }}>
             <span style={{ fontSize: 13 }}>{t('朗读速度')}：</span>
             <Select
@@ -208,8 +208,8 @@ const TranslateSettings: React.FC = () => {
               <Option value={1}>100%</Option>
             </Select>
           </div>
-        </div>
-        <Divider />
+        </div> */}
+        {/* <Divider /> */}
         
         {/* 自动翻译设置 */}
         <div style={{ marginBottom: 24 }}>

@@ -5,6 +5,14 @@ import '../index.css';
 import { Storage } from '@plasmohq/storage';
 import { getEngineLangCode, getLangAbbr, getSpeechLang, LANGUAGES, getBrowserLang } from '../../lib/languages';
 import { sendToBackground } from '@plasmohq/messaging';
+import { bingTTSFetch, getDefaultVoice, ttsSpeakWithFallback } from '../../lib/tts';
+
+declare global {
+  interface Window {
+    _bingTtsAudio?: HTMLAudioElement | null;
+  }
+}
+
 // import { useTranslation } from 'react-i18next';
 
 interface TranslatorResultProps {
@@ -245,45 +253,29 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
   };
 
   // 手动朗读/停止
-  const handleSpeak = (e: React.MouseEvent) => {
+  const handleSpeak = async (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
     if (!translatedText || translatedText === '翻译失败') {
       props.showMessage('warning', getText('noContentToSpeak'));
       return;
     }
-    
+
     if (isSpeaking) {
-      // 停止朗读
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
+      if (window._bingTtsAudio) {
+        window._bingTtsAudio.pause();
+        window._bingTtsAudio = null;
       }
+      window.speechSynthesis.cancel();
       setIsSpeaking(false);
       props.showMessage('info', getText('speakStopped'));
     } else {
-      // 开始朗读
-      if ('speechSynthesis' in window) {
-        const utterance = new SpeechSynthesisUtterance(translatedText);
-        utterance.lang = getSpeechLang(targetLang);
-        utterance.rate = 1;
-        utterance.pitch = 1;
-        utterance.volume = 1;
-        
-        utterance.onstart = () => {
-          setIsSpeaking(true);
-        };
-        
-        utterance.onend = () => {
-          setIsSpeaking(false);
-        };
-        
-        utterance.onerror = () => {
-          setIsSpeaking(false);
-        };
-        
-        window.speechSynthesis.speak(utterance);
-        props.showMessage('success', getText('speakStarted'));
-      }
+      setIsSpeaking(true);
+      await ttsSpeakWithFallback(translatedText, getSpeechLang(targetLang), (type, msg) => {
+        if (type === 'success') setIsSpeaking(true);
+        if (type === 'info' && msg === '朗读结束') setIsSpeaking(false);
+        props.showMessage(type as any, msg);
+      });
     }
   };
 

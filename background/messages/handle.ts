@@ -80,16 +80,14 @@ const handler: PlasmoMessaging.MessageHandler<HandlerRequest, HandlerResponse> =
       case 'speech':
         try {
           console.log('处理朗读请求:', { action, data });
-          // 朗读功能需要在 content script 中实现，因为 background 无法访问 Web Speech API
-          // 这里我们返回一个特殊响应，告诉 content script 需要处理朗读
-          res.send({
-            success: true,
-            data: {
-              action: 'speech',
-              options: data.options,
-              service: data.service
-            }
+          // 正确调用 handleSpeechMessage，返回 TTS 音频结果
+          const speechResponse = await handleSpeechMessage({
+            action: action as 'speak' | 'stop' | 'checkAvailability',
+            options: data.options,
+            service: data.service // manager 会自动用 storage 设置
           });
+          console.log('朗读响应:', speechResponse);
+          res.send(speechResponse);
         } catch (speechError) {
           console.error('朗读处理失败:', speechError);
           res.send({

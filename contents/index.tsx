@@ -176,18 +176,18 @@ async function callTranslateAPI(
       },
     });
 
-    console.log('callTranslateAPI 收到响应:', response);
+    // console.log('callTranslateAPI 收到响应:', response);
 
     if (response.success && response.data) {
       const result = { 
         result: response.data.translation, 
         engine: response.data.engine 
       };
-      console.log('callTranslateAPI 返回结果:', result);
+      // console.log('callTranslateAPI 返回结果:', result);
       return result;
     } else {
       const error = response.error || '翻译失败';
-      console.error('callTranslateAPI 翻译失败:', error);
+      // console.error('callTranslateAPI 翻译失败:', error);
       throw new Error(error);
     }
   } catch (error) {
@@ -195,7 +195,7 @@ async function callTranslateAPI(
     
     // 如果是网络错误，尝试重试一次
     if (error instanceof Error && (error.message.includes('Failed to fetch') || error.message.includes('NetworkError'))) {
-      console.log('检测到网络错误，尝试重试...');
+      // console.log('检测到网络错误，尝试重试...');
       try {
         const response = await sendToBackground({
           name: "handle" as any,
@@ -217,13 +217,13 @@ async function callTranslateAPI(
             result: response.data.translation, 
             engine: response.data.engine 
           };
-          console.log('callTranslateAPI 重试成功:', result);
+          // console.log('callTranslateAPI 重试成功:', result);
           return result;
         } else {
           throw new Error(response.error || '翻译失败');
         }
       } catch (retryError) {
-        console.error('callTranslateAPI 重试也失败:', retryError);
+        // console.error('callTranslateAPI 重试也失败:', retryError);
         throw retryError;
       }
     }
