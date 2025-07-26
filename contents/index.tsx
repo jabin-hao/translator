@@ -158,7 +158,7 @@ async function callTranslateAPI(
   const toMapped = getEngineLangCode(to, engine);
   
   try {
-    console.log('发送翻译请求:', { text, from: fromMapped, to: toMapped, engine });
+    console.log('callTranslateAPI 开始:', { text, from, to, engine, fromMapped, toMapped });
     
     // 使用通用消息处理器
     const response = await sendToBackground({
@@ -176,18 +176,58 @@ async function callTranslateAPI(
       },
     });
 
-    console.log('收到翻译响应:', response);
+    console.log('callTranslateAPI 收到响应:', response);
 
     if (response.success && response.data) {
-      return { 
+      const result = { 
         result: response.data.translation, 
         engine: response.data.engine 
       };
+      console.log('callTranslateAPI 返回结果:', result);
+      return result;
     } else {
-      throw new Error(response.error || '翻译失败');
+      const error = response.error || '翻译失败';
+      console.error('callTranslateAPI 翻译失败:', error);
+      throw new Error(error);
     }
   } catch (error) {
-    console.error('翻译失败:', error);
+    console.error('callTranslateAPI 异常:', error);
+    
+    // 如果是网络错误，尝试重试一次
+    if (error instanceof Error && (error.message.includes('Failed to fetch') || error.message.includes('NetworkError'))) {
+      console.log('检测到网络错误，尝试重试...');
+      try {
+        const response = await sendToBackground({
+          name: "handle" as any,
+          body: {
+            service: 'translate',
+            action: 'translate',
+            text,
+            options: {
+              from: fromMapped,
+              to: toMapped,
+              engine,
+              useCache: true,
+            },
+          },
+        });
+        
+        if (response.success && response.data) {
+          const result = { 
+            result: response.data.translation, 
+            engine: response.data.engine 
+          };
+          console.log('callTranslateAPI 重试成功:', result);
+          return result;
+        } else {
+          throw new Error(response.error || '翻译失败');
+        }
+      } catch (retryError) {
+        console.error('callTranslateAPI 重试也失败:', retryError);
+        throw retryError;
+      }
+    }
+    
     throw error;
   }
 }
@@ -714,6 +754,64 @@ const ContentScript = () => {
       document.removeEventListener('keyup', handleKeyUp);
     };
   }, [shortcutEnabled, customShortcut, textTargetLang, favoriteLangs]);
+
+  // 朗读功能
+  let currentUtterance: SpeechSynthesisUtterance | null = null;
+
+  // 朗读文本
+  async function speakText(text: string, lang: string, speed = 1, pitch = 1, volume = 1): Promise<{ success: boolean; error?: string }> {
+    try {
+      // 停止当前朗读
+      if (currentUtterance) {
+        window.speechSynthesis.cancel();
+        currentUtterance = null;
+      }
+      
+      if (!('speechSynthesis' in window)) {
+        return {
+          success: false,
+          error: 'Web Speech API not supported'
+        };
+      }
+      
+      return new Promise((resolve) => {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = lang;
+        utterance.rate = speed;
+        utterance.pitch = pitch;
+        utterance.volume = volume;
+        
+        utterance.onend = () => {
+          currentUtterance = null;
+          resolve({ success: true });
+        };
+        
+        utterance.onerror = (event) => {
+          currentUtterance = null;
+          resolve({
+            success: false,
+            error: `Speech synthesis error: ${event.error}`
+          });
+        };
+        
+        currentUtterance = utterance;
+        window.speechSynthesis.speak(utterance);
+      });
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
+  }
+
+  // 停止朗读
+  function stopSpeaking(): void {
+    if (currentUtterance) {
+      window.speechSynthesis.cancel();
+      currentUtterance = null;
+    }
+  }
 
   return (
     <StyleProvider hashPriority="high" container={shadowRoot}>

@@ -95,7 +95,7 @@ export async function translate(
     const translation = await Promise.race([
       translateFunction(text, from, to),
       new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('翻译超时')), 20000)
+        setTimeout(() => reject(new Error('翻译超时')), 30000) // 增加到30秒超时
       )
     ]);
     

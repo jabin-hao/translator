@@ -1,29 +1,19 @@
 import type { PlasmoMessaging } from "@plasmohq/messaging"
-import { handleTranslateMessage } from './translate'
+import { handleTranslateMessage } from './translate';
+import { handleSpeechMessage } from './speech';
 
-// 翻译消息类型
-export type TranslateHandlerRequest = {
-  type: 'translate' | 'translateBatch';
-  text?: string;
-  texts?: string[];
-  options: any;
-}
-
-export type TranslateHandlerResponse = {
-  success: boolean;
-  data?: any;
-  error?: string;
-}
+// 添加初始化日志
+console.log('Handle script 已加载 - handle.ts');
 
 // 通用消息请求类型
-export type HandlerRequest = {
-  service: 'translate' | 'cache' | 'settings' | 'other'; // 服务类型
-  action: string; // 具体操作
-  data?: any; // 数据
-} & TranslateHandlerRequest; // 继承翻译消息类型
+export interface HandlerRequest {
+  service: 'translate' | 'speech';
+  action: string;
+  [key: string]: any;
+}
 
 // 通用消息响应类型
-export type HandlerResponse = {
+export interface HandlerResponse {
   success: boolean;
   data?: any;
   error?: string;
@@ -31,12 +21,13 @@ export type HandlerResponse = {
 
 // 通用消息处理器
 const handler: PlasmoMessaging.MessageHandler<HandlerRequest, HandlerResponse> = async (req, res) => {
+  console.log('=== 收到消息请求 ===');
+  console.log('收到消息请求:', req.body);
+  console.log('请求类型:', typeof req.body);
+  console.log('请求服务:', req.body?.service);
+  console.log('请求操作:', req.body?.action);
+  
   try {
-    console.log('收到消息请求:', req.body);
-    console.log('请求类型:', typeof req.body);
-    console.log('请求服务:', req.body?.service);
-    console.log('请求操作:', req.body?.action);
-    
     if (!req.body) {
       console.error('请求体为空');
       res.send({
@@ -53,10 +44,27 @@ const handler: PlasmoMessaging.MessageHandler<HandlerRequest, HandlerResponse> =
       case 'translate':
         try {
           console.log('处理翻译请求:', { action, data });
+          console.log('翻译请求详情:', {
+            type: action as 'translate' | 'translateBatch',
+            text: data.text,
+            options: {
+              from: data.options?.from || 'auto',
+              to: data.options?.to || 'zh-CN',
+              engine: data.options?.engine || 'bing',
+              useCache: data.options?.useCache ?? true,
+            }
+          });
           // 处理翻译相关消息
           const translateResponse = await handleTranslateMessage({
             type: action as 'translate' | 'translateBatch',
-            ...data
+            text: data.text,
+            texts: data.texts,
+            options: {
+              from: data.options?.from || 'auto',
+              to: data.options?.to || 'zh-CN',
+              engine: data.options?.engine || 'bing',
+              useCache: data.options?.useCache ?? true,
+            }
           });
           console.log('翻译响应:', translateResponse);
           res.send(translateResponse);
@@ -69,22 +77,26 @@ const handler: PlasmoMessaging.MessageHandler<HandlerRequest, HandlerResponse> =
         }
         break;
         
-      case 'cache':
-        // 处理缓存相关消息（未来扩展）
-        console.log('缓存服务:', action, data);
-        res.send({
-          success: false,
-          error: '缓存服务暂未实现'
-        });
-        break;
-        
-      case 'settings':
-        // 处理设置相关消息（未来扩展）
-        console.log('设置服务:', action, data);
-        res.send({
-          success: false,
-          error: '设置服务暂未实现'
-        });
+      case 'speech':
+        try {
+          console.log('处理朗读请求:', { action, data });
+          // 朗读功能需要在 content script 中实现，因为 background 无法访问 Web Speech API
+          // 这里我们返回一个特殊响应，告诉 content script 需要处理朗读
+          res.send({
+            success: true,
+            data: {
+              action: 'speech',
+              options: data.options,
+              service: data.service
+            }
+          });
+        } catch (speechError) {
+          console.error('朗读处理失败:', speechError);
+          res.send({
+            success: false,
+            error: `朗读处理失败: ${speechError instanceof Error ? speechError.message : String(speechError)}`
+          });
+        }
         break;
         
       default:

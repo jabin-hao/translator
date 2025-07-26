@@ -30,15 +30,6 @@ interface TranslatorResultProps {
 const storage = new Storage();
 const DEFAULT_TARGET_LANG = 'zh-CN';
 
-// 获取可用 voice，优先选用目标语言
-const getVoice = (lang: string) => {
-  const voices = window.speechSynthesis.getVoices();
-  // 优先找完全匹配，其次找前缀匹配
-  let voice = voices.find(v => v.lang === lang);
-  if (!voice) voice = voices.find(v => v.lang.startsWith(lang.split('-')[0]));
-  return voice || voices[0];
-};
-
 // 获取友好的引擎名称
 const getEngineDisplayName = (engine: string) => {
   const engineNames = {
@@ -81,7 +72,6 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
   const [loading, setLoading] = useState(false);
   const [usedEngine, setUsedEngine] = useState(props.engine);
   const originalTextRef = useRef(props.text);
-  const utterRef = useRef<SpeechSynthesisUtterance | null>(null);
   const hasTranslatedRef = useRef(false);
   const isInitializedRef = useRef(false); // 添加初始化标志
   const translationTimeoutRef = useRef<NodeJS.Timeout | null>(null); // 添加防抖定时器
@@ -123,12 +113,17 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
 
   // 翻译逻辑
   useEffect(() => {
-    if (!targetLang || !props.callTranslateAPI) return;
+    if (!targetLang || !props.callTranslateAPI) {
+      console.log('TranslatorResult 翻译条件不满足:', { targetLang, hasCallTranslateAPI: !!props.callTranslateAPI });
+      return;
+    }
     
     const srcText = props.originalText || props.text;
+    console.log('TranslatorResult 翻译逻辑触发:', { srcText, targetLang, engine: props.engine });
     
     // 如果文本改变了，重置翻译标志
     if (srcText !== originalTextRef.current) {
+      console.log('文本已改变，重置翻译状态');
       hasTranslatedRef.current = false;
       setTranslatedText('');
       originalTextRef.current = srcText;
@@ -136,6 +131,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
     
     // 如果已经翻译过相同的文本，不再重复翻译
     if (hasTranslatedRef.current && translatedText && translatedText !== '翻译失败') {
+      console.log('已翻译过相同文本，跳过重复翻译');
       return;
     }
     
@@ -159,16 +155,21 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
       // 直接传递 targetLang，让 callTranslateAPI 处理语言映射
       props.callTranslateAPI(srcText, 'auto', targetLang, props.engine)
         .then(res => {
+          console.log('翻译成功:', res);
           setTranslatedText(res.result ?? '');
           setUsedEngine(res.engine || props.engine);
           props.onTranslationComplete?.(); // 翻译成功时调用回调
         })
         .catch(err => {
+          console.error('翻译失败:', err);
           setTranslatedText('翻译失败');
           setUsedEngine('');
           props.onTranslationComplete?.(); // 翻译失败时也调用回调
         })
-        .finally(() => setLoading(false));
+        .finally(() => {
+          console.log('翻译完成，设置loading为false');
+          setLoading(false);
+        });
     }, 100);
     
     // 清理定时器
@@ -182,28 +183,38 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
   // 自动朗读
   useEffect(() => {
     if (props.autoRead && translatedText && translatedText !== '翻译失败') {
-      if (window.speechSynthesis.speaking) {
-        window.speechSynthesis.cancel();
+      // 直接使用 Web Speech API
+      if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(translatedText);
+        utterance.lang = getSpeechLang(targetLang);
+        utterance.rate = 1;
+        utterance.pitch = 1;
+        utterance.volume = 1;
+        
+        utterance.onstart = () => {
+          setIsSpeaking(true);
+        };
+        
+        utterance.onend = () => {
+          setIsSpeaking(false);
+        };
+        
+        utterance.onerror = () => {
+          setIsSpeaking(false);
+        };
+        
+        window.speechSynthesis.speak(utterance);
       }
-      const utter = new window.SpeechSynthesisUtterance(translatedText);
-      utter.lang = getSpeechLang(targetLang);
-      const voice = getVoice(utter.lang);
-      if (utter.lang.startsWith('ja') && (!voice || !voice.lang.startsWith('ja'))) {
-        props.showMessage('warning', getText('noJapaneseVoice'));
-      }
-      if (voice) utter.voice = voice;
-      utter.onend = () => setIsSpeaking(false);
-      utter.onerror = () => setIsSpeaking(false);
-      utterRef.current = utter;
-      setIsSpeaking(true);
-      window.speechSynthesis.speak(utter);
     }
   }, [props.autoRead, translatedText, targetLang]);
 
   // 组件卸载时停止朗读
   useEffect(() => {
     return () => {
-      window.speechSynthesis.cancel();
+      // 停止朗读
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
       setIsSpeaking(false);
     };
   }, []);
@@ -233,12 +244,6 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
     setTargetLang(lang);
   };
 
-  // 停止朗读
-  const stopSpeak = () => {
-    window.speechSynthesis.cancel();
-    setIsSpeaking(false);
-  };
-
   // 手动朗读/停止
   const handleSpeak = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -247,26 +252,38 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
       props.showMessage('warning', getText('noContentToSpeak'));
       return;
     }
+    
     if (isSpeaking) {
-      stopSpeak();
-      props.showMessage('info', getText('speakStopped'));
-    } else {
-      if (window.speechSynthesis.speaking) {
+      // 停止朗读
+      if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
       }
-      const utter = new window.SpeechSynthesisUtterance(translatedText);
-      utter.lang = getSpeechLang(targetLang);
-      const voice = getVoice(utter.lang);
-      if (utter.lang.startsWith('ja') && (!voice || !voice.lang.startsWith('ja'))) {
-        props.showMessage('warning', getText('noJapaneseVoice'));
+      setIsSpeaking(false);
+      props.showMessage('info', getText('speakStopped'));
+    } else {
+      // 开始朗读
+      if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(translatedText);
+        utterance.lang = getSpeechLang(targetLang);
+        utterance.rate = 1;
+        utterance.pitch = 1;
+        utterance.volume = 1;
+        
+        utterance.onstart = () => {
+          setIsSpeaking(true);
+        };
+        
+        utterance.onend = () => {
+          setIsSpeaking(false);
+        };
+        
+        utterance.onerror = () => {
+          setIsSpeaking(false);
+        };
+        
+        window.speechSynthesis.speak(utterance);
+        props.showMessage('success', getText('speakStarted'));
       }
-      if (voice) utter.voice = voice;
-      utter.onend = () => setIsSpeaking(false);
-      utter.onerror = () => setIsSpeaking(false);
-      utterRef.current = utter;
-      setIsSpeaking(true);
-      window.speechSynthesis.speak(utter);
-      props.showMessage('success', getText('speakStarted'));
     }
   };
 
