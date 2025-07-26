@@ -147,7 +147,7 @@ function applyThemeToShadowRoot(themeMode: string, shadowRoot: ShadowRoot) {
   shadowRoot.appendChild(style);
 }
 
-// 删除多引擎兜底翻译API，只保留如下：
+// 修改翻译API调用，集成缓存功能
 async function callTranslateAPI(
   text: string,
   from: string,
@@ -156,15 +156,39 @@ async function callTranslateAPI(
 ): Promise<{ result: string, engine: string }> {
   const fromMapped = getEngineLangCode(from, engine);
   const toMapped = getEngineLangCode(to, engine);
+  
   try {
-    const res = await sendToBackground({
-      name: 'translate',
-      body: { text, from: fromMapped, to: toMapped, engine }
+    console.log('发送翻译请求:', { text, from: fromMapped, to: toMapped, engine });
+    
+    // 使用通用消息处理器
+    const response = await sendToBackground({
+      name: "handle" as any,
+      body: {
+        service: 'translate',
+        action: 'translate',
+        text,
+        options: {
+          from: fromMapped,
+          to: toMapped,
+          engine,
+          useCache: true, // 启用缓存
+        },
+      },
     });
-    if (typeof res?.result === 'string') return { result: res.result, engine: res.engine || engine };
-    throw new Error(res?.error || '翻译失败');
-  } catch (e) {
-    throw e;
+
+    console.log('收到翻译响应:', response);
+
+    if (response.success && response.data) {
+      return { 
+        result: response.data.translation, 
+        engine: response.data.engine 
+      };
+    } else {
+      throw new Error(response.error || '翻译失败');
+    }
+  } catch (error) {
+    console.error('翻译失败:', error);
+    throw error;
   }
 }
 
@@ -242,6 +266,8 @@ const AppContent = ({
           engine={engine}
           onClose={onCloseResult}
           targetLang={textTargetLang}
+          shouldTranslate={false} // 使用状态控制翻译时机
+          onTranslationComplete={() => {}} // 翻译完成后重置状态
           callTranslateAPI={callTranslateAPI} 
         />
       )}
@@ -276,7 +302,7 @@ const ContentScript = () => {
   const doubleClickThreshold = 300;
   const ctrlPressedRef = useRef<boolean>(false);
   // 新增：划词翻译目标语言
-  const [textTargetLang, setTextTargetLang] = useState('');
+  const [textTargetLang, setTextTargetLang] = useState(getBrowserLang()); // 使用浏览器语言作为默认值
   // 新增：偏好语言
   const [favoriteLangs, setFavoriteLangs] = useState<string[]>([]);
 
@@ -502,26 +528,63 @@ const ContentScript = () => {
       if (text && text.length > 0 && selection && selection.rangeCount > 0) {
         // 只在不是点击 icon 时显示 icon
         if (!(icon && iconElement && path.includes(iconElement))) {
-        const rect = selection.getRangeAt(0).getBoundingClientRect();
-        showTranslationIcon(text, rect);
+          const rect = selection.getRangeAt(0).getBoundingClientRect();
+          showTranslationIcon(text, rect);
         }
-        // 不要立刻清空 icon/result
-        return;
-      }
-
-      // 4. 没有选中内容，且不是点击在弹窗/输入框/icon 内部，清空所有
+        // 不要立刻清空 icon/result，但也不要阻止后续处理
+      } else {
+        // 4. 没有选中内容，且不是点击在弹窗/输入框/icon 内部，清空所有
+        resultPosRef.current = null;
+        setResult(null);
+        setIcon(null);
+        setShowInputTranslator(false);
+        
+        // 清除选中状态
         if (window.getSelection) {
           const sel = window.getSelection();
           if (sel) sel.removeAllRanges();
         }
-        resultPosRef.current = null;
+      }
+    };
+
+    // 添加 mousedown 事件监听器，确保点击外部时能清空结果
+    const handleMouseDown = (e: MouseEvent) => {
+      // 获取 shadowRoot 下的弹窗、icon、result 节点
+      let inputTranslatorElement = null, resultElement = null, iconElement = null;
+      if (shadowRoot) {
+        inputTranslatorElement = shadowRoot.querySelector('.input-translator-card');
+        resultElement = shadowRoot.querySelector('[data-translator-result]');
+        iconElement = shadowRoot.querySelector('.translator-icon');
+      }
+      const path = e.composedPath();
+
+      // 如果点击在弹窗/输入框/icon 内部，不处理
+      if (
+        (showInputTranslator && inputTranslatorElement && path.includes(inputTranslatorElement)) ||
+        (result && resultElement && path.includes(resultElement)) ||
+        (icon && iconElement && path.includes(iconElement))
+      ) {
+        return;
+      }
+
+      // 点击外部，清空所有状态
+      resultPosRef.current = null;
       setResult(null);
       setIcon(null);
       setShowInputTranslator(false);
+      
+      // 清除选中状态
+      if (window.getSelection) {
+        const sel = window.getSelection();
+        if (sel) sel.removeAllRanges();
+      }
     };
+
     document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('mousedown', handleMouseDown);
     return () => {
       document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('mousedown', handleMouseDown);
     };
   }, [showInputTranslator, result, icon]);
 
@@ -541,6 +604,7 @@ const ContentScript = () => {
 
   // 组件外部
   const lastCtrlPressTimeRef = useRef(0);
+  const isTranslatingRef = useRef(false); // 添加翻译状态标记
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -599,6 +663,12 @@ const ContentScript = () => {
           }
         }
         if (shouldTrigger) {
+          // 防止重复调用
+          if (isTranslatingRef.current) {
+            console.log('翻译正在进行中，跳过重复调用');
+            return;
+          }
+          
           const selection = window.getSelection();
           const text = selection?.toString().trim();
           if (text && text.length > 0 && selection && selection.rangeCount > 0) {
@@ -615,13 +685,14 @@ const ContentScript = () => {
               if (favoriteLangs && favoriteLangs.length > 0) targetLang = favoriteLangs[0];
               else targetLang = getBrowserLang();
             }
-            callTranslateAPI(text, 'auto', targetLang, engineRef.current)
-              .then(({ result: translated, engine: usedEngine }) => {
-                setResult({ x, y, originalText: text });
-              })
-              .catch(e => {
-                setResult({ x, y, originalText: text });
-              });
+            
+            // 设置翻译状态
+            isTranslatingRef.current = true;
+            console.log('开始快捷键翻译:', text);
+            
+            // 只设置 result 状态，让 TranslatorResult 组件处理翻译
+            setResult({ x, y, originalText: text });
+            isTranslatingRef.current = false;
           } else {
             setShowInputTranslator(true);
           }

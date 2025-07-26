@@ -132,7 +132,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
         <Divider />
         <div style={{ marginBottom: 8 }}>
           <b>{t('设置页面主题')}：</b>
-          <Radio.Group value={themeMode} onChange={handleThemeChange} style={{ marginLeft: 16 }} buttonStyle='solid'>
+          <Radio.Group value={themeMode} onChange={handleThemeChange} style={{ marginLeft: 16 }}>
             <Radio.Button value="auto">{t('自动')}</Radio.Button>
             <Radio.Button value="light">{t('日间')}</Radio.Button>
             <Radio.Button value="dark">{t('夜间')}</Radio.Button>
@@ -144,7 +144,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
         <Divider />
         <div style={{ marginBottom: 8 }}>
           <b>{t('悬浮窗组件主题')}：</b>
-          <Radio.Group value={contentTheme} onChange={e => setContentTheme(e.target.value)} style={{ marginLeft: 16 }} buttonStyle='solid'>
+          <Radio.Group value={contentTheme} onChange={e => setContentTheme(e.target.value)} style={{ marginLeft: 16 }}>
             <Radio.Button value="auto">{t('自动')}</Radio.Button>
             <Radio.Button value="light">{t('日间')}</Radio.Button>
             <Radio.Button value="dark">{t('夜间')}</Radio.Button>
@@ -160,7 +160,6 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
             <Title level={5} style={{ margin: 0, fontWeight: 'bold', fontSize: 13, flex: 'none' }}>{t('配置导入/导出')}：</Title>
             <Space style={{ marginLeft: 8 }}>
               <Button
-                type="primary"
                 icon={<DownloadOutlined />}
                 onClick={async () => {
                   const keys = [

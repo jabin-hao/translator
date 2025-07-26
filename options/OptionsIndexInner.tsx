@@ -9,6 +9,7 @@ import LanguageSettings from './components/LanguageSettings';
 import PluginIcon from 'components/PluginIcon';
 import TranslateSettings from './components/TranslateSettings';
 import ShortcutSettings from './components/ShortcutSettings';
+import CacheSettings from './components/CacheSettings';
 import { useTranslation } from 'react-i18next';
 
 const { Text } = Typography;
@@ -85,6 +86,7 @@ const OptionsIndexInner = () => {
     { key: 'general', icon: <Icon icon="material-symbols:settings-outline" width={22} />, label: t('通用设置') },
     { key: 'language', icon: <Icon icon="material-symbols:language" width={22} />, label: t('语言设置') },
     { key: 'translate', icon: <Icon icon="material-symbols:g-translate" width={22} />, label: t('翻译设置') },
+    { key: 'cache', icon: <Icon icon="material-symbols:storage" width={22} />, label: t('缓存管理') },
     { key: 'shortcut', icon: <Icon icon="material-symbols:keyboard-outline" width={22} />, label: t('快捷键设置') },
     { key: 'about', icon: <Icon icon="material-symbols:info-outline" width={22} />, label: t('关于') },
   ];
@@ -96,6 +98,8 @@ const OptionsIndexInner = () => {
     content = <GeneralSettings themeMode={themeMode} setThemeMode={setThemeMode} />;
   } else if (selectedKey === 'translate') {
     content = <TranslateSettings />;
+  } else if (selectedKey === 'cache') {
+    content = <CacheSettings />;
   } else if (selectedKey === 'shortcut') {
     content = <ShortcutSettings />;
   } else if (selectedKey === 'about') {

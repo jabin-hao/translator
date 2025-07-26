@@ -165,7 +165,7 @@ const LanguageSettings: React.FC = () => {
               placeholder={t('选择语言')}
               allowClear
             />
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleAddFav} disabled={!addFav || favoriteLangs.length >= 3}>{t('添加')}</Button>
+            <Button icon={<PlusOutlined />} onClick={handleAddFav} disabled={!addFav || favoriteLangs.length >= 3}>{t('添加')}</Button>
           </Space>
           <div style={{ marginTop: 8 }}>
             {favoriteLangs.map(lang => (
@@ -196,7 +196,7 @@ const LanguageSettings: React.FC = () => {
               placeholder={t('选择语言')}
               allowClear
             />
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleAddNever} disabled={!addNever}>{t('添加')}</Button>
+            <Button icon={<PlusOutlined />} onClick={handleAddNever} disabled={!addNever}>{t('添加')}</Button>
           </Space>
           <div style={{ marginTop: 8 }}>
             {neverLangs.map(lang => (
@@ -227,7 +227,7 @@ const LanguageSettings: React.FC = () => {
               placeholder={t('选择语言')}
               allowClear
             />
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleAddAlways} disabled={!addAlways}>{t('添加')}</Button>
+            <Button icon={<PlusOutlined />} onClick={handleAddAlways} disabled={!addAlways}>{t('添加')}</Button>
           </Space>
           <div style={{ marginTop: 8 }}>
             {alwaysLangs.map(lang => (

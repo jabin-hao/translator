@@ -16,7 +16,6 @@ import {
   CloseOutlined 
 } from '@ant-design/icons';
 import { getBrowserLang, LANGUAGES } from '../../lib/languages';
-import { sendToBackground } from '@plasmohq/messaging';
 import { TRANSLATE_ENGINES } from '../../lib/engines';
 import { useTranslation } from 'react-i18next';
 
@@ -37,20 +36,6 @@ interface InputTranslatorProps {
   engine: string;
   defaultTargetLang: string;
   callTranslateAPI: (text: string, from: string, to: string, engine: string) => Promise<{ result: string, engine: string }>;
-}
-
-// 调用后台翻译API（Plasmo消息）
-async function callTranslateAPI(text: string, from: string, to: string, engine = 'google'): Promise<{ result: string, engine: string }> {
-  try {
-    const res = await sendToBackground({
-      name: 'translate',
-      body: { text, from, to, engine }
-    });
-    if (res?.result) return { result: res.result, engine: res.engine || engine };
-    throw new Error(res?.error || '翻译失败');
-  } catch (e) {
-    throw typeof e === 'string' ? e : (e?.message || '翻译失败');
-  }
 }
 
 const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage, engine: defaultEngine, defaultTargetLang, callTranslateAPI }) => {
