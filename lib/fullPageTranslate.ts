@@ -10,31 +10,6 @@ function isVisible(node: Node): boolean {
   return true;
 }
 
-let progressDiv: HTMLDivElement | null = null;
-function showProgress(current: number, total: number) {
-  if (!progressDiv) {
-    progressDiv = document.createElement('div');
-    progressDiv.style.position = 'fixed';
-    progressDiv.style.top = '16px';
-    progressDiv.style.right = '16px';
-    progressDiv.style.zIndex = '999999';
-    progressDiv.style.background = 'rgba(0,0,0,0.7)';
-    progressDiv.style.color = '#fff';
-    progressDiv.style.padding = '8px 16px';
-    progressDiv.style.borderRadius = '8px';
-    progressDiv.style.fontSize = '15px';
-    progressDiv.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
-    document.body.appendChild(progressDiv);
-  }
-  progressDiv.textContent = `网页翻译中... ${current}/${total} (${Math.round((current/total)*100)}%)`;
-}
-function hideProgress() {
-  if (progressDiv) {
-    progressDiv.remove();
-    progressDiv = null;
-  }
-}
-
 import { sendToBackground } from '@plasmohq/messaging';
 async function batchTranslateTexts(texts: string[], from: string, to: string, engine: string): Promise<string[]> {
   const resp = await sendToBackground({
@@ -107,7 +82,7 @@ async function translateSubtree(root: HTMLElement | ShadowRoot, targetLang: stri
       }
       if (progress) {
         progress.done++;
-        showProgress(progress.done, progress.total);
+        // showProgress(progress.done, progress.total); // Removed
       }
     }
   }
@@ -175,13 +150,13 @@ function getPiecesToTranslateWithBlock(root: HTMLElement): { nodes: Text[], bloc
   return pieces;
 }
 
-function collectAllTextNodes(root: HTMLElement): Text[] {
+function collectAllTextNodes(root: HTMLElement, translatedSet: Set<Text>): Text[] {
   const nodes: Text[] = [];
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
   let node: Text | null = walker.nextNode() as Text;
   while (node) {
     const parent = node.parentElement;
-    if (parent && isVisible(parent) && node.nodeValue && node.nodeValue.trim()) {
+    if (parent && isVisible(parent) && node.nodeValue && node.nodeValue.trim() && !translatedSet.has(node)) {
       nodes.push(node);
     }
     node = walker.nextNode() as Text;
@@ -192,38 +167,10 @@ function collectAllTextNodes(root: HTMLElement): Text[] {
 export async function lazyFullPageTranslate(targetLang: string, mode: 'translated' | 'compare', engine: string) {
   const callTranslateAPI = (window as any).callTranslateAPI;
   if (typeof callTranslateAPI !== 'function') throw new Error('callTranslateAPI not found on window');
-  let nodes = collectAllTextNodes(document.body);
   let translatedSet = new Set<Text>();
-  let done = 0;
-  let total = nodes.length;
-  let progressDiv: HTMLDivElement | null = null;
-  function showProgress(current: number, total: number) {
-    if (!progressDiv) {
-      progressDiv = document.createElement('div');
-      progressDiv.style.position = 'fixed';
-      progressDiv.style.top = '16px';
-      progressDiv.style.right = '16px';
-      progressDiv.style.zIndex = '999999';
-      progressDiv.style.background = 'rgba(0,0,0,0.7)';
-      progressDiv.style.color = '#fff';
-      progressDiv.style.padding = '8px 16px';
-      progressDiv.style.borderRadius = '8px';
-      progressDiv.style.fontSize = '15px';
-      progressDiv.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
-      document.body.appendChild(progressDiv);
-    }
-    progressDiv.textContent = `网页翻译中... ${current}/${total} (${Math.round((current/total)*100)}%)`;
-  }
-  function hideProgress() {
-    if (progressDiv) {
-      progressDiv.remove();
-      progressDiv = null;
-    }
-  }
   async function translateVisible() {
-    let changed = false;
+    const nodes = collectAllTextNodes(document.body, translatedSet);
     for (const node of nodes) {
-      if (translatedSet.has(node)) continue;
       if (isInViewport(node)) {
         try {
           const { result } = await callTranslateAPI(node.nodeValue, 'auto', targetLang, engine);
@@ -239,13 +186,8 @@ export async function lazyFullPageTranslate(targetLang: string, mode: 'translate
           }
         } catch {}
         translatedSet.add(node);
-        done++;
-        showProgress(done, total);
-        changed = true;
       }
     }
-    if (done >= total) hideProgress();
-    else if (changed) showProgress(done, total);
   }
   // 初始翻译
   await translateVisible();
@@ -253,20 +195,8 @@ export async function lazyFullPageTranslate(targetLang: string, mode: 'translate
   window.addEventListener('scroll', translateVisible, { passive: true });
   window.addEventListener('resize', translateVisible);
   // 动态内容监听
-  let observer: MutationObserver | null = new MutationObserver(async (mutations) => {
-    let newNodes: Text[] = [];
-    for (const mutation of mutations) {
-      for (const node of Array.from(mutation.addedNodes)) {
-        if (node.nodeType === 1) {
-          newNodes.push(...collectAllTextNodes(node as HTMLElement));
-        }
-      }
-    }
-    if (newNodes.length > 0) {
-      nodes = nodes.concat(newNodes);
-      total = nodes.length;
-      await translateVisible();
-    }
+  let observer: MutationObserver | null = new MutationObserver(async () => {
+    await translateVisible();
   });
   observer.observe(document.body, { childList: true, subtree: true });
 }
@@ -281,9 +211,9 @@ export async function fullPageTranslateV2(targetLang: string, mode: 'translated'
   let total = 0;
   let n = walker.nextNode();
   while (n) { total++; n = walker.nextNode(); }
-  showProgress(0, total);
+  // showProgress(0, total); // Removed
   await translateSubtree(document.body, targetLang, mode, engine, callTranslateAPI, { done: 0, total });
-  hideProgress();
+  // hideProgress(); // Removed
   // 动态内容监听
   if (observer) observer.disconnect();
   observer = new MutationObserver(async (mutations) => {
