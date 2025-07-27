@@ -103,37 +103,7 @@ function applyThemeToShadowRoot(themeMode: string, shadowRoot: ShadowRoot) {
       box-shadow: var(--shadow) !important;
     }
 
-    /* Message组件样式 */
-    .ant-message {
-      z-index: 2147483647 !important;
-    }
-
-    .ant-message-notice {
-      background: var(--card-bg) !important;
-      border: 1px solid var(--card-border) !important;
-      color: var(--text-primary) !important;
-      box-shadow: var(--shadow) !important;
-    }
-
-    .ant-message-notice-content {
-      color: var(--text-primary) !important;
-    }
-
-    .ant-message-success .anticon {
-      color: #52c41a !important;
-    }
-
-    .ant-message-error .anticon {
-      color: #ff4d4f !important;
-    }
-
-    .ant-message-warning .anticon {
-      color: #faad14 !important;
-    }
-
-    .ant-message-info .anticon {
-      color: #1890ff !important;
-    }
+    /* Message组件样式优化 */
   `;
   
   // 移除旧的样式元素（如果存在）
@@ -431,7 +401,7 @@ const ContentScript = () => {
   // 新增：控制翻译时机
   const [shouldTranslate, setShouldTranslate] = useState(false);
   // 新增：控制自动翻译
-  const [autoTranslate, setAutoTranslate] = useState(true); // 只在这里声明
+  const [autoTranslate, setAutoTranslate] = useState(true);
 
   // 新增：用 ref 保证 handleTranslation 始终用到最新的 textTargetLang
   const textTargetLangRef = useRef(textTargetLang);
@@ -574,6 +544,26 @@ const ContentScript = () => {
       if (area === 'local') {
         if (changes['textTargetLang']) setTextTargetLang(changes['textTargetLang'].newValue);
         if (changes['favoriteLangs']) setFavoriteLangs(changes['favoriteLangs'].newValue || []);
+      }
+    };
+    chrome.storage.onChanged.addListener(handler);
+    return () => chrome.storage.onChanged.removeListener(handler);
+  }, []);
+
+  // 新增：控制自动翻译
+  useEffect(() => {
+    storage.get('translate_settings').then((data) => {
+      if (data && typeof data === 'object') {
+        setAutoTranslate((data as any)?.autoTranslate ?? true);
+      }
+    });
+    // 监听 storage 变化
+    const handler = (changes, area) => {
+      if (area === 'local' && changes['translate_settings']) {
+        const data = changes['translate_settings'].newValue;
+        if (data && typeof data === 'object') {
+          setAutoTranslate(data.autoTranslate ?? true);
+        }
       }
     };
     chrome.storage.onChanged.addListener(handler);
@@ -857,7 +847,7 @@ const ContentScript = () => {
             top: 20,
             duration: 2.5,
             maxCount: 3,
-            getContainer: () => (shadowRoot?.host as HTMLElement) || document.body,
+            getContainer: () => shadowRoot || document.body,
           }}
         >
           <AppContent 
