@@ -48,6 +48,11 @@ async function translateSubtree(root: HTMLElement | ShadowRoot, targetLang: stri
       node = walker.nextNode() as Text;
       continue;
     }
+    // 新增：如果父节点已是 compare span，跳过
+    if (node.parentElement && node.parentElement.getAttribute && node.parentElement.getAttribute('data-compare-translated') === '1') {
+      node = walker.nextNode() as Text;
+      continue;
+    }
     if (node.parentElement && ['option'].includes(node.parentElement.tagName.toLowerCase())) {
       node = walker.nextNode() as Text;
       continue;
@@ -76,6 +81,7 @@ async function translateSubtree(root: HTMLElement | ShadowRoot, targetLang: stri
         if (node.parentNode) {
           const span = document.createElement('span');
           span.style.display = 'inline-block';
+          span.setAttribute('data-compare-translated', '1'); // 标记已对照翻译
           span.innerHTML = `<span style=\"color:#888;\">${node.nodeValue}</span><br/><span style=\"color:#222;\">${translatedArr[j]}</span>`;
           node.parentNode.replaceChild(span, node);
         }
@@ -150,18 +156,67 @@ function getPiecesToTranslateWithBlock(root: HTMLElement): { nodes: Text[], bloc
   return pieces;
 }
 
-function collectAllTextNodes(root: HTMLElement, translatedSet: Set<Text>): Text[] {
+const translatedTextNodes = new WeakSet<Text>();
+
+function hasCompareAncestor(node: Node): boolean {
+  let p = node.parentElement;
+  while (p) {
+    if (p.getAttribute && p.getAttribute('data-compare-translated') === '1') return true;
+    p = p.parentElement;
+  }
+  return false;
+}
+
+function collectAllTextNodes(root: HTMLElement, translatedSet: Set<Text>, mode?: 'translated' | 'compare'): Text[] {
   const nodes: Text[] = [];
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+  const walker = document.createTreeWalker(
+    root,
+    NodeFilter.SHOW_TEXT,
+    mode === 'compare'
+      ? {
+          acceptNode: (node) => {
+            // 跳过 compare span 及其子树（祖先链上有compare span）
+            if (hasCompareAncestor(node)) {
+              return NodeFilter.FILTER_REJECT;
+            }
+            return NodeFilter.FILTER_ACCEPT;
+          }
+        }
+      : null
+  );
   let node: Text | null = walker.nextNode() as Text;
   while (node) {
     const parent = node.parentElement;
-    if (parent && isVisible(parent) && node.nodeValue && node.nodeValue.trim() && !translatedSet.has(node)) {
-      nodes.push(node);
+    if (parent && isVisible(parent) && node.nodeValue && node.nodeValue.trim()) {
+      if (mode === 'compare') {
+        nodes.push(node);
+      } else {
+        if (!translatedSet.has(node)) {
+          nodes.push(node);
+        }
+      }
     }
     node = walker.nextNode() as Text;
   }
   return nodes;
+}
+
+let compareIdCounter = 1;
+
+function hasSiblingCompareSpan(node: Text): boolean {
+  if (!node.parentNode) return false;
+  const siblings = Array.from(node.parentNode.childNodes);
+  for (const sib of siblings) {
+    if (
+      sib.nodeType === 1 &&
+      (sib as HTMLElement).getAttribute &&
+      (sib as HTMLElement).getAttribute('data-compare-translated') === '1' &&
+      (sib as HTMLElement).getAttribute('data-compare-original') === node.nodeValue
+    ) {
+      return true;
+    }
+  }
+  return false;
 }
 
 export async function lazyFullPageTranslate(targetLang: string, mode: 'translated' | 'compare', engine: string) {
@@ -169,23 +224,39 @@ export async function lazyFullPageTranslate(targetLang: string, mode: 'translate
   if (typeof callTranslateAPI !== 'function') throw new Error('callTranslateAPI not found on window');
   let translatedSet = new Set<Text>();
   async function translateVisible() {
-    const nodes = collectAllTextNodes(document.body, translatedSet);
-    for (const node of nodes) {
+    // 每次只收集一次未被 compare span 包裹的原始文本节点
+    const nodes = collectAllTextNodes(document.body, translatedSet, mode);
+    // 复制一份，避免遍历过程中DOM变化影响本轮节点
+    const nodesToProcess = nodes.slice();
+    for (const node of nodesToProcess) {
       if (isInViewport(node)) {
+        // compare模式下，祖先链上有compare span直接跳过
+        if (mode === 'compare' && hasCompareAncestor(node)) continue;
+        if (mode === 'compare' && hasSiblingCompareSpan(node)) continue;
         try {
           const { result } = await callTranslateAPI(node.nodeValue, 'auto', targetLang, engine);
           if (mode === 'translated') {
             if (node.parentNode) node.nodeValue = result;
+            translatedSet.add(node);
           } else if (mode === 'compare') {
             if (node.parentNode) {
+              // 动态获取原文颜色
+              let origColor = '';
+              try {
+                const computed = window.getComputedStyle(node.parentElement);
+                origColor = computed && computed.color ? computed.color : '';
+              } catch {}
               const span = document.createElement('span');
               span.style.display = 'inline-block';
-              span.innerHTML = `<span style=\"color:#888;\">${node.nodeValue}</span><br/><span style=\"color:#222;\">${result}</span>`;
+              span.setAttribute('data-compare-translated', '1'); // 标记已对照翻译
+              span.setAttribute('data-compare-id', String(compareIdCounter++));
+              span.setAttribute('data-compare-original', node.nodeValue || '');
+              // 译文颜色跟随原文
+              span.innerHTML = `<span style=\"color:#888;\">${node.nodeValue}</span><br/><span style=\"color:${origColor || '#222'};\">${result}</span>`;
               node.parentNode.replaceChild(span, node);
             }
           }
         } catch {}
-        translatedSet.add(node);
       }
     }
   }
