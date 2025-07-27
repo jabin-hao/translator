@@ -67,6 +67,8 @@ export async function translate(
     // 如果启用缓存，先尝试从缓存获取
     if (shouldUseCache) {
       console.log('检查缓存...');
+      // 确保 IndexedDB 已初始化
+      await cacheManager.initDB();
       const cachedTranslation = await cacheManager.get(text, from, to, engine);
       if (cachedTranslation) {
         console.log('从缓存获取翻译结果:', cachedTranslation);

@@ -1,33 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Select, Switch, Divider, message } from 'antd';
 import { Storage } from '@plasmohq/storage';
-import { TRANSLATE_ENGINES } from '../../lib/engines';
+import { TRANSLATE_ENGINES, TTS_ENGINES } from '../../lib/engines';
 import { useTranslation } from 'react-i18next';
 const { Option } = Select;
 
 const LOCAL_KEY = 'translate_settings';
 const SPEECH_KEY = 'speech_settings';
 const storage = new Storage();
-
-const defaultSettings = {
-  engine: 'google',
-  autoRead: false,
-  autoTranslate: true,
-};
-
-// 朗读引擎配置
-const SPEECH_ENGINES = [
-  { value: 'google', label: 'Google TTS', description: 'Google 文本转语音服务' },
-  { value: 'bing', label: 'Bing TTS', description: 'Microsoft Bing 语音服务' },
-  { value: 'local', label: '本地 TTS', description: '浏览器内置语音合成' },
-];
-
-const defaultSpeechSettings = {
-  engine: 'google',
-  speed: 1,
-  pitch: 1,
-  volume: 1,
-};
 
 const TranslateSettings: React.FC = () => {
   const { t } = useTranslation();
@@ -36,7 +16,7 @@ const TranslateSettings: React.FC = () => {
   const [autoTranslate, setAutoTranslate] = useState(true);
   
   // 朗读引擎设置
-  const [speechEngine, setSpeechEngine] = useState('google');
+  const [speechEngine, setSpeechEngine] = useState('edge');
   const [speechSpeed, setSpeechSpeed] = useState(1);
   const [speechPitch, setSpeechPitch] = useState(1);
   const [speechVolume, setSpeechVolume] = useState(1);
@@ -54,7 +34,7 @@ const TranslateSettings: React.FC = () => {
     // 读取朗读设置
     storage.get(SPEECH_KEY).then((data) => {
       if (data && typeof data === 'object') {
-        setSpeechEngine((data as any)?.engine || 'google');
+        setSpeechEngine((data as any)?.engine || 'edge');
         setSpeechSpeed((data as any)?.speed ?? 1);
         setSpeechPitch((data as any)?.pitch ?? 1);
         setSpeechVolume((data as any)?.volume ?? 1);
@@ -142,7 +122,7 @@ const TranslateSettings: React.FC = () => {
         <Divider />
         
         {/* 朗读引擎设置 */}
-        {/* <div style={{ marginBottom: 24 }}>
+        <div style={{ marginBottom: 24 }}>
           <b>{t('朗读引擎')}：</b>
           <Select
             value={speechEngine}
@@ -150,19 +130,20 @@ const TranslateSettings: React.FC = () => {
             style={{ width: 200, marginLeft: 16 }}
             size="middle"
           >
-            {SPEECH_ENGINES.map(e => (
-              <Option key={e.value} value={e.value}>
+            {TTS_ENGINES.map(e => (
+              <Option key={e.value} value={e.value} disabled={e.disabled}>
+                {e.icon && <img src={e.icon} alt={e.label} style={{ width: 16, height: 16, verticalAlign: 'middle', marginRight: 6 }} />}
                 {e.label}
               </Option>
             ))}
           </Select>
           <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
-            {t('选择用于朗读的默认引擎')}
+            {t('选择用于朗读的默认引擎，Edge TTS 音质最佳，Google TTS 稳定，浏览器 TTS 无需网络')}
           </div>
         </div>
         
         {/* 朗读参数设置 */}
-        {/*<div style={{ marginBottom: 24, marginLeft: 24 }}>
+        <div style={{ marginBottom: 24, marginLeft: 24 }}>
           <div style={{ marginBottom: 12 }}>
             <span style={{ fontSize: 13 }}>{t('朗读速度')}：</span>
             <Select
@@ -208,8 +189,8 @@ const TranslateSettings: React.FC = () => {
               <Option value={1}>100%</Option>
             </Select>
           </div>
-        </div> */}
-        {/* <Divider /> */}
+        </div>
+        <Divider />
         
         {/* 自动翻译设置 */}
         <div style={{ marginBottom: 24 }}>

@@ -10,8 +10,9 @@ export interface SpeechOptions {
 export interface SpeechResult {
   success: boolean;
   audioUrl?: string;
+  audioData?: string; // base64 编码的音频数据
+  audioType?: string; // 音频 MIME 类型
   error?: string;
 }
 
-// 朗读服务类型
-export type SpeechService = 'google' | 'bing' | 'azure' | 'amazon' | 'local'; 
+export type SpeechService = 'edge' | 'google' | 'browser'; 

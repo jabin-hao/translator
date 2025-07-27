@@ -15,8 +15,7 @@ import { StyleProvider } from '@ant-design/cssinjs';
 import { message, ConfigProvider, theme, App } from 'antd';
 import { Storage } from '@plasmohq/storage';
 import { sendToBackground } from '@plasmohq/messaging';
-import { TRANSLATE_ENGINES } from '../lib/engines';
-import { getEngineLangCode, getBrowserLang, mapUiLangToI18nKey } from '../lib/languages';
+import { getEngineLangCode, getBrowserLang, mapUiLangToI18nKey, getTTSLang } from '../lib/languages';
 import './index.css';
 import TranslatorIcon from './components/TranslatorIcon';
 import TranslatorResult from './components/TranslatorResult';
@@ -232,6 +231,109 @@ async function callTranslateAPI(
   }
 }
 
+// TTS 朗读方法
+async function callTTSAPI(
+  text: string,
+  lang: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    console.log('callTTSAPI 开始:', { text, lang });
+    
+    // 使用通用消息处理器
+    const response = await sendToBackground({
+      name: "handle" as any,
+      body: {
+        service: 'speech',
+        action: 'speak',
+        options: {
+          text,
+          lang: getTTSLang(lang),
+          speed: 1,
+          pitch: 1,
+          volume: 1
+        }
+      },
+    });
+
+    console.log('callTTSAPI 收到响应:', response);
+
+    if (response.success && response.data) {
+      // 如果有音频数据，播放音频
+      if (response.data.audioData) {
+        try {
+          console.log('开始处理音频数据:', {
+            audioDataLength: response.data.audioData.length,
+            audioType: response.data.audioType
+          });
+          
+          // 将 base64 数据转换为 blob
+          const audioBlob = new Blob(
+            [Uint8Array.from(atob(response.data.audioData), c => c.charCodeAt(0))],
+            { type: response.data.audioType || 'audio/mpeg' }
+          );
+          
+          console.log('音频 blob 创建成功:', {
+            size: audioBlob.size,
+            type: audioBlob.type
+          });
+          
+          const audioUrl = URL.createObjectURL(audioBlob);
+          const audio = new Audio(audioUrl);
+          
+          // 添加音频加载事件监听
+          audio.onloadstart = () => console.log('音频开始加载');
+          audio.oncanplay = () => console.log('音频可以播放');
+          audio.onerror = (e) => console.error('音频加载错误:', e);
+          
+          // 播放音频
+          await audio.play();
+          
+          // 播放完成后清理 URL
+          audio.onended = () => {
+            URL.revokeObjectURL(audioUrl);
+            console.log('音频播放完成，已清理 URL');
+          };
+          
+          console.log('音频播放成功');
+          return { success: true };
+        } catch (audioError) {
+          console.error('音频播放失败:', audioError);
+          return { success: false, error: `音频播放失败: ${audioError.message}` };
+        }
+      } else {
+        console.log('没有音频数据，跳过播放');
+        return { success: true };
+      }
+    } else {
+      const error = response.error || '朗读失败';
+      console.error('callTTSAPI 朗读失败:', error);
+      return { success: false, error };
+    }
+  } catch (error) {
+    console.error('callTTSAPI 异常:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// 停止朗读方法
+async function stopTTSAPI(): Promise<void> {
+  try {
+    console.log('stopTTSAPI 开始');
+    
+    await sendToBackground({
+      name: "handle" as any,
+      body: {
+        service: 'speech',
+        action: 'stop'
+      },
+    });
+    
+    console.log('stopTTSAPI 成功');
+  } catch (error) {
+    console.error('stopTTSAPI 异常:', error);
+  }
+}
+
 // 在App组件内部使用message的组件
 const AppContent = ({ 
   icon, 
@@ -245,6 +347,8 @@ const AppContent = ({
   textTargetLang,
   favoriteLangs,
   callTranslateAPI,
+  callTTSAPI,
+  stopTTSAPI,
   onCloseResult, // 新增
 }: {
   icon: { x: number; y: number; text: string } | null;
@@ -258,26 +362,27 @@ const AppContent = ({
   textTargetLang: string;
   favoriteLangs: string[];
   callTranslateAPI: (text: string, from: string, to: string, engine: string) => Promise<{ result: string, engine: string }>;
+  callTTSAPI: (text: string, lang: string) => Promise<{ success: boolean; error?: string }>;
+  stopTTSAPI: () => Promise<void>;
   onCloseResult: () => void; // 新增
 }) => {
+  // 在 App 组件内部使用 App.useApp() 获取 message 实例
+  const { message } = App.useApp();
+  
   // 创建message适配器函数
   const showMessage = (type: 'success' | 'error' | 'warning' | 'info', content: string) => {
-    
-    // 使用全局message对象，但确保在ConfigProvider内部
-    const messageInstance = message;
-    
     switch (type) {
       case 'success':
-        messageInstance.success(content);
+        message.success(content);
         break;
       case 'error':
-        messageInstance.error(content);
+        message.error(content);
         break;
       case 'warning':
-        messageInstance.warning(content);
+        message.warning(content);
         break;
       case 'info':
-        messageInstance.info(content);
+        message.info(content);
         break;
     }
   };
@@ -308,7 +413,9 @@ const AppContent = ({
           targetLang={textTargetLang}
           shouldTranslate={false} // 使用状态控制翻译时机
           onTranslationComplete={() => {}} // 翻译完成后重置状态
-          callTranslateAPI={callTranslateAPI} 
+          callTranslateAPI={callTranslateAPI}
+          callTTSAPI={callTTSAPI}
+          stopTTSAPI={stopTTSAPI}
         />
       )}
       {showInputTranslator && (
@@ -755,64 +862,6 @@ const ContentScript = () => {
     };
   }, [shortcutEnabled, customShortcut, textTargetLang, favoriteLangs]);
 
-  // 朗读功能
-  let currentUtterance: SpeechSynthesisUtterance | null = null;
-
-  // 朗读文本
-  async function speakText(text: string, lang: string, speed = 1, pitch = 1, volume = 1): Promise<{ success: boolean; error?: string }> {
-    try {
-      // 停止当前朗读
-      if (currentUtterance) {
-        window.speechSynthesis.cancel();
-        currentUtterance = null;
-      }
-      
-      if (!('speechSynthesis' in window)) {
-        return {
-          success: false,
-          error: 'Web Speech API not supported'
-        };
-      }
-      
-      return new Promise((resolve) => {
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = lang;
-        utterance.rate = speed;
-        utterance.pitch = pitch;
-        utterance.volume = volume;
-        
-        utterance.onend = () => {
-          currentUtterance = null;
-          resolve({ success: true });
-        };
-        
-        utterance.onerror = (event) => {
-          currentUtterance = null;
-          resolve({
-            success: false,
-            error: `Speech synthesis error: ${event.error}`
-          });
-        };
-        
-        currentUtterance = utterance;
-        window.speechSynthesis.speak(utterance);
-      });
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error)
-      };
-    }
-  }
-
-  // 停止朗读
-  function stopSpeaking(): void {
-    if (currentUtterance) {
-      window.speechSynthesis.cancel();
-      currentUtterance = null;
-    }
-  }
-
   return (
     <StyleProvider hashPriority="high" container={shadowRoot}>
       <ConfigProvider
@@ -840,8 +889,10 @@ const ContentScript = () => {
             textTargetLang={textTargetLang}
             favoriteLangs={favoriteLangs}
             callTranslateAPI={callTranslateAPI}
+            callTTSAPI={callTTSAPI}
+            stopTTSAPI={stopTTSAPI}
             onCloseResult={() => setResult(null)}
-        />
+          />
         </App>
       </ConfigProvider>
     </StyleProvider>

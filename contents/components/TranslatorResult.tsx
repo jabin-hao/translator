@@ -3,9 +3,8 @@ import { Card, Button, Space, Divider } from 'antd';
 import { CopyOutlined, SoundOutlined } from '@ant-design/icons';
 import '../index.css';
 import { Storage } from '@plasmohq/storage';
-import { getEngineLangCode, getLangAbbr, getSpeechLang, LANGUAGES, getBrowserLang } from '../../lib/languages';
+import { getEngineLangCode, getLangAbbr, getTTSLang, LANGUAGES, getBrowserLang } from '../../lib/languages';
 import { sendToBackground } from '@plasmohq/messaging';
-import { bingTTSFetch, getDefaultVoice, ttsSpeakWithFallback } from '../../lib/tts';
 
 declare global {
   interface Window {
@@ -33,6 +32,8 @@ interface TranslatorResultProps {
     to: string,
     engine: string
   ) => Promise<{ result: string; engine: string }>;
+  callTTSAPI: (text: string, lang: string) => Promise<{ success: boolean; error?: string }>;
+  stopTTSAPI: () => Promise<void>;
 }
 
 const storage = new Storage();
@@ -83,6 +84,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
   const hasTranslatedRef = useRef(false);
   const isInitializedRef = useRef(false); // 添加初始化标志
   const translationTimeoutRef = useRef<NodeJS.Timeout | null>(null); // 添加防抖定时器
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null); // 当前播放的音频
 
   // 监听 favoriteLangs 变化
   useEffect(() => {
@@ -121,6 +123,13 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
 
   // 翻译逻辑
   useEffect(() => {
+    console.log('翻译逻辑 useEffect 触发:', { 
+      targetLang, 
+      hasCallTranslateAPI: !!props.callTranslateAPI,
+      hasTranslated: hasTranslatedRef.current,
+      translatedText: translatedText ? '有内容' : '无内容'
+    });
+    
     if (!targetLang || !props.callTranslateAPI) {
       console.log('TranslatorResult 翻译条件不满足:', { targetLang, hasCallTranslateAPI: !!props.callTranslateAPI });
       return;
@@ -135,12 +144,6 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
       hasTranslatedRef.current = false;
       setTranslatedText('');
       originalTextRef.current = srcText;
-    }
-    
-    // 如果已经翻译过相同的文本，不再重复翻译
-    if (hasTranslatedRef.current && translatedText && translatedText !== '翻译失败') {
-      console.log('已翻译过相同文本，跳过重复翻译');
-      return;
     }
     
     // 清除之前的定时器
@@ -162,22 +165,22 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
       
       // 直接传递 targetLang，让 callTranslateAPI 处理语言映射
       props.callTranslateAPI(srcText, 'auto', targetLang, props.engine)
-        .then(res => {
-          console.log('翻译成功:', res);
-          setTranslatedText(res.result ?? '');
-          setUsedEngine(res.engine || props.engine);
-          props.onTranslationComplete?.(); // 翻译成功时调用回调
-        })
-        .catch(err => {
-          console.error('翻译失败:', err);
-          setTranslatedText('翻译失败');
-          setUsedEngine('');
-          props.onTranslationComplete?.(); // 翻译失败时也调用回调
-        })
-        .finally(() => {
-          console.log('翻译完成，设置loading为false');
-          setLoading(false);
-        });
+      .then(res => {
+        console.log('翻译成功:', res);
+        setTranslatedText(res.result ?? '');
+        setUsedEngine(res.engine || props.engine);
+        props.onTranslationComplete?.(); // 翻译成功时调用回调
+      })
+      .catch(err => {
+        console.error('翻译失败:', err);
+        setTranslatedText('翻译失败');
+        setUsedEngine('');
+        props.onTranslationComplete?.(); // 翻译失败时也调用回调
+      })
+      .finally(() => {
+        console.log('翻译完成，设置loading为false');
+        setLoading(false);
+      });
     }, 100);
     
     // 清理定时器
@@ -188,13 +191,35 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
     };
   }, [props.originalText, props.text, targetLang, props.engine]); // 恢复所有依赖
 
-  // 自动朗读
+  // 自动朗读 - 使用 Edge TTS
   useEffect(() => {
     if (props.autoRead && translatedText && translatedText !== '翻译失败') {
-      // 直接使用 Web Speech API
+      handleAutoRead();
+    }
+  }, [props.autoRead, translatedText, targetLang]);
+
+  // 自动朗读处理函数
+  const handleAutoRead = async () => {
+    if (!translatedText || translatedText === '翻译失败') return;
+
+    setIsSpeaking(true);
+    
+    try {
+      // 使用 Edge TTS 服务
+      const edgeResult = await props.callTTSAPI(translatedText, targetLang);
+      
+      if (edgeResult.success) {
+        // Edge TTS 成功，等待音频播放完成
+        setTimeout(() => {
+          setIsSpeaking(false);
+        }, 3000); // 简单估算播放时间
+        return;
+      }
+      
+      // Edge TTS 失败，回退到 Web Speech API
       if ('speechSynthesis' in window) {
         const utterance = new SpeechSynthesisUtterance(translatedText);
-        utterance.lang = getSpeechLang(targetLang);
+        utterance.lang = getTTSLang(targetLang);
         utterance.rate = 1;
         utterance.pitch = 1;
         utterance.volume = 1;
@@ -212,9 +237,14 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
         };
         
         window.speechSynthesis.speak(utterance);
+      } else {
+        setIsSpeaking(false);
       }
+    } catch (error) {
+      console.error('自动朗读失败:', error);
+      setIsSpeaking(false);
     }
-  }, [props.autoRead, translatedText, targetLang]);
+  };
 
   // 组件卸载时停止朗读
   useEffect(() => {
@@ -222,6 +252,10 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
       // 停止朗读
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
+      }
+      if (currentAudioRef.current) {
+        currentAudioRef.current.pause();
+        currentAudioRef.current = null;
       }
       setIsSpeaking(false);
     };
@@ -246,13 +280,19 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
     e.preventDefault();
     if (lang === targetLang) return;
     
+    console.log('点击语言按钮，切换语言:', { from: targetLang, to: lang });
+    
     // 重置翻译状态，触发重新翻译
     hasTranslatedRef.current = false;
     setTranslatedText('');
+    setLoading(true); // 立即显示加载状态
+    setUsedEngine(''); // 重置引擎状态
+    
+    // 设置新的目标语言
     setTargetLang(lang);
   };
 
-  // 手动朗读/停止
+  // 手动朗读/停止 - 使用 Edge TTS
   const handleSpeak = async (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
@@ -262,20 +302,67 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
     }
 
     if (isSpeaking) {
+      // 停止朗读
+      await props.stopTTSAPI();
       if (window._bingTtsAudio) {
         window._bingTtsAudio.pause();
         window._bingTtsAudio = null;
+      }
+      if (currentAudioRef.current) {
+        currentAudioRef.current.pause();
+        currentAudioRef.current = null;
       }
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
       props.showMessage('info', getText('speakStopped'));
     } else {
+      // 开始朗读
       setIsSpeaking(true);
-      await ttsSpeakWithFallback(translatedText, getSpeechLang(targetLang), (type, msg) => {
-        if (type === 'success') setIsSpeaking(true);
-        if (type === 'info' && msg === '朗读结束') setIsSpeaking(false);
-        props.showMessage(type as any, msg);
-      });
+      props.showMessage('success', getText('speakStarted'));
+      
+      try {
+        // 使用 Edge TTS 服务
+        const edgeResult = await props.callTTSAPI(translatedText, targetLang);
+        
+        if (edgeResult.success) {
+          // Edge TTS 成功
+          setTimeout(() => {
+            setIsSpeaking(false);
+          }, 3000); // 简单估算播放时间
+          return;
+        }
+        
+        // Edge TTS 失败，回退到 Web Speech API
+        if ('speechSynthesis' in window) {
+          const utterance = new SpeechSynthesisUtterance(translatedText);
+          utterance.lang = getTTSLang(targetLang);
+          utterance.rate = 1;
+          utterance.pitch = 1;
+          utterance.volume = 1;
+          
+          utterance.onstart = () => {
+            setIsSpeaking(true);
+          };
+          
+          utterance.onend = () => {
+            setIsSpeaking(false);
+          };
+          
+          utterance.onerror = () => {
+            setIsSpeaking(false);
+            props.showMessage('error', '朗读失败');
+          };
+          
+          window.speechSynthesis.speak(utterance);
+        } else {
+          setIsSpeaking(false);
+          props.showMessage('error', '朗读功能不可用');
+        }
+      } catch (error) {
+        console.error('朗读失败:', error);
+        setIsSpeaking(false);
+        props.showMessage('error', '朗读失败');
+      }
     }
   };
 

@@ -11,7 +11,6 @@ import {
   Divider
 } from 'antd';
 import { 
-  TranslationOutlined, 
   SwapOutlined, 
   CloseOutlined 
 } from '@ant-design/icons';

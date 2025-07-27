@@ -1,7 +1,7 @@
 import type { SpeechOptions, SpeechResult, SpeechService } from '../../lib/speech';
-import { GoogleSpeechService } from './google';
-import { BingSpeechService } from './bing';
 import { LocalSpeechService } from './local';
+import { EdgeSpeechService } from './edge';
+import { GoogleSpeechService } from './google';
 import { Storage } from '@plasmohq/storage';
 
 // 基础朗读服务接口
@@ -14,14 +14,14 @@ interface BaseSpeechService {
 // 朗读管理器
 export class SpeechManager {
   private services: Map<SpeechService, BaseSpeechService> = new Map();
-  private currentService: SpeechService = 'google';
+  private currentService: SpeechService = 'edge'; // 默认使用 Edge TTS
   private currentAudio: HTMLAudioElement | null = null;
   private storage = new Storage();
 
   constructor() {
+    this.services.set('browser', new LocalSpeechService());
+    this.services.set('edge', new EdgeSpeechService());
     this.services.set('google', new GoogleSpeechService());
-    this.services.set('bing', new BingSpeechService());
-    this.services.set('local', new LocalSpeechService());
     
     // 初始化时读取用户设置
     this.loadUserSettings();
@@ -52,6 +52,11 @@ export class SpeechManager {
   // 获取当前服务
   getCurrentService(): SpeechService {
     return this.currentService;
+  }
+
+  // 获取所有可用服务
+  getAvailableServices(): SpeechService[] {
+    return Array.from(this.services.keys());
   }
 
   // 朗读文本
@@ -91,49 +96,63 @@ export class SpeechManager {
         volume: options.volume ?? userSettings.volume,
       };
       
+      // 首先尝试用户选择的服务
+      console.log(`尝试使用 ${this.currentService} TTS 服务`);
       const result = await service.speak(finalOptions);
       
-      // Web Speech API 会自动播放，不需要额外的音频播放逻辑
+      // 如果首选服务失败，尝试其他服务作为fallback
+      if (!result.success && this.currentService !== 'browser') {
+        console.log(`${this.currentService} TTS 失败，尝试其他服务`);
+        
+        // 按优先级尝试其他服务：edge -> google -> browser
+        const fallbackOrder = ['edge', 'google', 'browser'];
+        const currentIndex = fallbackOrder.indexOf(this.currentService);
+        
+        for (let i = 0; i < fallbackOrder.length; i++) {
+          if (i === currentIndex) continue; // 跳过已尝试的服务
+          
+          const fallbackService = fallbackOrder[i];
+          const fallbackInstance = this.services.get(fallbackService as SpeechService);
+          
+          if (fallbackInstance) {
+            console.log(`尝试 fallback 到 ${fallbackService} TTS 服务`);
+            const fallbackResult = await fallbackInstance.speak(finalOptions);
+            
+            if (fallbackResult.success) {
+              console.log(`${fallbackService} TTS fallback 成功`);
+              return fallbackResult;
+            }
+          }
+        }
+      }
+      
+      // 不在这里播放音频，让 content script 处理
       return result;
     } catch (error) {
-      return {
-        success: false,
-        error: error.message
-      };
+      console.error('TTS 服务调用失败:', error);
+      return { success: false, error: error.message };
     }
   }
 
   // 停止朗读
   stop(): void {
+    // 停止所有服务的朗读
+    for (const service of this.services.values()) {
+      service.stop();
+    }
+    
     // 停止当前音频播放
     if (this.currentAudio) {
       this.currentAudio.pause();
       this.currentAudio = null;
     }
-    
-    // 停止当前服务
-    const service = this.services.get(this.currentService);
-    if (service) {
-      service.stop();
-    }
   }
 
-  // 检查服务是否可用
+  // 检查服务可用性
   async checkServiceAvailability(service: SpeechService): Promise<boolean> {
-    const speechService = this.services.get(service);
-    if (!speechService) return false;
-    
-    try {
-      const result = await speechService.speak({
-        text: 'test',
-        lang: 'en'
-      });
-      return result.success;
-    } catch {
-      return false;
-    }
+    return this.services.has(service);
   }
 }
 
-// 创建全局朗读管理器实例
+// 创建全局实例
 export const speechManager = new SpeechManager(); 

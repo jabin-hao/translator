@@ -80,11 +80,10 @@ const handler: PlasmoMessaging.MessageHandler<HandlerRequest, HandlerResponse> =
       case 'speech':
         try {
           console.log('处理朗读请求:', { action, data });
-          // 正确调用 handleSpeechMessage，返回 TTS 音频结果
+          // 直接调用 handleSpeechMessage，它会根据设置自动选择引擎
           const speechResponse = await handleSpeechMessage({
             action: action as 'speak' | 'stop' | 'checkAvailability',
-            options: data.options,
-            service: data.service // manager 会自动用 storage 设置
+            options: data.options
           });
           console.log('朗读响应:', speechResponse);
           res.send(speechResponse);

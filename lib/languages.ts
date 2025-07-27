@@ -1,25 +1,25 @@
 export interface LanguageItem {
   label: string;      // 中文名
   abbr: string;       // 按钮缩写
-  code: string;       // 统一内部 code
+  code: string;       // 统一内部 code（用于翻译）
   google?: string;    // Google API code
   bing?: string;      // Bing API code
   deepl?: string;     // DeepL API code
   yandex?: string;    // Yandex API code
-  speech?: string;    // TTS 语音代码
+  tts?: string;       // TTS 语音代码（全部用简写）
 }
 
 export const LANGUAGES: LanguageItem[] = [
-  { code: 'zh-CN', label: '中文（简体）', abbr: '简', google: 'zh-CN', bing: 'zh-Hans', deepl: 'ZH', yandex: 'zh', speech: 'zh-CN' },
-  { code: 'zh-TW', label: '中文（繁体）', abbr: '繁', google: 'zh-TW', bing: 'zh-Hant', deepl: 'ZH', yandex: 'zh', speech: 'zh-TW' },
-  { code: 'en', label: '英语', abbr: 'EN', google: 'en', bing: 'en', deepl: 'EN', yandex: 'en', speech: 'en-US' },
-  { code: 'ja', label: '日语', abbr: 'JA', google: 'ja', bing: 'ja', deepl: 'JA', yandex: 'ja', speech: 'ja-JP' },
-  { code: 'ko', label: '韩语', abbr: 'KO', google: 'ko', bing: 'ko', deepl: 'KO', yandex: 'ko', speech: 'ko-KR' },
-  { code: 'fr', label: '法语', abbr: 'FR', google: 'fr', bing: 'fr', deepl: 'FR', yandex: 'fr', speech: 'fr-FR' },
-  { code: 'de', label: '德语', abbr: 'DE', google: 'de', bing: 'de', deepl: 'DE', yandex: 'de', speech: 'de-DE' },
-  { code: 'es', label: '西班牙语', abbr: 'ES', google: 'es', bing: 'es', deepl: 'ES', yandex: 'es', speech: 'es-ES' },
-  { code: 'ru', label: '俄语', abbr: 'RU', google: 'ru', bing: 'ru', deepl: 'RU', yandex: 'ru', speech: 'ru-RU' },
-  { code: 'pt', label: '葡萄牙语', abbr: 'PT', google: 'pt', bing: 'pt', deepl: 'PT', yandex: 'pt', speech: 'pt-PT' },
+  { code: 'zh-CN', label: '中文（简体）', abbr: '简', google: 'zh-CN', bing: 'zh-Hans', deepl: 'ZH', yandex: 'zh', tts: 'zh-Hans' },
+  { code: 'zh-TW', label: '中文（繁体）', abbr: '繁', google: 'zh-TW', bing: 'zh-Hant', deepl: 'ZH', yandex: 'zh', tts: 'zh-Hant' },
+  { code: 'en', label: '英语', abbr: 'EN', google: 'en', bing: 'en', deepl: 'EN', yandex: 'en', tts: 'en' },
+  { code: 'ja', label: '日语', abbr: 'JA', google: 'ja', bing: 'ja', deepl: 'JA', yandex: 'ja', tts: 'ja' },
+  { code: 'ko', label: '韩语', abbr: 'KO', google: 'ko', bing: 'ko', deepl: 'KO', yandex: 'ko', tts: 'ko' },
+  { code: 'fr', label: '法语', abbr: 'FR', google: 'fr', bing: 'fr', deepl: 'FR', yandex: 'fr', tts: 'fr' },
+  { code: 'de', label: '德语', abbr: 'DE', google: 'de', bing: 'de', deepl: 'DE', yandex: 'de', tts: 'de' },
+  { code: 'es', label: '西班牙语', abbr: 'ES', google: 'es', bing: 'es', deepl: 'ES', yandex: 'es', tts: 'es' },
+  { code: 'ru', label: '俄语', abbr: 'RU', google: 'ru', bing: 'ru', deepl: 'RU', yandex: 'ru', tts: 'ru' },
+  { code: 'pt', label: '葡萄牙语', abbr: 'PT', google: 'pt', bing: 'pt', deepl: 'PT', yandex: 'pt', tts: 'pt' },
 ];
 
 export const UI_LANGUAGES = LANGUAGES.map(l => ({ code: l.code, label: l.label }));
@@ -74,4 +74,9 @@ export function mapUiLangToI18nKey(lang: string | undefined): string {
   if (lang.startsWith('ru')) return 'ru';
   if (lang.startsWith('pt')) return 'pt';
   return 'zh';
+}
+
+export function getTTSLang(code: string): string {
+  const lang = LANGUAGES.find(l => l.code === code);
+  return lang?.tts || code;
 }

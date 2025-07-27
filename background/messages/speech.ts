@@ -4,7 +4,6 @@ import { speechManager } from '../speech/manager';
 export interface SpeechMessageRequest {
   action: 'speak' | 'stop' | 'checkAvailability';
   options?: SpeechOptions;
-  service?: string;
 }
 
 export interface SpeechMessageResponse {
@@ -26,6 +25,7 @@ export const handleSpeechMessage = async (req: SpeechMessageRequest): Promise<Sp
           };
         }
         
+        // 直接使用speechManager，它会根据设置自动选择引擎
         const result = await speechManager.speak(req.options);
         return {
           success: result.success,
@@ -40,14 +40,9 @@ export const handleSpeechMessage = async (req: SpeechMessageRequest): Promise<Sp
         };
 
       case 'checkAvailability':
-        if (!req.service) {
-          return {
-            success: false,
-            error: '缺少服务名称'
-          };
-        }
-        
-        const available = await speechManager.checkServiceAvailability(req.service as any);
+        // 检查当前设置的服务是否可用
+        const currentService = speechManager.getCurrentService();
+        const available = await speechManager.checkServiceAvailability(currentService);
         return {
           success: true,
           data: { success: available } as SpeechResult
