@@ -30,7 +30,7 @@ export class EdgeSpeechService {
       const ssml = `
         <speak version="1.0" xml:lang="${languageData.locale}">
           <voice xml:lang="${languageData.locale}" xml:gender="${languageData.gender}" name="${languageData.voice}">
-            <prosody rate="${this.convertSpeedToPercentage(speed)}%">
+            <prosody rate="${this.convertSpeedToPercentage(speed)}%" pitch="${pitch}">
               ${text}
             </prosody>
           </voice>

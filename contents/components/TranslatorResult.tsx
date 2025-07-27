@@ -34,6 +34,7 @@ interface TranslatorResultProps {
   ) => Promise<{ result: string; engine: string }>;
   callTTSAPI: (text: string, lang: string) => Promise<{ success: boolean; error?: string }>;
   stopTTSAPI: () => Promise<void>;
+  setShouldTranslate?: (should: boolean) => void; // 新增
 }
 
 const storage = new Storage();
@@ -85,6 +86,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
   const isInitializedRef = useRef(false); // 添加初始化标志
   const translationTimeoutRef = useRef<NodeJS.Timeout | null>(null); // 添加防抖定时器
   const currentAudioRef = useRef<HTMLAudioElement | null>(null); // 当前播放的音频
+  const lastTargetLangRef = useRef<string | undefined>(props.targetLang); // 新增
 
   // 监听 favoriteLangs 变化
   useEffect(() => {
@@ -127,7 +129,8 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
       targetLang, 
       hasCallTranslateAPI: !!props.callTranslateAPI,
       hasTranslated: hasTranslatedRef.current,
-      translatedText: translatedText ? '有内容' : '无内容'
+      translatedText: translatedText ? '有内容' : '无内容',
+      shouldTranslate: props.shouldTranslate
     });
     
     if (!targetLang || !props.callTranslateAPI) {
@@ -135,15 +138,23 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
       return;
     }
     
-    const srcText = props.originalText || props.text;
-    console.log('TranslatorResult 翻译逻辑触发:', { srcText, targetLang, engine: props.engine });
+    // 检查是否应该开始翻译
+    if (props.shouldTranslate === false) {
+      console.log('TranslatorResult shouldTranslate 为 false，跳过自动翻译');
+      return;
+    }
     
-    // 如果文本改变了，重置翻译标志
-    if (srcText !== originalTextRef.current) {
-      console.log('文本已改变，重置翻译状态');
+    const srcText = props.originalText || props.text;
+    // 新增：只要 targetLang 变化也重置
+    if (
+      srcText !== originalTextRef.current ||
+      targetLang !== lastTargetLangRef.current
+    ) {
+      console.log('文本或目标语言已改变，重置翻译状态');
       hasTranslatedRef.current = false;
       setTranslatedText('');
       originalTextRef.current = srcText;
+      lastTargetLangRef.current = targetLang;
     }
     
     // 清除之前的定时器
@@ -189,7 +200,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
         clearTimeout(translationTimeoutRef.current);
       }
     };
-  }, [props.originalText, props.text, targetLang, props.engine]); // 恢复所有依赖
+  }, [props.originalText, props.text, targetLang, props.engine, props.shouldTranslate]); // 添加 shouldTranslate 依赖
 
   // 自动朗读 - 使用 Edge TTS
   useEffect(() => {
@@ -290,6 +301,8 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
     
     // 设置新的目标语言
     setTargetLang(lang);
+    // 新增：切换语言后触发翻译
+    props.setShouldTranslate?.(true);
   };
 
   // 手动朗读/停止 - 使用 Edge TTS

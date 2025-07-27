@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Select, Switch, Divider, message } from 'antd';
+import { Card, Select, Switch, Divider, message, Input, Button } from 'antd';
 import { Storage } from '@plasmohq/storage';
 import { TRANSLATE_ENGINES, TTS_ENGINES } from '../../lib/engines';
 import { useTranslation } from 'react-i18next';
@@ -7,6 +7,7 @@ const { Option } = Select;
 
 const LOCAL_KEY = 'translate_settings';
 const SPEECH_KEY = 'speech_settings';
+const DEEPL_API_KEY = 'deepl_api_key';
 const storage = new Storage();
 
 const TranslateSettings: React.FC = () => {
@@ -14,6 +15,8 @@ const TranslateSettings: React.FC = () => {
   const [engine, setEngine] = useState('google');
   const [autoRead, setAutoRead] = useState(false);
   const [autoTranslate, setAutoTranslate] = useState(true);
+  const [deeplApiKey, setDeeplApiKey] = useState('');
+  const [deeplApiKeyInput, setDeeplApiKeyInput] = useState('');
   
   // 朗读引擎设置
   const [speechEngine, setSpeechEngine] = useState('edge');
@@ -38,6 +41,14 @@ const TranslateSettings: React.FC = () => {
         setSpeechSpeed((data as any)?.speed ?? 1);
         setSpeechPitch((data as any)?.pitch ?? 1);
         setSpeechVolume((data as any)?.volume ?? 1);
+      }
+    });
+
+    // 读取 DeepL API key
+    storage.get(DEEPL_API_KEY).then((key) => {
+      if (key && typeof key === 'string') {
+        setDeeplApiKey(key);
+        setDeeplApiKeyInput(key);
       }
     });
   }, []);
@@ -92,6 +103,20 @@ const TranslateSettings: React.FC = () => {
     message.success(t('朗读音量已保存'));
   };
 
+  const handleDeeplApiKeyInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDeeplApiKeyInput(e.target.value);
+  };
+
+  const handleSaveDeeplApiKey = () => {
+    if (!deeplApiKeyInput.trim()) {
+      message.error('请输入 DeepL API Key');
+      return;
+    }
+    setDeeplApiKey(deeplApiKeyInput.trim());
+    storage.set(DEEPL_API_KEY, deeplApiKeyInput.trim());
+    message.success(t('DeepL API Key 已保存'));
+  };
+
   return (
     <Card
       title={t('翻译设置')}
@@ -119,8 +144,56 @@ const TranslateSettings: React.FC = () => {
             {t('选择用于翻译的默认引擎，支持多引擎兜底')}
           </div>
         </div>
+
+        {/* DeepL API Key 设置 */}
+        {engine === 'deepl' && (
+          <div style={{ marginBottom: 24, marginLeft: 24 }}>
+            <div style={{ marginBottom: 8 }}>
+              <span style={{ fontSize: 13 }}>{t('DeepL API Key')}：</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Input.Password
+                value={deeplApiKeyInput}
+                onChange={handleDeeplApiKeyInputChange}
+                placeholder="请输入 DeepL API Key"
+                style={{ width: 400 }}
+                size="middle"
+              />
+              <Button 
+                type="primary" 
+                onClick={handleSaveDeeplApiKey}
+                size="middle"
+              >
+                保存
+              </Button>
+            </div>
+            <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
+              {t('获取方式：访问 https://www.deepl.com/ 注册账号，在账户设置中找到 API 部分获取免费 API Key')}
+            </div>
+          </div>
+        )}
+        
         <Divider />
         
+        {/* 自动翻译设置 */}
+        <div style={{ marginBottom: 24 }}>
+          <b>{t('自动翻译')}：</b>
+          <Switch checked={autoTranslate} onChange={handleAutoTranslateChange} style={{ marginLeft: 16 }} />
+          <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
+            {t('开启后划词/输入内容将自动翻译，无需手动点击')}
+          </div>
+        </div>
+        <Divider />
+        
+        {/* 自动朗读设置 */}
+        <div style={{ marginBottom: 24 }}>
+          <b>{t('自动朗读翻译结果')}：</b>
+          <Switch checked={autoRead} onChange={handleAutoReadChange} style={{ marginLeft: 16 }} />
+          <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
+            {t('翻译完成后自动朗读结果（如支持）')}
+          </div>
+        </div>
+
         {/* 朗读引擎设置 */}
         <div style={{ marginBottom: 24 }}>
           <b>{t('朗读引擎')}：</b>
@@ -191,28 +264,9 @@ const TranslateSettings: React.FC = () => {
           </div>
         </div>
         <Divider />
-        
-        {/* 自动翻译设置 */}
-        <div style={{ marginBottom: 24 }}>
-          <b>{t('自动翻译')}：</b>
-          <Switch checked={autoTranslate} onChange={handleAutoTranslateChange} style={{ marginLeft: 16 }} />
-          <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
-            {t('开启后划词/输入内容将自动翻译，无需手动点击')}
-          </div>
-        </div>
-        <Divider />
-        
-        {/* 自动朗读设置 */}
-        <div style={{ marginBottom: 24 }}>
-          <b>{t('自动朗读翻译结果')}：</b>
-          <Switch checked={autoRead} onChange={handleAutoReadChange} style={{ marginLeft: 16 }} />
-          <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
-            {t('翻译完成后自动朗读结果（如支持）')}
-          </div>
-        </div>
       </div>
       <div style={{padding: '0 24px 16px 24px', color: '#888', fontSize: 13}}>
-        {t('所有设置均会自动保存，无需手动操作。')}
+        {t('大部分设置会自动保存，DeepL API Key 需要点击保存按钮。')}
       </div>
     </Card>
   );

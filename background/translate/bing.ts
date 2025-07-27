@@ -63,19 +63,6 @@ export async function bingTranslate(text: string, from: string, to: string): Pro
     return result;
   } catch (error) {
     console.error('Bing翻译错误:', error);
-    
-    // 如果是网络错误，尝试使用Google翻译作为备选
-    if (error instanceof Error && (error.message.includes('Failed to fetch') || error.message.includes('NetworkError'))) {
-      console.log('Bing翻译网络错误，尝试使用Google翻译...');
-      try {
-        const { googleTranslate } = await import('./google');
-        return await googleTranslate(text, from, to);
-      } catch (googleError) {
-        console.error('Google翻译也失败:', googleError);
-        throw error; // 抛出原始错误
-      }
-    }
-    
     throw error;
   }
 } 

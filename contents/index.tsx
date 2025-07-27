@@ -346,6 +346,8 @@ const AppContent = ({
   engine,
   textTargetLang,
   favoriteLangs,
+  shouldTranslate,
+  setShouldTranslate,
   callTranslateAPI,
   callTTSAPI,
   stopTTSAPI,
@@ -361,6 +363,8 @@ const AppContent = ({
   engine: string;
   textTargetLang: string;
   favoriteLangs: string[];
+  shouldTranslate: boolean;
+  setShouldTranslate: (should: boolean) => void;
   callTranslateAPI: (text: string, from: string, to: string, engine: string) => Promise<{ result: string, engine: string }>;
   callTTSAPI: (text: string, lang: string) => Promise<{ success: boolean; error?: string }>;
   stopTTSAPI: () => Promise<void>;
@@ -411,11 +415,12 @@ const AppContent = ({
           engine={engine}
           onClose={onCloseResult}
           targetLang={textTargetLang}
-          shouldTranslate={false} // 使用状态控制翻译时机
-          onTranslationComplete={() => {}} // 翻译完成后重置状态
-          callTranslateAPI={callTranslateAPI}
+          shouldTranslate={shouldTranslate}
+          onTranslationComplete={() => {}} // 翻译完成后不自动归零 shouldTranslate
+          callTranslateAPI={callTranslateAPI} 
           callTTSAPI={callTTSAPI}
           stopTTSAPI={stopTTSAPI}
+          setShouldTranslate={setShouldTranslate}
         />
       )}
       {showInputTranslator && (
@@ -452,6 +457,8 @@ const ContentScript = () => {
   const [textTargetLang, setTextTargetLang] = useState(getBrowserLang()); // 使用浏览器语言作为默认值
   // 新增：偏好语言
   const [favoriteLangs, setFavoriteLangs] = useState<string[]>([]);
+  // 新增：控制翻译时机
+  const [shouldTranslate, setShouldTranslate] = useState(false);
 
   // 新增：用 ref 保证 handleTranslation 始终用到最新的 textTargetLang
   const textTargetLangRef = useRef(textTargetLang);
@@ -645,6 +652,7 @@ const ContentScript = () => {
       else targetLang = getBrowserLang();
     }
     setResult({ x, y, originalText: text }); // 只存原文
+    setShouldTranslate(true); // 设置开始翻译
   };
 
   // 修复 icon 一出现就消失、input 输入框无法输入的问题
@@ -675,8 +683,8 @@ const ContentScript = () => {
       if (text && text.length > 0 && selection && selection.rangeCount > 0) {
         // 只在不是点击 icon 时显示 icon
         if (!(icon && iconElement && path.includes(iconElement))) {
-          const rect = selection.getRangeAt(0).getBoundingClientRect();
-          showTranslationIcon(text, rect);
+        const rect = selection.getRangeAt(0).getBoundingClientRect();
+        showTranslationIcon(text, rect);
         }
         // 不要立刻清空 icon/result，但也不要阻止后续处理
       } else {
@@ -715,7 +723,7 @@ const ContentScript = () => {
       }
 
       // 点击外部，清空所有状态
-      resultPosRef.current = null;
+        resultPosRef.current = null;
       setResult(null);
       setIcon(null);
       setShowInputTranslator(false);
@@ -839,6 +847,7 @@ const ContentScript = () => {
             
             // 只设置 result 状态，让 TranslatorResult 组件处理翻译
             setResult({ x, y, originalText: text });
+            setShouldTranslate(true); // 设置开始翻译
             isTranslatingRef.current = false;
           } else {
             setShowInputTranslator(true);
@@ -888,11 +897,16 @@ const ContentScript = () => {
             engine={engine}
             textTargetLang={textTargetLang}
             favoriteLangs={favoriteLangs}
+            shouldTranslate={shouldTranslate}
+            setShouldTranslate={setShouldTranslate}
             callTranslateAPI={callTranslateAPI}
             callTTSAPI={callTTSAPI}
             stopTTSAPI={stopTTSAPI}
-            onCloseResult={() => setResult(null)}
-          />
+            onCloseResult={() => {
+              setResult(null);
+              setShouldTranslate(false);
+            }}
+        />
         </App>
       </ConfigProvider>
     </StyleProvider>

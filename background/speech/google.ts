@@ -5,7 +5,7 @@ export class GoogleSpeechService {
 
   async speak(options: SpeechOptions): Promise<SpeechResult> {
     try {
-      const { text, lang, speed = 1, pitch = 1, volume = 1 } = options;
+      const { text, lang, speed = 1 } = options;
       
       // 使用Google Translate TTS API
       const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=${lang}&client=tw-ob&ttsspeed=${speed}`;
