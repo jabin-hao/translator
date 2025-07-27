@@ -65,4 +65,18 @@ export async function bingTranslate(text: string, from: string, to: string): Pro
     console.error('Bing翻译错误:', error);
     throw error;
   }
+}
+
+export async function bingTranslateBatch(texts: string[], from: string, to: string): Promise<string[]> {
+  // Bing API 不一定原生支持批量，这里循环调用 bingTranslate，保证顺序
+  const results: string[] = [];
+  for (const text of texts) {
+    try {
+      const result = await bingTranslate(text, from, to);
+      results.push(result);
+    } catch (e) {
+      results.push('');
+    }
+  }
+  return results;
 } 

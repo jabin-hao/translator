@@ -56,3 +56,32 @@ export async function googleTranslate(text: string, from: string, to: string): P
     throw error;
   }
 } 
+
+export async function googleTranslateBatch(texts: string[], from: string, to: string): Promise<string[]> {
+  try {
+    const apiKey = await getGoogleApiKey();
+    const url = "https://translate-pa.googleapis.com/v1/translateHtml";
+    const body = JSON.stringify([
+      [texts, from, to],
+      "te"
+    ]);
+    const headers = {
+      "Content-Type": "application/application/json+protobuf",
+      "X-goog-api-key": apiKey
+    };
+    const res = await fetch(url, { method: "POST", headers, body });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Google批量翻译请求失败: ${res.status} ${errText}`);
+    }
+    const data = await res.json();
+    // 返回批量翻译结果数组
+    if (Array.isArray(data) && Array.isArray(data[0])) {
+      return data[0];
+    }
+    throw new Error("Google批量翻译返回内容异常: " + JSON.stringify(data));
+  } catch (error) {
+    console.error('Google批量翻译错误:', error);
+    throw error;
+  }
+} 

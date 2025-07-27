@@ -4,6 +4,15 @@ import { Storage } from '@plasmohq/storage';
 import { TRANSLATE_ENGINES } from '../../lib/engines';
 import { useTranslation } from 'react-i18next';
 
+// 1. 引入 storage 工具
+import {
+  getSiteTranslateSettings,
+  addAlwaysTranslateSite,
+  addNeverTranslateSite,
+  removeAlwaysTranslateSite,
+  removeNeverTranslateSite
+} from '../../lib/site-translate-settings';
+
 const storage = new Storage();
 
 const LOCAL_KEY = 'translate_settings';
@@ -19,6 +28,9 @@ const PopupQuickSettings: React.FC = () => {
   const [cacheEnabled, setCacheEnabled] = useState(true);
   const [pageTargetLang, setPageTargetLang] = useState('zh-CN');
   const [textTargetLang, setTextTargetLang] = useState('zh-CN');
+
+  const [siteHost, setSiteHost] = useState('');
+  const [siteSettings, setSiteSettings] = useState({ always: false, never: false });
 
   useEffect(() => {
     storage.get(LOCAL_KEY).then((data) => {
@@ -36,6 +48,24 @@ const PopupQuickSettings: React.FC = () => {
     });
     storage.get(TEXT_LANG_KEY).then((val) => {
       if (val) setTextTargetLang(val);
+    });
+  }, []);
+
+  // 获取当前 tab 的主域名
+  useEffect(() => {
+    chrome.tabs && chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+      const url = tabs[0]?.url;
+      if (url) {
+        try {
+          const host = new URL(url).hostname;
+          setSiteHost(host);
+          const settings = await getSiteTranslateSettings();
+          setSiteSettings({
+            always: settings.alwaysTranslateSites.includes(host),
+            never: settings.neverTranslateSites.includes(host)
+          });
+        } catch {}
+      }
     });
   }, []);
 
@@ -71,6 +101,35 @@ const PopupQuickSettings: React.FC = () => {
     setTextTargetLang(val);
     storage.set(TEXT_LANG_KEY, val);
     message.success(t('划词翻译目标语言已保存'));
+  };
+
+  const handleAlways = async () => {
+    if (!siteHost) return;
+    if (siteSettings.always) {
+      await removeAlwaysTranslateSite(siteHost);
+    } else {
+      await addAlwaysTranslateSite(siteHost);
+    }
+    const settings = await getSiteTranslateSettings();
+    setSiteSettings({
+      always: settings.alwaysTranslateSites.includes(siteHost),
+      never: settings.neverTranslateSites.includes(siteHost)
+    });
+    message.success(siteSettings.always ? t('已移除总是翻译该网站') : t('已添加到总是翻译该网站'));
+  };
+  const handleNever = async () => {
+    if (!siteHost) return;
+    if (siteSettings.never) {
+      await removeNeverTranslateSite(siteHost);
+    } else {
+      await addNeverTranslateSite(siteHost);
+    }
+    const settings = await getSiteTranslateSettings();
+    setSiteSettings({
+      always: settings.alwaysTranslateSites.includes(siteHost),
+      never: settings.neverTranslateSites.includes(siteHost)
+    });
+    message.success(siteSettings.never ? t('已移除永不翻译该网站') : t('已添加到永不翻译该网站'));
   };
 
   // 语言选项（可根据实际支持的语言调整）
@@ -159,6 +218,21 @@ const PopupQuickSettings: React.FC = () => {
             <Select.Option key={opt.value} value={opt.value}>{opt.label}</Select.Option>
           ))}
         </Select>
+      </div>
+      <Divider style={{ margin: '8px 0' }} />
+      <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+        <button
+          onClick={handleAlways}
+          style={{ flex: 1, background: siteSettings.always ? '#1890ff' : '#f0f0f0', color: siteSettings.always ? '#fff' : '#333', border: 'none', borderRadius: 6, padding: '6px 0', cursor: 'pointer' }}
+        >
+          {siteSettings.always ? t('已设为总是翻译该网站') : t('总是翻译该网站')}
+        </button>
+        <button
+          onClick={handleNever}
+          style={{ flex: 1, background: siteSettings.never ? '#faad14' : '#f0f0f0', color: siteSettings.never ? '#fff' : '#333', border: 'none', borderRadius: 6, padding: '6px 0', cursor: 'pointer' }}
+        >
+          {siteSettings.never ? t('已设为永不翻译该网站') : t('永不翻译该网站')}
+        </button>
       </div>
     </Card>
   );

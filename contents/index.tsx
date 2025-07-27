@@ -22,6 +22,10 @@ import TranslatorResult from './components/TranslatorResult';
 import InputTranslator from './components/InputTranslator';
 import i18n, { initI18n } from '../i18n';
 
+// 1. 引入 storage 工具
+import { getSiteTranslateSettings } from '../lib/site-translate-settings';
+import { lazyFullPageTranslate } from '../lib/fullPageTranslate';
+
 const storage = new Storage();
 
 // 主题检测和应用函数
@@ -273,6 +277,52 @@ async function stopTTSAPI(): Promise<void> {
     
   } catch (error) {
   }
+}
+
+// 1. 新增整页翻译主流程
+async function fullPageTranslate(targetLang: string, mode: 'translated' | 'compare', engine: string) {
+  // 1. 收集所有文本节点
+  const walker = document.createTreeWalker(
+    document.body,
+    NodeFilter.SHOW_TEXT,
+    {
+      acceptNode: (node) => {
+        if (!node.parentElement) return NodeFilter.FILTER_REJECT;
+        const tag = node.parentElement.tagName.toLowerCase();
+        if ([
+          'script', 'style', 'noscript', 'iframe', 'canvas', 'svg', 'textarea', 'input', 'select', 'option', 'pre', 'code', 'kbd', 'samp', 'var', 'math', 'button', 'label', 'datalist', 'output', 'mark', 'ruby', 'rt', 'rp', 'bdi', 'bdo', 'wbr', 'progress', 'meter', 'time', 'audio', 'video', 'track', 'map', 'area', 'object', 'embed', 'applet', 'param', 'source', 'picture', 'portal', 'slot', 'template', 'colgroup', 'col', 'link', 'base', 'meta', 'title', 'head', 'html', 'body'
+        ].includes(tag)) return NodeFilter.FILTER_REJECT;
+        if (!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    }
+  );
+  const nodes: Text[] = [];
+  let n: Text | null = walker.nextNode() as Text;
+  while (n) {
+    nodes.push(n);
+    n = walker.nextNode() as Text;
+  }
+  if (nodes.length === 0) return;
+  // 2. 批量翻译（分批，防止超长）
+  const batchSize = 20;
+  let translatedArr: string[] = [];
+  for (let i = 0; i < nodes.length; i += batchSize) {
+    const batch = nodes.slice(i, i + batchSize).map(node => node.nodeValue!);
+    const { result } = await callTranslateAPI(batch.join('\n'), getBrowserLang(), targetLang, engine);
+    translatedArr.push(...result.split('\n'));
+  }
+  // 3. 回填
+  nodes.forEach((node, i) => {
+    if (mode === 'translated') {
+      node.nodeValue = translatedArr[i] || node.nodeValue;
+    } else if (mode === 'compare') {
+      const span = document.createElement('span');
+      span.style.display = 'inline-block';
+      span.innerHTML = `<span style=\"color:#888;\">${node.nodeValue}</span><br/><span style=\"color:#222;\">${translatedArr[i]}</span>`;
+      node.parentNode?.replaceChild(span, node);
+    }
+  });
 }
 
 // 在App组件内部使用message的组件
@@ -834,6 +884,99 @@ const ContentScript = () => {
       document.removeEventListener('keyup', handleKeyUp);
     };
   }, [shortcutEnabled, customShortcut, textTargetLang, favoriteLangs, shouldTranslate, autoTranslate]);
+
+  // 读取网页翻译目标语言
+  const [pageTargetLang, setPageTargetLang] = useState('zh-CN');
+  useEffect(() => {
+    storage.get('pageTargetLang').then((val) => {
+      if (val) setPageTargetLang(val);
+    });
+    const handler = (changes, area) => {
+      if (area === 'local' && changes['pageTargetLang']) {
+        setPageTargetLang(changes['pageTargetLang'].newValue);
+      }
+    };
+    chrome.storage.onChanged.addListener(handler);
+    return () => chrome.storage.onChanged.removeListener(handler);
+  }, []);
+
+  // 新增：整页翻译自动触发逻辑
+  useEffect(() => {
+    const triggerFullPageTranslation = async () => {
+      const host = window.location.hostname;
+      const settings = await getSiteTranslateSettings();
+      if (!settings.autoTranslateEnabled) return;
+      if (settings.neverTranslateSites.includes(host)) return;
+      if (settings.alwaysTranslateSites.includes(host)) {
+        if (typeof (window as any).__autoFullPageTranslated === 'undefined') {
+          (window as any).__autoFullPageTranslated = true;
+          const mode = (settings as any).pageTranslateMode || 'translated';
+          await lazyFullPageTranslate(pageTargetLang, mode, engine);
+        }
+      }
+    };
+    // 页面加载后触发
+    triggerFullPageTranslation();
+  }, [pageTargetLang, engine]);
+
+  // 新增：整页翻译触发逻辑
+  useEffect(() => {
+    const triggerFullPageTranslation = async () => {
+      const currentUrl = window.location.href;
+      const alwaysTranslate = await storage.get('always_translate_urls');
+      const neverTranslate = await storage.get('never_translate_urls');
+
+      if (alwaysTranslate && Array.isArray(alwaysTranslate) && alwaysTranslate.includes(currentUrl)) {
+        // 在 always 列表中，自动触发整页翻译
+        await callTranslateAPI(document.body.innerText, getBrowserLang(), textTargetLang, engine);
+        message.success('整页翻译完成！');
+      } else if (neverTranslate && Array.isArray(neverTranslate) && neverTranslate.includes(currentUrl)) {
+        // 在 never 列表中，禁止自动整页翻译
+        message.warning('当前页面禁止自动整页翻译。');
+      } else {
+        // 不在列表中，不自动触发整页翻译
+      }
+    };
+
+    // 监听页面加载完成事件
+    const handleLoad = () => {
+      // 延迟执行，确保 DOM 已完全加载
+      setTimeout(triggerFullPageTranslation, 100);
+    };
+
+    // 监听页面卸载事件
+    const handleBeforeUnload = () => {
+      // 在页面卸载前，停止所有 TTS 播放
+      stopTTSAPI();
+    };
+
+    // 监听页面内容变化事件
+    const handleContentChange = () => {
+      // 当页面内容发生变化时，重新触发整页翻译
+      triggerFullPageTranslation();
+    };
+
+    // 监听页面卸载事件
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    // 监听页面加载完成事件
+    window.addEventListener('load', handleLoad);
+    // 监听页面内容变化事件
+    document.addEventListener('DOMContentLoaded', handleContentChange);
+    document.addEventListener('readystatechange', () => {
+      if (document.readyState === 'interactive') {
+        handleContentChange(); // 在交互状态时也触发一次
+      }
+    });
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('load', handleLoad);
+      document.removeEventListener('DOMContentLoaded', handleContentChange);
+      document.removeEventListener('readystatechange', () => {});
+    };
+  }, [textTargetLang, engine, autoTranslate]);
+
+  (window as any).callTranslateAPI = callTranslateAPI;
 
   return (
     <StyleProvider hashPriority="high" container={shadowRoot}>

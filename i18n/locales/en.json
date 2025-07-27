@@ -181,5 +181,20 @@
   "100%": "100%",
   "缓存管理": "Cache Management",
   "是否启用缓存": "Enable Cache",
-  "启用缓存可以加快重复翻译的速度": "Enabling cache can speed up repeated translations."
+  "启用缓存可以加快重复翻译的速度": "Enabling cache can speed up repeated translations.",
+  "全部白名单": "All Whitelist",
+  "全部黑名单": "All Blacklist",
+  "批量移除": "Batch Remove",
+  "批量转移到黑名单": "Batch Move to Blacklist",
+  "批量转移到白名单": "Batch Move to Whitelist",
+  "查看全部": "View All",
+  "加入白名单的网站会自动整页翻译": "Sites in the whitelist will be auto-translated as a whole page",
+  "加入黑名单的网站不会被自动整页翻译": "Sites in the blacklist will not be auto-translated as a whole page",
+  "全选": "Select All",
+  "取消全选": "Deselect All",
+  "整页翻译模式": "Full Page Translation Mode",
+  "全部译文": "Only Translated",
+  "原文对照": "Original & Translated",
+  "选择整页翻译时的显示方式：仅显示译文或原文与译文对照": "Choose how to display full page translation: only translated or original with translation side by side",
+  "整页翻译模式已保存": "Full page translation mode saved"
 } 

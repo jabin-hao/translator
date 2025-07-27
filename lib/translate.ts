@@ -1,9 +1,9 @@
 // 统一翻译服务
 import { cacheManager } from "./cache"
 import { Storage } from "@plasmohq/storage"
-import { googleTranslate } from "../background/translate/google"
-import { bingTranslate } from "../background/translate/bing"
-import { deeplTranslate } from "../background/translate/deepl"
+import { googleTranslate, googleTranslateBatch } from "../background/translate/google"
+import { bingTranslate, bingTranslateBatch } from "../background/translate/bing"
+import { deeplTranslate, deeplTranslateBatch } from "../background/translate/deepl"
 
 export interface TranslateOptions {
   from: string;
@@ -135,26 +135,64 @@ export async function translateBatch(
   texts: string[],
   options: TranslateOptions
 ): Promise<TranslateResult[]> {
+  const { from, to, engine } = options;
+  // 优先用底层批量API
+  if (engine === 'google' && typeof googleTranslateBatch === 'function') {
+    try {
+      const translations = await googleTranslateBatch(texts, from, to);
+      return texts.map((text, i) => ({
+        text,
+        translation: translations[i] || '',
+        engine,
+        from,
+        to,
+        cached: false,
+      }));
+    } catch (e) {}
+  }
+  if (engine === 'bing' && typeof bingTranslateBatch === 'function') {
+    try {
+      const translations = await bingTranslateBatch(texts, from, to);
+      return texts.map((text, i) => ({
+        text,
+        translation: translations[i] || '',
+        engine,
+        from,
+        to,
+        cached: false,
+      }));
+    } catch (e) {}
+  }
+  if (engine === 'deepl' && typeof deeplTranslateBatch === 'function') {
+    try {
+      const translations = await deeplTranslateBatch(texts, from, to);
+      return texts.map((text, i) => ({
+        text,
+        translation: translations[i] || '',
+        engine,
+        from,
+        to,
+        cached: false,
+      }));
+    } catch (e) {}
+  }
+  // fallback: 单条循环
   const results: TranslateResult[] = [];
-  
   for (const text of texts) {
     try {
       const result = await translate(text, options);
       results.push(result);
     } catch (error) {
-      console.error(`批量翻译失败:`, error);
-      // 对于失败的翻译，返回错误信息
       results.push({
         text,
         translation: `翻译失败: ${error instanceof Error ? error.message : String(error)}`,
-        engine: options.engine,
-        from: options.from,
-        to: options.to,
+        engine,
+        from,
+        to,
         cached: false,
       });
     }
   }
-  
   return results;
 }
 

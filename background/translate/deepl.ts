@@ -64,4 +64,18 @@ export async function deeplTranslate(text: string, from: string, to: string): Pr
     console.error('DeepL翻译错误:', error);
     throw error;
   }
+}
+
+export async function deeplTranslateBatch(texts: string[], from: string, to: string): Promise<string[]> {
+  // DeepL API 支持批量（多个 text 参数），但这里保险起见循环调用
+  const results: string[] = [];
+  for (const text of texts) {
+    try {
+      const result = await deeplTranslate(text, from, to);
+      results.push(result);
+    } catch (e) {
+      results.push('');
+    }
+  }
+  return results;
 } 

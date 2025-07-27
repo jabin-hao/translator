@@ -1,8 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Select, Switch, Divider, message, Input, Button } from 'antd';
+import { Card, Select, Switch, Divider, message, Input, Button, List, Modal, Checkbox, Tooltip, Radio } from 'antd';
 import { Storage } from '@plasmohq/storage';
 import { TRANSLATE_ENGINES, TTS_ENGINES } from '../../lib/engines';
 import { useTranslation } from 'react-i18next';
+import {
+  getSiteTranslateSettings,
+  setAutoTranslateEnabled,
+  addAlwaysTranslateSite,
+  addNeverTranslateSite,
+  removeAlwaysTranslateSite,
+  removeNeverTranslateSite,
+  setSiteTranslateSettings
+} from '../../lib/site-translate-settings';
 const { Option } = Select;
 
 const LOCAL_KEY = 'translate_settings';
@@ -23,6 +32,23 @@ const TranslateSettings: React.FC = () => {
   const [speechSpeed, setSpeechSpeed] = useState(1);
   const [speechPitch, setSpeechPitch] = useState(1);
   const [speechVolume, setSpeechVolume] = useState(1);
+
+  // 网站自动翻译相关 state
+  const [siteAutoEnabled, setSiteAutoEnabled] = useState(true);
+  const [alwaysSites, setAlwaysSites] = useState<string[]>([]);
+  const [neverSites, setNeverSites] = useState<string[]>([]);
+  const [addHost, setAddHost] = useState('');
+  const [addType, setAddType] = useState<'always'|'never'>('always');
+
+  // 批量操作 Modal 状态
+  const [showAllAlways, setShowAllAlways] = useState(false);
+  const [showAllNever, setShowAllNever] = useState(false);
+
+  // 在 state 区域补充
+  const [selectedAlways, setSelectedAlways] = useState<string[]>([]);
+  const [selectedNever, setSelectedNever] = useState<string[]>([]);
+
+  const [pageTranslateMode, setPageTranslateMode] = useState<'translated'|'compare'>('translated');
 
   useEffect(() => {
     // 读取翻译设置
@@ -50,6 +76,14 @@ const TranslateSettings: React.FC = () => {
         setDeeplApiKey(key);
         setDeeplApiKeyInput(key);
       }
+    });
+
+    // 初始化读取网站翻译设置
+    getSiteTranslateSettings().then(s => {
+      setSiteAutoEnabled(s.autoTranslateEnabled);
+      setAlwaysSites(s.alwaysTranslateSites);
+      setNeverSites(s.neverTranslateSites);
+      setPageTranslateMode((s as any).pageTranslateMode || 'translated');
     });
   }, []);
 
@@ -122,6 +156,46 @@ const TranslateSettings: React.FC = () => {
     message.success(t('DeepL API Key 已保存'));
   };
 
+  const handleSiteAutoChange = async (checked: boolean) => {
+    setSiteAutoEnabled(checked);
+    await setAutoTranslateEnabled(checked);
+    message.success(checked ? t('已开启网站自动翻译') : t('已关闭网站自动翻译'));
+  };
+  const handleRemoveAlways = async (host: string) => {
+    await removeAlwaysTranslateSite(host);
+    const s = await getSiteTranslateSettings();
+    setAlwaysSites(s.alwaysTranslateSites);
+  };
+  const handleRemoveNever = async (host: string) => {
+    await removeNeverTranslateSite(host);
+    const s = await getSiteTranslateSettings();
+    setNeverSites(s.neverTranslateSites);
+  };
+  const handleAddHost = async () => {
+    if (!addHost) return;
+    if (addType === 'always') {
+      await addAlwaysTranslateSite(addHost);
+      const s = await getSiteTranslateSettings();
+      setAlwaysSites(s.alwaysTranslateSites);
+    } else {
+      await addNeverTranslateSite(addHost);
+      const s = await getSiteTranslateSettings();
+      setNeverSites(s.neverTranslateSites);
+    }
+    setAddHost('');
+  };
+
+  const handlePageTranslateModeChange = async (e) => {
+    setPageTranslateMode(e.target.value);
+    const s = await getSiteTranslateSettings();
+    await setSiteTranslateSettings({ ...s, pageTranslateMode: e.target.value });
+    message.success(t('整页翻译模式已保存'));
+  };
+
+  // 只展示最新5个（倒序）
+  const alwaysSitesToShow = alwaysSites.slice(-5).reverse();
+  const neverSitesToShow = neverSites.slice(-5).reverse();
+
   return (
     <Card
       title={t('翻译设置')}
@@ -182,10 +256,10 @@ const TranslateSettings: React.FC = () => {
         
         {/* 自动翻译设置 */}
         <div style={{ marginBottom: 24 }}>
-          <b>{t('自动翻译')}：</b>
+          <b>{t('划词自动翻译')}：</b>
           <Switch checked={autoTranslate} onChange={handleAutoTranslateChange} style={{ marginLeft: 16 }} />
           <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
-            {t('开启后划词/输入内容将自动翻译，无需手动点击')}
+            {t('开启后划词将自动翻译，无需手动点击')}
           </div>
         </div>
         <Divider />
@@ -265,11 +339,195 @@ const TranslateSettings: React.FC = () => {
             </Select>
           </div>
         </div>
+
         <Divider />
+
+        {/* 网站自动翻译 */}
+        <div style={{ marginBottom: 24 }}>
+          <b>{t('网站自动翻译')}：</b>
+          <Switch checked={siteAutoEnabled} onChange={handleSiteAutoChange} style={{ marginLeft: 16 }} />
+          <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>{t('开启后，命中列表的网站将自动整页翻译')}</div>
+        </div>
+
+        <div style={{ marginBottom: 24 }}>
+          <b>{t('整页翻译模式')}：</b>
+          <Radio.Group value={pageTranslateMode} onChange={handlePageTranslateModeChange} style={{ marginLeft: 16 }}>
+            <Radio.Button value="translated">{t('全部译文')}</Radio.Button>
+            <Radio.Button value="compare">{t('原文对照')}</Radio.Button>
+          </Radio.Group>
+          <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>{t('选择整页翻译时的显示方式：仅显示译文或原文与译文对照')}</div>
+        </div>
+
+        <div style={{ marginBottom: 24, display: 'flex', gap: 8 }}>
+          <Input
+            value={addHost}
+            onChange={e => setAddHost(e.target.value)}
+            placeholder={t('输入域名，如 example.com')}
+            style={{ width: 220 }}
+          />
+          <Select value={addType} onChange={v => setAddType(v)} style={{ width: 100 }}>
+            <Option value="always">{t('白名单')}</Option>
+            <Option value="never">{t('黑名单')}</Option>
+          </Select>
+          <Button onClick={handleAddHost}>{t('添加')}</Button>
+        </div>
+
+        {/* 白名单区域 */}
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontWeight: 'bold', marginBottom: 4 }}>{t('网站翻译白名单')}：</div>
+          <List
+            size="small"
+            bordered
+            dataSource={alwaysSitesToShow}
+            renderItem={host => (
+              <List.Item
+                actions={[
+                  <Button size="small" type="link" danger onClick={() => handleRemoveAlways(host)}>{t('移除')}</Button>
+                ]}
+                style={{ alignItems: 'center' }}
+              >
+                <Tooltip title={host} placement="topLeft">
+                  <div style={{
+                    maxWidth: 120,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}>{host}</div>
+                </Tooltip>
+              </List.Item>
+            )}
+            style={{ width: '25%', minWidth: 180, margin: '0 0 8px 0', borderRadius: 6 }}
+          />
+          {alwaysSites.length > 5 && (
+            <Button size="small" type="link" onClick={() => setShowAllAlways(true)}>{t('查看全部')}</Button>
+          )}
+          <div style={{ fontSize: 13, color: '#888', marginTop: 8, marginBottom: 0 }}>{t('加入白名单的网站会自动整页翻译')}</div>
+        </div>
+        {/* 黑名单区域 */}
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontWeight: 'bold', marginBottom: 4 }}>{t('网站翻译黑名单')}：</div>
+          <List
+            size="small"
+            bordered
+            dataSource={neverSitesToShow}
+            renderItem={host => (
+              <List.Item
+                actions={[
+                  <Button size="small" type="link" danger onClick={() => handleRemoveNever(host)}>{t('移除')}</Button>
+                ]}
+                style={{ alignItems: 'center' }}
+              >
+                <Tooltip title={host} placement="topLeft">
+                  <div style={{
+                    maxWidth: 120,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}>{host}</div>
+                </Tooltip>
+              </List.Item>
+            )}
+            style={{ width: '25%', minWidth: 180, margin: '0 0 8px 0', borderRadius: 6 }}
+          />
+          {neverSites.length > 5 && (
+            <Button size="small" type="link" onClick={() => setShowAllNever(true)}>{t('查看全部')}</Button>
+          )}
+          <div style={{ fontSize: 13, color: '#888', marginTop: 8, marginBottom: 0 }}>{t('加入黑名单的网站不会被自动整页翻译')}</div>
+        </div>
+
+        <Divider />
+
       </div>
       <div style={{padding: '0 24px 16px 24px', color: '#888', fontSize: 13}}>
         {t('大部分设置会自动保存，DeepL API Key 需要点击保存按钮。')}
       </div>
+
+      {/* 批量操作 Modal */}
+      <Modal
+        open={showAllAlways}
+        title={t('全部白名单')}
+        onCancel={() => { setShowAllAlways(false); setSelectedAlways([]); }}
+        footer={[
+          <Button key="selectAll" onClick={() => setSelectedAlways(selectedAlways.length === alwaysSites.length ? [] : alwaysSites)}>
+            {selectedAlways.length === alwaysSites.length ? t('取消全选') : t('全选')}
+          </Button>,
+          <Button key="remove" danger disabled={selectedAlways.length === 0} onClick={async () => {
+            for (const host of selectedAlways) await handleRemoveAlways(host);
+            setSelectedAlways([]);
+            setShowAllAlways(false);
+            const s = await getSiteTranslateSettings();
+            setAlwaysSites(s.alwaysTranslateSites);
+            setNeverSites(s.neverTranslateSites);
+          }}>{t('批量移除')}</Button>,
+          <Button key="toNever" disabled={selectedAlways.length === 0} onClick={async () => {
+            for (const host of selectedAlways) await addNeverTranslateSite(host);
+            setSelectedAlways([]);
+            setShowAllAlways(false);
+            const s = await getSiteTranslateSettings();
+            setAlwaysSites(s.alwaysTranslateSites);
+            setNeverSites(s.neverTranslateSites);
+          }}>{t('批量转移到黑名单')}</Button>
+        ]}
+      >
+        <Checkbox.Group
+          style={{ width: '100%' }}
+          value={selectedAlways}
+          onChange={v => setSelectedAlways(v as string[])}
+        >
+          <List
+            dataSource={alwaysSites}
+            style={{ maxHeight: 360, overflowY: 'auto', marginTop: 8, width: '100%' }}
+            renderItem={host => (
+              <List.Item>
+                <Checkbox value={host}>{host}</Checkbox>
+              </List.Item>
+            )}
+          />
+        </Checkbox.Group>
+      </Modal>
+
+      <Modal
+        open={showAllNever}
+        title={t('全部黑名单')}
+        onCancel={() => { setShowAllNever(false); setSelectedNever([]); }}
+        footer={[
+          <Button key="selectAll" onClick={() => setSelectedNever(selectedNever.length === neverSites.length ? [] : neverSites)}>
+            {selectedNever.length === neverSites.length ? t('取消全选') : t('全选')}
+          </Button>,
+          <Button key="remove" danger disabled={selectedNever.length === 0} onClick={async () => {
+            for (const host of selectedNever) await handleRemoveNever(host);
+            setSelectedNever([]);
+            setShowAllNever(false);
+            const s = await getSiteTranslateSettings();
+            setAlwaysSites(s.alwaysTranslateSites);
+            setNeverSites(s.neverTranslateSites);
+          }}>{t('批量移除')}</Button>,
+          <Button key="toAlways" disabled={selectedNever.length === 0} onClick={async () => {
+            for (const host of selectedNever) await addAlwaysTranslateSite(host);
+            setSelectedNever([]);
+            setShowAllNever(false);
+            const s = await getSiteTranslateSettings();
+            setAlwaysSites(s.alwaysTranslateSites);
+            setNeverSites(s.neverTranslateSites);
+          }}>{t('批量转移到白名单')}</Button>
+        ]}
+      >
+        <Checkbox.Group
+          style={{ width: '100%' }}
+          value={selectedNever}
+          onChange={v => setSelectedNever(v as string[])}
+        >
+          <List
+            dataSource={neverSites}
+            style={{ maxHeight: 360, overflowY: 'auto', marginTop: 8, width: '100%' }}
+            renderItem={host => (
+              <List.Item>
+                <Checkbox value={host}>{host}</Checkbox>
+              </List.Item>
+            )}
+          />
+        </Checkbox.Group>
+      </Modal>
     </Card>
   );
 };
