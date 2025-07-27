@@ -69,12 +69,10 @@ export class TranslationCacheManager {
   async get(text: string, from: string, to: string, engine: string): Promise<string | null> {
     try {
       const hash = await Utils.getCacheKey(text, from, to, engine);
-      console.log('查找缓存键:', hash);
       
       // 先从内存缓存查找
       let translation = this.cache.get(hash);
       if (translation) {
-        console.log('从内存缓存获取翻译结果:', translation.translatedText);
         return translation.translatedText;
       }
 
@@ -82,11 +80,9 @@ export class TranslationCacheManager {
       translation = await this.queryInDB(hash);
       if (translation) {
         this.cache.set(hash, translation);
-        console.log('从 IndexedDB 获取翻译结果:', translation.translatedText);
         return translation.translatedText;
       }
 
-      console.log('缓存中没有找到翻译结果');
       return null;
     } catch (error) {
       console.error('获取翻译缓存失败:', error);
@@ -98,7 +94,6 @@ export class TranslationCacheManager {
   async set(text: string, translation: string, from: string, to: string, engine: string): Promise<void> {
     try {
       const hash = await Utils.getCacheKey(text, from, to, engine);
-      console.log('生成缓存键:', hash);
       
       const cacheEntry: TranslationCache = {
         originalText: text,
@@ -107,15 +102,12 @@ export class TranslationCacheManager {
         key: hash,
       };
 
-      console.log('准备保存缓存数据:', cacheEntry);
-
       // 保存到内存缓存
       this.cache.set(hash, cacheEntry);
 
       // 保存到 IndexedDB
       await this.addInDB(cacheEntry);
       
-      console.log('缓存保存成功');
     } catch (error) {
       console.error('设置翻译缓存失败:', error);
       throw error;
@@ -136,7 +128,6 @@ export class TranslationCacheManager {
   // 清空所有缓存
   async clear(): Promise<void> {
     try {
-      console.log('开始清空所有缓存...');
       
       // 清空内存缓存
       this.cache.clear();
@@ -151,7 +142,6 @@ export class TranslationCacheManager {
         });
       }
       
-      console.log('所有缓存已清空');
     } catch (error) {
       console.error('清空翻译缓存失败:', error);
     }

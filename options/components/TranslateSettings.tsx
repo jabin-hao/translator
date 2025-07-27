@@ -80,6 +80,11 @@ const TranslateSettings: React.FC = () => {
 
   const handleAutoTranslateChange = (checked: boolean) => {
     setAutoTranslate(checked);
+    storage.set(LOCAL_KEY, {
+      engine,
+      autoRead,
+      autoTranslate: checked
+    });
     message.success(t('自动翻译设置已保存'));
   };
 
@@ -180,7 +185,7 @@ const TranslateSettings: React.FC = () => {
           <b>{t('自动翻译')}：</b>
           <Switch checked={autoTranslate} onChange={handleAutoTranslateChange} style={{ marginLeft: 16 }} />
           <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
-            {t('开启后划词/输入内容将自动翻译，无需手动点击')}
+            {t('开启后划词将自动翻译，无需手动点击')}
           </div>
         </div>
         <Divider />
@@ -223,7 +228,6 @@ const TranslateSettings: React.FC = () => {
               value={speechSpeed}
               onChange={handleSpeechSpeedChange}
               style={{ width: 120, marginLeft: 8 }}
-              size="small"
             >
               <Option value={0.5}>0.5x</Option>
               <Option value={0.75}>0.75x</Option>
@@ -239,7 +243,6 @@ const TranslateSettings: React.FC = () => {
               value={speechPitch}
               onChange={handleSpeechPitchChange}
               style={{ width: 120, marginLeft: 8 }}
-              size="small"
             >
               <Option value={0.5}>低音</Option>
               <Option value={0.75}>中低音</Option>
@@ -254,7 +257,6 @@ const TranslateSettings: React.FC = () => {
               value={speechVolume}
               onChange={handleSpeechVolumeChange}
               style={{ width: 120, marginLeft: 8 }}
-              size="small"
             >
               <Option value={0.25}>25%</Option>
               <Option value={0.5}>50%</Option>

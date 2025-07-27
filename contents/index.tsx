@@ -157,7 +157,6 @@ async function callTranslateAPI(
   const toMapped = getEngineLangCode(to, engine);
   
   try {
-    console.log('callTranslateAPI 开始:', { text, from, to, engine, fromMapped, toMapped });
     
     // 使用通用消息处理器
     const response = await sendToBackground({
@@ -175,26 +174,20 @@ async function callTranslateAPI(
       },
     });
 
-    // console.log('callTranslateAPI 收到响应:', response);
-
     if (response.success && response.data) {
       const result = { 
         result: response.data.translation, 
         engine: response.data.engine 
       };
-      // console.log('callTranslateAPI 返回结果:', result);
       return result;
     } else {
       const error = response.error || '翻译失败';
-      // console.error('callTranslateAPI 翻译失败:', error);
       throw new Error(error);
     }
   } catch (error) {
-    console.error('callTranslateAPI 异常:', error);
     
     // 如果是网络错误，尝试重试一次
     if (error instanceof Error && (error.message.includes('Failed to fetch') || error.message.includes('NetworkError'))) {
-      // console.log('检测到网络错误，尝试重试...');
       try {
         const response = await sendToBackground({
           name: "handle" as any,
@@ -216,13 +209,11 @@ async function callTranslateAPI(
             result: response.data.translation, 
             engine: response.data.engine 
           };
-          // console.log('callTranslateAPI 重试成功:', result);
           return result;
         } else {
           throw new Error(response.error || '翻译失败');
         }
       } catch (retryError) {
-        // console.error('callTranslateAPI 重试也失败:', retryError);
         throw retryError;
       }
     }
@@ -237,7 +228,6 @@ async function callTTSAPI(
   lang: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    console.log('callTTSAPI 开始:', { text, lang });
     
     // 使用通用消息处理器
     const response = await sendToBackground({
@@ -255,16 +245,10 @@ async function callTTSAPI(
       },
     });
 
-    console.log('callTTSAPI 收到响应:', response);
-
     if (response.success && response.data) {
       // 如果有音频数据，播放音频
       if (response.data.audioData) {
         try {
-          console.log('开始处理音频数据:', {
-            audioDataLength: response.data.audioData.length,
-            audioType: response.data.audioType
-          });
           
           // 将 base64 数据转换为 blob
           const audioBlob = new Blob(
@@ -272,18 +256,14 @@ async function callTTSAPI(
             { type: response.data.audioType || 'audio/mpeg' }
           );
           
-          console.log('音频 blob 创建成功:', {
-            size: audioBlob.size,
-            type: audioBlob.type
-          });
           
           const audioUrl = URL.createObjectURL(audioBlob);
           const audio = new Audio(audioUrl);
           
           // 添加音频加载事件监听
-          audio.onloadstart = () => console.log('音频开始加载');
-          audio.oncanplay = () => console.log('音频可以播放');
-          audio.onerror = (e) => console.error('音频加载错误:', e);
+          audio.onloadstart = () => {};
+          audio.oncanplay = () => {};
+          audio.onerror = (e) => {};
           
           // 播放音频
           await audio.play();
@@ -291,26 +271,20 @@ async function callTTSAPI(
           // 播放完成后清理 URL
           audio.onended = () => {
             URL.revokeObjectURL(audioUrl);
-            console.log('音频播放完成，已清理 URL');
           };
           
-          console.log('音频播放成功');
           return { success: true };
         } catch (audioError) {
-          console.error('音频播放失败:', audioError);
           return { success: false, error: `音频播放失败: ${audioError.message}` };
         }
       } else {
-        console.log('没有音频数据，跳过播放');
         return { success: true };
       }
     } else {
       const error = response.error || '朗读失败';
-      console.error('callTTSAPI 朗读失败:', error);
       return { success: false, error };
     }
   } catch (error) {
-    console.error('callTTSAPI 异常:', error);
     return { success: false, error: error.message };
   }
 }
@@ -318,7 +292,6 @@ async function callTTSAPI(
 // 停止朗读方法
 async function stopTTSAPI(): Promise<void> {
   try {
-    console.log('stopTTSAPI 开始');
     
     await sendToBackground({
       name: "handle" as any,
@@ -328,9 +301,7 @@ async function stopTTSAPI(): Promise<void> {
       },
     });
     
-    console.log('stopTTSAPI 成功');
   } catch (error) {
-    console.error('stopTTSAPI 异常:', error);
   }
 }
 
@@ -459,6 +430,8 @@ const ContentScript = () => {
   const [favoriteLangs, setFavoriteLangs] = useState<string[]>([]);
   // 新增：控制翻译时机
   const [shouldTranslate, setShouldTranslate] = useState(false);
+  // 新增：控制自动翻译
+  const [autoTranslate, setAutoTranslate] = useState(true); // 只在这里声明
 
   // 新增：用 ref 保证 handleTranslation 始终用到最新的 textTargetLang
   const textTargetLangRef = useRef(textTargetLang);
@@ -568,9 +541,7 @@ const ContentScript = () => {
         const shortcut = (data as any)?.customShortcut || '';
         setShortcutEnabled(enabled);
         setCustomShortcut(shortcut);
-        console.log('快捷键设置已加载:', { enabled, shortcut });
       } else {
-        console.log('快捷键设置为空，使用默认值');
       }
     });
     // 监听快捷键设置变化
@@ -582,7 +553,6 @@ const ContentScript = () => {
           const shortcut = data.customShortcut || '';
           setShortcutEnabled(enabled);
           setCustomShortcut(shortcut);
-          console.log('快捷键设置已更新:', { enabled, shortcut });
           // 重置状态
           lastCtrlPressRef.current = 0;
         }
@@ -638,8 +608,14 @@ const ContentScript = () => {
     const x = rect.left;
     const y = rect.bottom;
     const iconData = { x: rect.right, y: rect.top, text };
-    setIcon(iconData);
     resultPosRef.current = { x, y, text };
+    if (autoTranslate) {
+      // 自动翻译：直接弹出翻译结果
+      handleTranslation();
+    } else {
+      // 只显示icon
+      setIcon(iconData);
+    }
   };
 
   const handleTranslation = async () => {
@@ -741,7 +717,7 @@ const ContentScript = () => {
       document.removeEventListener('mouseup', handleMouseUp);
       document.removeEventListener('mousedown', handleMouseDown);
     };
-  }, [showInputTranslator, result, icon]);
+  }, [showInputTranslator, result, icon, autoTranslate]);
 
   // 2. 监听 result 状态变化，result 出现后再 setIcon(null)
   useEffect(() => {
@@ -820,7 +796,6 @@ const ContentScript = () => {
         if (shouldTrigger) {
           // 防止重复调用
           if (isTranslatingRef.current) {
-            console.log('翻译正在进行中，跳过重复调用');
             return;
           }
           
@@ -843,7 +818,6 @@ const ContentScript = () => {
             
             // 设置翻译状态
             isTranslatingRef.current = true;
-            console.log('开始快捷键翻译:', text);
             
             // 只设置 result 状态，让 TranslatorResult 组件处理翻译
             setResult({ x, y, originalText: text });
@@ -869,7 +843,7 @@ const ContentScript = () => {
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('keyup', handleKeyUp);
     };
-  }, [shortcutEnabled, customShortcut, textTargetLang, favoriteLangs]);
+  }, [shortcutEnabled, customShortcut, textTargetLang, favoriteLangs, shouldTranslate, autoTranslate]);
 
   return (
     <StyleProvider hashPriority="high" container={shadowRoot}>
