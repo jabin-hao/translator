@@ -20,13 +20,10 @@ const CacheSettings: React.FC = () => {
   // 加载缓存统计信息
   const loadStats = async () => {
     try {
-      console.log('开始加载缓存统计...');
       const stats = await cacheManager.getStats();
-      console.log('缓存统计结果:', stats);
       setStats(stats);
       message.success(t('统计已刷新'));
     } catch (error) {
-      console.error('加载缓存统计失败:', error);
       message.error(t('刷新统计失败'));
     }
   };
@@ -81,14 +78,14 @@ const CacheSettings: React.FC = () => {
   }, []);
 
   const formatSize = (bytes: number) => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    if (bytes < 1024) return `${bytes} ${t('B')}`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} ${t('KB')}`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} ${t('MB')}`;
   };
 
   return (
     <Card 
-      title={t('翻译缓存管理')} 
+      title={t('缓存管理')} 
       style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
       styles={{ body: { padding: 0, flex: 1, display: 'flex', flexDirection: 'column' } }}
     >
@@ -96,7 +93,7 @@ const CacheSettings: React.FC = () => {
         {/* 缓存开关 */}
         <div style={{ marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
-            <b>{t('启用翻译缓存')}：</b>
+            <b>{t('是否启用缓存')}：</b>
             <Switch checked={cacheEnabled} onChange={handleCacheToggle} style={{ marginLeft: 16 }} />
           </div>
           <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>

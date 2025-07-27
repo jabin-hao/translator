@@ -114,7 +114,7 @@ const TranslateSettings: React.FC = () => {
 
   const handleSaveDeeplApiKey = () => {
     if (!deeplApiKeyInput.trim()) {
-      message.error('请输入 DeepL API Key');
+      message.error(t('请输入 DeepL API Key'));
       return;
     }
     setDeeplApiKey(deeplApiKeyInput.trim());
@@ -160,7 +160,7 @@ const TranslateSettings: React.FC = () => {
               <Input.Password
                 value={deeplApiKeyInput}
                 onChange={handleDeeplApiKeyInputChange}
-                placeholder="请输入 DeepL API Key"
+                placeholder={t('请输入 DeepL API Key')}
                 style={{ width: 400 }}
                 size="middle"
               />
@@ -169,7 +169,7 @@ const TranslateSettings: React.FC = () => {
                 onClick={handleSaveDeeplApiKey}
                 size="middle"
               >
-                保存
+                {t('保存')}
               </Button>
             </div>
             <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
@@ -185,7 +185,7 @@ const TranslateSettings: React.FC = () => {
           <b>{t('自动翻译')}：</b>
           <Switch checked={autoTranslate} onChange={handleAutoTranslateChange} style={{ marginLeft: 16 }} />
           <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
-            {t('开启后划词将自动翻译，无需手动点击')}
+            {t('开启后划词/输入内容将自动翻译，无需手动点击')}
           </div>
         </div>
         <Divider />
@@ -229,12 +229,12 @@ const TranslateSettings: React.FC = () => {
               onChange={handleSpeechSpeedChange}
               style={{ width: 120, marginLeft: 8 }}
             >
-              <Option value={0.5}>0.5x</Option>
-              <Option value={0.75}>0.75x</Option>
-              <Option value={1}>1x</Option>
-              <Option value={1.25}>1.25x</Option>
-              <Option value={1.5}>1.5x</Option>
-              <Option value={2}>2x</Option>
+              <Option value={0.5}>{t('0.5x')}</Option>
+              <Option value={0.75}>{t('0.75x')}</Option>
+              <Option value={1}>{t('1x')}</Option>
+              <Option value={1.25}>{t('1.25x')}</Option>
+              <Option value={1.5}>{t('1.5x')}</Option>
+              <Option value={2}>{t('2x')}</Option>
             </Select>
           </div>
           <div style={{ marginBottom: 12 }}>
@@ -244,11 +244,11 @@ const TranslateSettings: React.FC = () => {
               onChange={handleSpeechPitchChange}
               style={{ width: 120, marginLeft: 8 }}
             >
-              <Option value={0.5}>低音</Option>
-              <Option value={0.75}>中低音</Option>
-              <Option value={1}>正常</Option>
-              <Option value={1.25}>中高音</Option>
-              <Option value={1.5}>高音</Option>
+              <Option value={0.5}>{t('低音')}</Option>
+              <Option value={0.75}>{t('中低音')}</Option>
+              <Option value={1}>{t('正常')}</Option>
+              <Option value={1.25}>{t('中高音')}</Option>
+              <Option value={1.5}>{t('高音')}</Option>
             </Select>
           </div>
           <div style={{ marginBottom: 12 }}>
@@ -258,10 +258,10 @@ const TranslateSettings: React.FC = () => {
               onChange={handleSpeechVolumeChange}
               style={{ width: 120, marginLeft: 8 }}
             >
-              <Option value={0.25}>25%</Option>
-              <Option value={0.5}>50%</Option>
-              <Option value={0.75}>75%</Option>
-              <Option value={1}>100%</Option>
+              <Option value={0.25}>{t('25%')}</Option>
+              <Option value={0.5}>{t('50%')}</Option>
+              <Option value={0.75}>{t('75%')}</Option>
+              <Option value={1}>{t('100%')}</Option>
             </Select>
           </div>
         </div>

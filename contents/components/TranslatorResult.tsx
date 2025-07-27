@@ -5,6 +5,7 @@ import '../index.css';
 import { Storage } from '@plasmohq/storage';
 import { getEngineLangCode, getLangAbbr, getTTSLang, LANGUAGES, getBrowserLang } from '../../lib/languages';
 import { sendToBackground } from '@plasmohq/messaging';
+import { useTranslation } from 'react-i18next';
 
 declare global {
   interface Window {
@@ -71,9 +72,7 @@ const getText = (key: string) => {
 };
 
 const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
-  // 移除 useTranslation，使用自定义翻译函数
-  // const { t } = useTranslation();
-  
+  const { t } = useTranslation();
   // 所有 hooks 必须无条件执行，按照固定顺序
   const [targetLang, setTargetLang] = useState<string | undefined>(undefined);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -91,37 +90,31 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
   // 监听 favoriteLangs 变化
   useEffect(() => {
     const fetchFav = async () => {
-      const fav = await storage.get('favoriteLangs');
-      if (Array.isArray(fav)) setFavoriteLangs(fav);
+      try {
+        const fav = await storage.get('favoriteLangs');
+        if (Array.isArray(fav)) setFavoriteLangs(fav);
+      } catch (e) {
+        // 容错，防止 context invalidated 报错
+      }
     };
     fetchFav();
-    const handler = (val) => {
-      if (Array.isArray(val)) setFavoriteLangs(val);
-    };
-    storage.watch({ favoriteLangs: handler });
-    return () => { storage.unwatch({ favoriteLangs: handler }); };
   }, []);
 
   // 设置目标语言
   useEffect(() => {
-    // 如果props.targetLang存在，直接使用
     if (props.targetLang) {
       setTargetLang(props.targetLang);
       return;
     }
-    
-    // 如果favoriteLangs存在且不为空，使用第一个
     if (favoriteLangs.length > 0) {
       setTargetLang(favoriteLangs[0]);
       return;
     }
-    
-    // 只有在targetLang还没有设置时才使用默认值
     if (!targetLang) {
       const defaultLang = getEngineLangCode(getBrowserLang(), 'bing');
       setTargetLang(defaultLang);
     }
-  }, [props.targetLang, favoriteLangs]); // 移除targetLang依赖，避免循环
+  }, [props.targetLang, favoriteLangs]);
 
   // 翻译逻辑
   useEffect(() => {
@@ -184,7 +177,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
       })
       .catch(err => {
         console.error('翻译失败:', err);
-        setTranslatedText('翻译失败');
+        setTranslatedText(t('翻译失败'));
         setUsedEngine('');
         props.onTranslationComplete?.(); // 翻译失败时也调用回调
       })
@@ -204,14 +197,14 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
 
   // 自动朗读 - 使用 Edge TTS
   useEffect(() => {
-    if (props.autoRead && translatedText && translatedText !== '翻译失败') {
+    if (props.autoRead && translatedText && translatedText !== t('翻译失败')) {
       handleAutoRead();
     }
   }, [props.autoRead, translatedText, targetLang]);
 
   // 自动朗读处理函数
   const handleAutoRead = async () => {
-    if (!translatedText || translatedText === '翻译失败') return;
+    if (!translatedText || translatedText === t('翻译失败')) return;
 
     setIsSpeaking(true);
     
@@ -309,8 +302,8 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
   const handleSpeak = async (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    if (!translatedText || translatedText === '翻译失败') {
-      props.showMessage('warning', getText('noContentToSpeak'));
+    if (!translatedText || translatedText === t('翻译失败')) {
+      props.showMessage('warning', t('没有可朗读的内容'));
       return;
     }
 
@@ -327,11 +320,11 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
       }
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
-      props.showMessage('info', getText('speakStopped'));
+      props.showMessage('info', t('已停止朗读'));
     } else {
       // 开始朗读
       setIsSpeaking(true);
-      props.showMessage('success', getText('speakStarted'));
+      props.showMessage('success', t('开始朗读'));
       
       try {
         // 使用 Edge TTS 服务
@@ -363,18 +356,18 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
           
           utterance.onerror = () => {
             setIsSpeaking(false);
-            props.showMessage('error', '朗读失败');
+            props.showMessage('error', t('朗读失败'));
           };
           
           window.speechSynthesis.speak(utterance);
         } else {
           setIsSpeaking(false);
-          props.showMessage('error', '朗读功能不可用');
+          props.showMessage('error', t('朗读功能不可用'));
         }
       } catch (error) {
         console.error('朗读失败:', error);
         setIsSpeaking(false);
-        props.showMessage('error', '朗读失败');
+        props.showMessage('error', t('朗读失败'));
       }
     }
   };
@@ -385,25 +378,22 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
     if (translatedText) {
       try {
         await navigator.clipboard.writeText(translatedText);
-        props.showMessage('success', getText('copySuccess'));
+        props.showMessage('success', t('已复制'));
       } catch (err) {
-        props.showMessage('error', getText('copyFailed'));
+        props.showMessage('error', t('复制失败，可能是浏览器限制或权限问题'));
       }
     } else {
-      props.showMessage('warning', getText('noContentToCopy'));
+      props.showMessage('warning', t('没有可复制的内容'));
     }
   };
 
-  // hooks 顶层执行完毕，下面做条件渲染
+  // 顶层Hooks调用完毕后再做条件渲染
   const shouldHide = (
     !targetLang ||
     typeof props.x !== 'number' || typeof props.y !== 'number' ||
     isNaN(props.x) || isNaN(props.y)
   );
-
-  if (shouldHide) {
-    return null;
-  }
+  if (shouldHide) return null;
 
   return (
     <Card
@@ -428,12 +418,12 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
       onClick={(e) => e.stopPropagation()}
     >
       <div className="translator-result-content">
-        <div className="translator-result-text">{loading ? getText('translating') : translatedText}</div>
+        <div className="translator-result-text">{loading ? t('翻译中...') : translatedText}</div>
         
         {/* Footer区域 */}
         <Divider style={{ margin: '12px 0 8px 0' }} />
         <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
-          {usedEngine && translatedText !== '翻译失败' && `${getText('translationBy')} ${getEngineDisplayName(usedEngine)} ${getText('provided')}`}
+          {usedEngine && translatedText !== t('翻译失败') && `${t('本次翻译由')} ${getEngineDisplayName(usedEngine)} ${t('提供')}`}
         </div>
         <div
           style={{
@@ -476,7 +466,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
               icon={<SoundOutlined />}
               size="small"
               onClick={handleSpeak}
-              title={isSpeaking ? getText('stopSpeak') : getText('speak')}
+              title={isSpeaking ? t('停止朗读') : t('朗读')}
               style={{ marginRight: '4px' }}
               disabled={!translatedText}
             />
@@ -485,7 +475,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
               icon={<CopyOutlined />}
               size="small"
               onClick={handleCopy}
-              title={getText('copy')}
+              title={t('复制')}
               disabled={!translatedText}
             />
           </div>
