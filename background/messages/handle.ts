@@ -1,13 +1,14 @@
 import type { PlasmoMessaging } from "@plasmohq/messaging"
 import { handleTranslateMessage } from './translate';
 import { handleSpeechMessage } from './speech';
+import cacheHandler from './cache';
 
 // 添加初始化日志
 console.log('Handle script 已加载 - handle.ts');
 
 // 通用消息请求类型
 export interface HandlerRequest {
-  service: 'translate' | 'speech';
+  service: 'translate' | 'speech' | 'cache';
   action: string;
   [key: string]: any;
 }
@@ -82,6 +83,15 @@ const handler: PlasmoMessaging.MessageHandler<HandlerRequest, HandlerResponse> =
             success: false,
             error: `朗读处理失败: ${speechError instanceof Error ? speechError.message : String(speechError)}`
           });
+        }
+        break;
+        
+      case 'cache':
+        try {
+          const cacheResponse = await cacheHandler(req.body, null);
+          res.send(cacheResponse);
+        } catch (cacheError) {
+          res.send({ success: false, error: `缓存处理失败: ${cacheError instanceof Error ? cacheError.message : String(cacheError)}` });
         }
         break;
         

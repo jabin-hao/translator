@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Button, Space, Typography, Modal, Statistic, Row, Col, Switch, InputNumber, Divider, App } from 'antd';
+import { Card, Button, Typography, Modal, Switch, InputNumber, Divider, App } from 'antd';
 import { Icon } from '@iconify/react';
 import { useTranslation } from 'react-i18next';
 import { Storage } from '@plasmohq/storage';
-import { cacheManager, DEFAULT_CACHE_CONFIG } from '../../lib/cache';
+import { cacheManager } from '../../lib/cache';
+import { DEFAULT_CACHE_CONFIG } from '../../lib/constants';
+import { sendToBackground } from '@plasmohq/messaging';
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
 const storage = new Storage();
 
@@ -16,6 +18,8 @@ const CacheSettings: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [config, setConfig] = useState(DEFAULT_CACHE_CONFIG);
   const [cacheEnabled, setCacheEnabled] = useState(true);
+  // 新增本地 state 保存输入值
+  const [pendingConfig, setPendingConfig] = useState(DEFAULT_CACHE_CONFIG);
 
   // 加载缓存统计信息
   const loadStats = async () => {
@@ -51,14 +55,6 @@ const CacheSettings: React.FC = () => {
     });
   };
 
-  // 更新缓存配置
-  const handleConfigChange = async (key: keyof typeof config, value: number) => {
-    const newConfig = { ...config, [key]: value };
-    setConfig(newConfig);
-    cacheManager.updateConfig(newConfig);
-    message.success(t('缓存配置已更新'));
-  };
-
   // 切换缓存开关
   const handleCacheToggle = async (enabled: boolean) => {
     setCacheEnabled(enabled);
@@ -68,6 +64,22 @@ const CacheSettings: React.FC = () => {
   };
 
   useEffect(() => {
+    async function loadConfig() {
+      let raw = await storage.get('translation_cache_config');
+      let config: any = raw;
+      if (typeof raw === 'string') {
+        try {
+          config = JSON.parse(raw);
+        } catch {
+          config = DEFAULT_CACHE_CONFIG;
+        }
+      }
+      if (!config || typeof config.maxAge !== 'number') {
+        config = DEFAULT_CACHE_CONFIG;
+      }
+      setConfig(config);
+    }
+    loadConfig();
     loadStats();
     // 加载缓存开关状态，如果未设置则默认为 true
     storage.get('translation_cache_enabled').then((enabled) => {
@@ -80,6 +92,11 @@ const CacheSettings: React.FC = () => {
       }
     });
   }, []);
+
+  // 加载配置时同步到 pendingConfig
+  useEffect(() => {
+    setPendingConfig(config);
+  }, [config]);
 
   const formatSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} ${t('B')}`;
@@ -148,11 +165,9 @@ const CacheSettings: React.FC = () => {
                 <InputNumber
                   min={1}
                   max={720}
-                  value={config.maxAge / (1000 * 60 * 60)} // 转换为小时
-                  onChange={(value) => {
-                    if (value) {
-                      handleConfigChange('maxAge', value * 1000 * 60 * 60);
-                    }
+                  value={pendingConfig.maxAge / (1000 * 60 * 60)}
+                  onChange={value => {
+                    if (value) setPendingConfig(pc => ({ ...pc, maxAge: value * 1000 * 60 * 60 }));
                   }}
                   addonAfter={t('小时')}
                   style={{ width: 120 }}
@@ -168,16 +183,21 @@ const CacheSettings: React.FC = () => {
                 <InputNumber
                   min={100}
                   max={10000}
-                  value={config.maxSize}
-                  onChange={(value) => {
-                    if (value) {
-                      handleConfigChange('maxSize', value);
-                    }
+                  value={pendingConfig.maxSize}
+                  onChange={value => {
+                    if (value) setPendingConfig(pc => ({ ...pc, maxSize: value }));
                   }}
                   style={{ width: 120 }}
                 />
               </div>
             </div>
+            <Button type="primary" style={{ marginTop: 16 }} onClick={async () => {
+              setConfig(pendingConfig);
+              await cacheManager.updateConfig(pendingConfig);
+              await storage.set('translation_cache_config', pendingConfig);
+              await sendToBackground({ name: 'handle', body: { service: 'cache', action: 'reschedule' } });
+              message.success(t('缓存配置已保存'));
+            }}>{t('保存')}</Button>
           </div>
         </div>
 

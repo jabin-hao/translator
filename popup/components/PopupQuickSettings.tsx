@@ -1,24 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Select, Switch, Divider, message } from 'antd';
+import { Card, Select, Switch, Divider, message, Button } from 'antd';
 import { Storage } from '@plasmohq/storage';
 import { TRANSLATE_ENGINES } from '../../lib/engines';
 import { useTranslation } from 'react-i18next';
 
 // 1. 引入 storage 工具
 import {
-  getSiteTranslateSettings,
-  addAlwaysTranslateSite,
-  addNeverTranslateSite,
-  removeAlwaysTranslateSite,
-  removeNeverTranslateSite
+  getDictConfig,
+  addAlwaysSite,
+  removeAlwaysSite,
+  addNeverSite,
+  removeNeverSite
 } from '../../lib/siteTranslateSettings';
+import { TRANSLATE_SETTINGS_KEY, CACHE_KEY, SITE_LANG_KEY, TEXT_LANG_KEY } from '../../lib/constants';
 
 const storage = new Storage();
-
-const LOCAL_KEY = 'translate_settings';
-const CACHE_KEY = 'translation_cache_enabled';
-const SITE_LANG_KEY = 'pageTargetLang';
-const TEXT_LANG_KEY = 'textTargetLang';
 
 const PopupQuickSettings: React.FC = () => {
   const { t } = useTranslation();
@@ -33,7 +29,7 @@ const PopupQuickSettings: React.FC = () => {
   const [siteSettings, setSiteSettings] = useState({ always: false, never: false });
 
   useEffect(() => {
-    storage.get(LOCAL_KEY).then((data) => {
+    storage.get(TRANSLATE_SETTINGS_KEY).then((data) => {
       if (data && typeof data === 'object') {
         setEngine((data as any)?.engine || 'google');
         setAutoTranslate((data as any)?.autoTranslate ?? true);
@@ -59,10 +55,10 @@ const PopupQuickSettings: React.FC = () => {
         try {
           const host = new URL(url).hostname;
           setSiteHost(host);
-          const settings = await getSiteTranslateSettings();
+          const dict = await getDictConfig();
           setSiteSettings({
-            always: settings.alwaysTranslateSites.includes(host),
-            never: settings.neverTranslateSites.includes(host)
+            always: dict.siteAlwaysList.includes(host),
+            never: dict.siteNeverList.includes(host)
           });
         } catch {}
       }
@@ -71,20 +67,20 @@ const PopupQuickSettings: React.FC = () => {
 
   const handleEngineChange = async (val: string) => {
     setEngine(val);
-    const prev = (await storage.get(LOCAL_KEY)) || {};
-    await storage.set(LOCAL_KEY, { ...prev, engine: val });
+    const prev = (await storage.get(TRANSLATE_SETTINGS_KEY)) || {};
+    await storage.set(TRANSLATE_SETTINGS_KEY, { ...prev, engine: val });
     message.success(t('翻译引擎已保存'));
   };
   const handleAutoTranslateChange = async (checked: boolean) => {
     setAutoTranslate(checked);
-    const prev = (await storage.get(LOCAL_KEY)) || {};
-    await storage.set(LOCAL_KEY, { ...prev, autoTranslate: checked });
+    const prev = (await storage.get(TRANSLATE_SETTINGS_KEY)) || {};
+    await storage.set(TRANSLATE_SETTINGS_KEY, { ...prev, autoTranslate: checked });
     message.success(t('自动翻译设置已保存'));
   };
   const handleAutoReadChange = async (checked: boolean) => {
     setAutoRead(checked);
-    const prev = (await storage.get(LOCAL_KEY)) || {};
-    await storage.set(LOCAL_KEY, { ...prev, autoRead: checked });
+    const prev = (await storage.get(TRANSLATE_SETTINGS_KEY)) || {};
+    await storage.set(TRANSLATE_SETTINGS_KEY, { ...prev, autoRead: checked });
     message.success(t('自动朗读设置已保存'));
   };
   const handleCacheToggle = (checked: boolean) => {
@@ -106,28 +102,28 @@ const PopupQuickSettings: React.FC = () => {
   const handleAlways = async () => {
     if (!siteHost) return;
     if (siteSettings.always) {
-      await removeAlwaysTranslateSite(siteHost);
+      await removeAlwaysSite(siteHost);
     } else {
-      await addAlwaysTranslateSite(siteHost);
+      await addAlwaysSite(siteHost);
     }
-    const settings = await getSiteTranslateSettings();
+    const dict = await getDictConfig();
     setSiteSettings({
-      always: settings.alwaysTranslateSites.includes(siteHost),
-      never: settings.neverTranslateSites.includes(siteHost)
+      always: dict.siteAlwaysList.includes(siteHost),
+      never: dict.siteNeverList.includes(siteHost)
     });
     message.success(siteSettings.always ? t('已移除总是翻译该网站') : t('已添加到总是翻译该网站'));
   };
   const handleNever = async () => {
     if (!siteHost) return;
     if (siteSettings.never) {
-      await removeNeverTranslateSite(siteHost);
+      await removeNeverSite(siteHost);
     } else {
-      await addNeverTranslateSite(siteHost);
+      await addNeverSite(siteHost);
     }
-    const settings = await getSiteTranslateSettings();
+    const dict = await getDictConfig();
     setSiteSettings({
-      always: settings.alwaysTranslateSites.includes(siteHost),
-      never: settings.neverTranslateSites.includes(siteHost)
+      always: dict.siteAlwaysList.includes(siteHost),
+      never: dict.siteNeverList.includes(siteHost)
     });
     message.success(siteSettings.never ? t('已移除永不翻译该网站') : t('已添加到永不翻译该网站'));
   };
@@ -221,18 +217,23 @@ const PopupQuickSettings: React.FC = () => {
       </div>
       <Divider style={{ margin: '8px 0' }} />
       <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
-        <button
+        <Button
+          type={siteSettings.always ? 'primary' : 'default'}
+          block
           onClick={handleAlways}
-          style={{ flex: 1, background: siteSettings.always ? '#1890ff' : '#f0f0f0', color: siteSettings.always ? '#fff' : '#333', border: 'none', borderRadius: 6, padding: '6px 0', cursor: 'pointer' }}
+          style={{ borderRadius: 6 }}
         >
           {siteSettings.always ? t('已设为总是翻译该网站') : t('总是翻译该网站')}
-        </button>
-        <button
+        </Button>
+        <Button
+          type={siteSettings.never ? 'primary' : 'default'}
+          danger={siteSettings.never}
+          block
           onClick={handleNever}
-          style={{ flex: 1, background: siteSettings.never ? '#faad14' : '#f0f0f0', color: siteSettings.never ? '#fff' : '#333', border: 'none', borderRadius: 6, padding: '6px 0', cursor: 'pointer' }}
+          style={{ borderRadius: 6 }}
         >
           {siteSettings.never ? t('已设为永不翻译该网站') : t('永不翻译该网站')}
-        </button>
+        </Button>
       </div>
     </Card>
   );

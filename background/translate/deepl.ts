@@ -1,8 +1,8 @@
 import { getEngineLangCode } from '../../lib/languages';
 import { Storage } from '@plasmohq/storage';
+import { DEEPL_API_KEY } from '../../lib/constants';
 
 const storage = new Storage();
-const DEEPL_API_KEY = 'deepl_api_key';
 
 // DeepL 免费 API 接口
 export async function deeplTranslate(text: string, from: string, to: string): Promise<string> {

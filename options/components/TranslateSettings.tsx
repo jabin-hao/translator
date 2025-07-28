@@ -4,27 +4,27 @@ import { Storage } from '@plasmohq/storage';
 import { TRANSLATE_ENGINES, TTS_ENGINES } from '../../lib/engines';
 import { useTranslation } from 'react-i18next';
 import {
-  getSiteTranslateSettings,
   setAutoTranslateEnabled,
-  addAlwaysTranslateSite,
-  addNeverTranslateSite,
-  removeAlwaysTranslateSite,
-  removeNeverTranslateSite,
-  setSiteTranslateSettings
+  getDictConfig,
+  setDictConfig,
+  getCustomDict,
+  setCustomDict,
+  addAlwaysSite,
+  addNeverSite,
+  removeAlwaysSite,
+  removeNeverSite
 } from '../../lib/siteTranslateSettings';
 import { DeleteOutlined } from '@ant-design/icons';
+import { TRANSLATE_SETTINGS_KEY, SPEECH_KEY, DEEPL_API_KEY } from '../../lib/constants';
 const { Option } = Select;
 
-const LOCAL_KEY = 'translate_settings';
-const SPEECH_KEY = 'speech_settings';
-const DEEPL_API_KEY = 'deepl_api_key';
 const storage = new Storage();
 
 const TranslateSettings: React.FC = () => {
   const { t } = useTranslation();
   const [engine, setEngine] = useState('google');
   const [autoRead, setAutoRead] = useState(false);
-  const [autoTranslate, setAutoTranslate] = useState(true);
+  const [autoTranslate, setAutoTranslate] = useState(false);
   const [deeplApiKey, setDeeplApiKey] = useState('');
   const [deeplApiKeyInput, setDeeplApiKeyInput] = useState('');
   
@@ -35,7 +35,7 @@ const TranslateSettings: React.FC = () => {
   const [speechVolume, setSpeechVolume] = useState(1);
 
   // 网站自动翻译相关 state
-  const [siteAutoEnabled, setSiteAutoEnabled] = useState(true);
+  const [siteAutoEnabled, setSiteAutoEnabled] = useState(false);
   const [alwaysSites, setAlwaysSites] = useState<string[]>([]);
   const [neverSites, setNeverSites] = useState<string[]>([]);
   const [addHost, setAddHost] = useState('');
@@ -59,11 +59,11 @@ const TranslateSettings: React.FC = () => {
 
   useEffect(() => {
     // 读取翻译设置
-    storage.get(LOCAL_KEY).then((data) => {
+    storage.get(TRANSLATE_SETTINGS_KEY).then((data) => {
       if (data && typeof data === 'object') {
         setEngine((data as any)?.engine || 'google');
         setAutoRead(!!(data as any)?.autoRead);
-        setAutoTranslate((data as any)?.autoTranslate ?? true);
+        setAutoTranslate((data as any)?.autoTranslate ?? false);
       }
     });
     
@@ -86,17 +86,17 @@ const TranslateSettings: React.FC = () => {
     });
 
     // 初始化读取网站翻译设置
-    getSiteTranslateSettings().then(s => {
-      setSiteAutoEnabled(s.autoTranslateEnabled);
-      setAlwaysSites(s.alwaysTranslateSites);
-      setNeverSites(s.neverTranslateSites);
-      setPageTranslateMode((s as any).pageTranslateMode || 'translated');
+    getDictConfig().then(dict => {
+      setSiteAutoEnabled(dict.autoTranslateEnabled ?? false);
+      setAlwaysSites(dict.siteAlwaysList || []);
+      setNeverSites(dict.siteNeverList || []);
+      setPageTranslateMode(dict.pageTranslateMode === 'compare' ? 'compare' : 'translated');
     });
   }, []);
 
   useEffect(() => {
     // 保存翻译设置
-    storage.set(LOCAL_KEY, { engine, autoRead, autoTranslate });
+    storage.set(TRANSLATE_SETTINGS_KEY, { engine, autoRead, autoTranslate });
   }, [engine, autoRead, autoTranslate]);
 
   useEffect(() => {
@@ -121,7 +121,7 @@ const TranslateSettings: React.FC = () => {
 
   const handleAutoTranslateChange = (checked: boolean) => {
     setAutoTranslate(checked);
-    storage.set(LOCAL_KEY, {
+    storage.set(TRANSLATE_SETTINGS_KEY, {
       engine,
       autoRead,
       autoTranslate: checked
@@ -169,54 +169,62 @@ const TranslateSettings: React.FC = () => {
     message.success(checked ? t('已开启网站自动翻译') : t('已关闭网站自动翻译'));
   };
   const handleRemoveAlways = async (host: string) => {
-    await removeAlwaysTranslateSite(host);
-    const s = await getSiteTranslateSettings();
-    setAlwaysSites(s.alwaysTranslateSites);
+    console.log('remove always', host);
+    await removeAlwaysSite(host);
+    const dict = await getDictConfig();
+    console.log('after remove', dict.siteAlwaysList);
+    setAlwaysSites(dict.siteAlwaysList || []);
+    message.success(t('已移除白名单'));
   };
   const handleRemoveNever = async (host: string) => {
-    await removeNeverTranslateSite(host);
-    const s = await getSiteTranslateSettings();
-    setNeverSites(s.neverTranslateSites);
+    console.log('remove never', host);
+    await removeNeverSite(host);
+    const dict = await getDictConfig();
+    setNeverSites(dict.siteNeverList || []);
+    message.success(t('已移除黑名单'));
   };
   const handleAddHost = async () => {
-    if (!addHost) return;
+    const host = addHost.trim();
+    if (!host) return;
     if (addType === 'always') {
-      await addAlwaysTranslateSite(addHost);
-      const s = await getSiteTranslateSettings();
-      setAlwaysSites(s.alwaysTranslateSites);
+      await addAlwaysSite(host);
+      const dict = await getDictConfig();
+      setAlwaysSites(dict.siteAlwaysList || []);
+      message.success(t('已加入白名单'));
     } else {
-      await addNeverTranslateSite(addHost);
-      const s = await getSiteTranslateSettings();
-      setNeverSites(s.neverTranslateSites);
+      await addNeverSite(host);
+      const dict = await getDictConfig();
+      setNeverSites(dict.siteNeverList || []);
+      message.success(t('已加入黑名单'));
     }
     setAddHost('');
   };
 
   const handlePageTranslateModeChange = async (e) => {
     setPageTranslateMode(e.target.value);
-    const s = await getSiteTranslateSettings();
-    await setSiteTranslateSettings({ ...s, pageTranslateMode: e.target.value });
+    const dict = await getDictConfig();
+    await setDictConfig({ ...dict, pageTranslateMode: e.target.value });
     message.success(t('整页翻译模式已保存'));
   };
 
   const handleEditDict = async (host: string) => {
     setDictHost(host);
-    const dict = await storage.get(`site_custom_dict_${host}`) || {};
+    const dict = await getCustomDict(host) || {};
     setDictData(dict);
     setDictModalOpen(true);
   };
 
   const handleSaveDict = async () => {
     if (dictHost) {
-      await storage.set(`site_custom_dict_${dictHost}`, dictData);
+      await setCustomDict(dictHost, dictData);
       setDictModalOpen(false);
       message.success('词库已保存');
     }
   };
 
   // 只展示最新5个（倒序）
-  const alwaysSitesToShow = alwaysSites.slice(-5).reverse();
-  const neverSitesToShow = neverSites.slice(-5).reverse();
+  const alwaysSitesToShow = (alwaysSites || []).slice(-5).reverse();
+  const neverSitesToShow = (neverSites || []).slice(-5).reverse();
 
   return (
     <Card
@@ -384,7 +392,7 @@ const TranslateSettings: React.FC = () => {
           <Input
             value={addHost}
             onChange={e => setAddHost(e.target.value)}
-            placeholder={t('输入域名，如 example.com')}
+            placeholder={t('输入域名，如 github.com')}
             style={{ width: 220 }}
           />
           <Select value={addType} onChange={v => setAddType(v)} style={{ width: 100 }}>
@@ -478,17 +486,17 @@ const TranslateSettings: React.FC = () => {
             for (const host of selectedAlways) await handleRemoveAlways(host);
             setSelectedAlways([]);
             setShowAllAlways(false);
-            const s = await getSiteTranslateSettings();
-            setAlwaysSites(s.alwaysTranslateSites);
-            setNeverSites(s.neverTranslateSites);
+            const dict = await getDictConfig();
+            setAlwaysSites(dict.siteAlwaysList || []);
+            setNeverSites(dict.siteNeverList || []);
           }}>{t('批量移除')}</Button>,
           <Button key="toNever" disabled={selectedAlways.length === 0} onClick={async () => {
-            for (const host of selectedAlways) await addNeverTranslateSite(host);
+            for (const host of selectedAlways) await addNeverSite(host);
             setSelectedAlways([]);
             setShowAllAlways(false);
-            const s = await getSiteTranslateSettings();
-            setAlwaysSites(s.alwaysTranslateSites);
-            setNeverSites(s.neverTranslateSites);
+            const dict = await getDictConfig();
+            setAlwaysSites(dict.siteAlwaysList || []);
+            setNeverSites(dict.siteNeverList || []);
           }}>{t('批量转移到黑名单')}</Button>
         ]}
       >
@@ -521,17 +529,17 @@ const TranslateSettings: React.FC = () => {
             for (const host of selectedNever) await handleRemoveNever(host);
             setSelectedNever([]);
             setShowAllNever(false);
-            const s = await getSiteTranslateSettings();
-            setAlwaysSites(s.alwaysTranslateSites);
-            setNeverSites(s.neverTranslateSites);
+            const dict = await getDictConfig();
+            setAlwaysSites(dict.siteAlwaysList || []);
+            setNeverSites(dict.siteNeverList || []);
           }}>{t('批量移除')}</Button>,
           <Button key="toAlways" disabled={selectedNever.length === 0} onClick={async () => {
-            for (const host of selectedNever) await addAlwaysTranslateSite(host);
+            for (const host of selectedNever) await addAlwaysSite(host);
             setSelectedNever([]);
             setShowAllNever(false);
-            const s = await getSiteTranslateSettings();
-            setAlwaysSites(s.alwaysTranslateSites);
-            setNeverSites(s.neverTranslateSites);
+            const dict = await getDictConfig();
+            setAlwaysSites(dict.siteAlwaysList || []);
+            setNeverSites(dict.siteNeverList || []);
           }}>{t('批量转移到白名单')}</Button>
         ]}
       >
@@ -558,7 +566,7 @@ const TranslateSettings: React.FC = () => {
         onOk={handleSaveDict}
         title={dictHost ? `自定义词库 - ${dictHost}` : '自定义词库'}
         width={480}
-        bodyStyle={{ display: 'block' }}
+        styles={{ body: { display: 'block' } }}
         cancelText="取消"
         okText="保存"
       >

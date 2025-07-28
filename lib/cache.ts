@@ -1,5 +1,6 @@
 // 翻译缓存管理模块 - 参考 Traduzir-paginas-web 实现
 import { Storage } from "@plasmohq/storage"
+import { DEFAULT_CACHE_CONFIG } from './constants';
 
 // 缓存条目接口
 export interface TranslationCache {
@@ -13,12 +14,6 @@ export interface CacheConfig {
   maxAge: number; // 缓存最大年龄（毫秒）
   maxSize: number; // 最大缓存条目数
 }
-
-// 默认缓存配置
-export const DEFAULT_CACHE_CONFIG: CacheConfig = {
-  maxAge: 24 * 60 * 60 * 1000, // 24小时
-  maxSize: 1000, // 最大1000条缓存
-};
 
 // 工具类
 class Utils {

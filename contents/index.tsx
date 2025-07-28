@@ -23,8 +23,9 @@ import InputTranslator from './components/InputTranslator';
 import i18n, { initI18n } from '../i18n';
 
 // 1. 引入 storage 工具
-import { getSiteTranslateSettings } from '../lib/siteTranslateSettings';
+import { getSiteTranslateSettings, getDictConfig } from '../lib/siteTranslateSettings';
 import { lazyFullPageTranslate } from '../lib/fullPageTranslate';
+import { TRANSLATE_SETTINGS_KEY, CACHE_KEY, PAGE_LANG_KEY, TEXT_LANG_KEY } from '../lib/constants';
 
 const storage = new Storage();
 
@@ -32,10 +33,10 @@ const storage = new Storage();
 async function initializeDefaultSettings() {
   try {
     // 检查并设置缓存默认值
-    const cacheEnabled = await storage.get('translation_cache_enabled');
+    const cacheEnabled = await storage.get(CACHE_KEY);
     if (cacheEnabled === null || cacheEnabled === undefined) {
       console.log('设置缓存默认值为启用');
-      await storage.set('translation_cache_enabled', true);
+      await storage.set(CACHE_KEY, true);
     }
   } catch (error) {
     console.error('初始化默认设置失败:', error);
@@ -606,7 +607,7 @@ const ContentScript = () => {
 
   // 初始化时读取设置
   useEffect(() => {
-    storage.get('translate_settings').then((data) => {
+    storage.get(TRANSLATE_SETTINGS_KEY).then((data) => {
       if (data && typeof data === 'object') {
         setEngine((data as any)?.engine || 'google');
         setAutoRead(!!(data as any)?.autoRead);
@@ -614,7 +615,7 @@ const ContentScript = () => {
     });
     // 新增：监听 storage 变化，实时同步引擎设置
     storage.watch({
-      'translate_settings': (newValue) => {
+      [TRANSLATE_SETTINGS_KEY]: (newValue) => {
         if (newValue && typeof newValue === 'object') {
           setEngine((newValue as any)?.engine || 'google');
           setAutoRead(!!(newValue as any)?.autoRead);
@@ -651,14 +652,14 @@ const ContentScript = () => {
 
   // 新增：初始化textTargetLang和favoriteLangs，并监听storage变化
   useEffect(() => {
-    storage.get('textTargetLang').then(val => {
+    storage.get(TEXT_LANG_KEY).then(val => {
       if (val) setTextTargetLang(val);
     });
     storage.get('favoriteLangs').then(val => {
       if (Array.isArray(val)) setFavoriteLangs(val);
     });
     storage.watch({
-      'textTargetLang': (change) => {
+      [TEXT_LANG_KEY]: (change) => {
         if (change.newValue) setTextTargetLang(change.newValue);
       },
       'favoriteLangs': (change) => {
@@ -669,14 +670,14 @@ const ContentScript = () => {
 
   // 新增：控制自动翻译
   useEffect(() => {
-    storage.get('translate_settings').then((data) => {
+    storage.get(TRANSLATE_SETTINGS_KEY).then((data) => {
       if (data && typeof data === 'object') {
         setAutoTranslate((data as any)?.autoTranslate ?? true);
       }
     });
     // 监听 storage 变化
     storage.watch({
-      'translate_settings': (change) => {
+      [TRANSLATE_SETTINGS_KEY]: (change) => {
         if (change.newValue && typeof change.newValue === 'object') {
           setAutoTranslate((change.newValue as any)?.autoTranslate ?? true);
         }
@@ -940,11 +941,11 @@ const ContentScript = () => {
   // 读取网页翻译目标语言
   const [pageTargetLang, setPageTargetLang] = useState('zh-CN');
   useEffect(() => {
-    storage.get('pageTargetLang').then((val) => {
+    storage.get(PAGE_LANG_KEY).then((val) => {
       if (val) setPageTargetLang(val);
     });
     storage.watch({
-      'pageTargetLang': (change) => {
+      [PAGE_LANG_KEY]: (change) => {
         if (change.newValue) setPageTargetLang(change.newValue);
       }
     });
@@ -956,8 +957,8 @@ const ContentScript = () => {
       const host = window.location.hostname;
       const settings = await getSiteTranslateSettings();
       if (!settings.autoTranslateEnabled) return;
-      if (settings.neverTranslateSites.includes(host)) return;
-      if (settings.alwaysTranslateSites.includes(host)) {
+      if ((await getDictConfig()).siteNeverList.includes(host)) return;
+      if ((await getDictConfig()).siteAlwaysList.includes(host)) {
         if (typeof (window as any).__autoFullPageTranslated === 'undefined') {
           (window as any).__autoFullPageTranslated = true;
           const mode = (settings as any).pageTranslateMode || 'translated';

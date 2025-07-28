@@ -9,26 +9,16 @@ function isVisible(node: Node): boolean {
 }
 
 import { sendToBackground } from '@plasmohq/messaging';
-import { Storage } from '@plasmohq/storage';
-const storage = new Storage();
+import { getCustomDict } from './siteTranslateSettings';
+import { PROGRAMMING_LANGUAGES, CODE_FILE_SUFFIXES, GITHUB_CODE_SELECTORS, GITHUB_CODE_CLASSES, EXCLUDE_TAGS } from './constants';
 
 function getDomain() {
   return location.hostname.replace(/^www\./, '');
 }
 
-async function applyCustomDictionaryBatch(texts: string[], domain: string): Promise<string[]> {
-  const dict = await storage.get(`site_custom_dict_${domain}`) || {};
-  // 构建去除前后空格的映射，提升健壮性
-  const dictTrimmed: Record<string, string> = {};
-  for (const k in dict) {
-    dictTrimmed[k.trim()] = dict[k].trim();
-  }
-  return texts.map(t => dictTrimmed[(t || '').trim()] || t);
-}
-
 async function batchTranslateTexts(texts: string[], from: string, to: string, engine: string): Promise<string[]> {
   const domain = getDomain();
-  const dict = await storage.get(`site_custom_dict_${domain}`) || {};
+  const dict = await getCustomDict(domain);
   const dictTrimmed: Record<string, string> = {};
   for (const k in dict) {
     dictTrimmed[k.trim()] = dict[k].trim();
@@ -91,13 +81,6 @@ function hasCompareAncestor(node: Node): boolean {
   }
   return false;
 }
-
-// 常见编程语言名称
-const PROGRAMMING_LANGUAGES = [
-  'javascript', 'typescript', 'python', 'java', 'c', 'c++', 'c#', 'go', 'rust', 'php', 'ruby', 'swift', 'kotlin',
-  'scala', 'perl', 'lua', 'dart', 'objective-c', 'shell', 'bash', 'powershell', 'sql', 'html', 'css', 'json', 'yaml', 'xml',
-  'r', 'matlab', 'groovy', 'elixir', 'clojure', 'haskell', 'fortran', 'assembly', 'erlang', 'f#', 'vb', 'visual basic', 'delphi'
-];
 
 function isProgrammingLanguageName(text: string): boolean {
   const t = text.trim().toLowerCase();
@@ -191,93 +174,10 @@ function hasSiblingCompareSpan(node: Text): boolean {
   return false;
 }
 
-// 常见编程和配置文件后缀（去重并补充）
-const CODE_FILE_SUFFIXES = [
-  '.js', '.ts', '.jsx', '.tsx', '.c', '.cpp', '.h', '.hpp', '.py', '.java', '.go', '.rb', '.php', '.cs', '.swift', '.kt', '.m', '.sh', '.bat', '.pl', '.rs', '.dart', '.scala', '.lua', '.json', '.yaml', '.yml', '.xml', '.ini', '.conf', '.md', '.txt', '.csv', '.tsv', '.log', '.html', '.htm', '.css', '.scss', '.less', '.vue', '.svelte', '.lock', '.toml', '.gradle', '.make', '.mk', '.dockerfile', '.gitignore', '.gitattributes', '.env', '.config', '.properties', '.asm', '.sql', '.db', '.db3', '.sqlite', '.ps1', '.psm1', '.jsp', '.asp', '.aspx', '.vb', '.vbs', '.f90', '.f95', '.f03', '.f08', '.r', '.jl', '.groovy', '.erl', '.ex', '.exs', '.clj', '.cljs', '.edn', '.coffee', '.mjs', '.cjs', '.eslintrc', '.babelrc', '.npmrc', '.prettierrc', '.editorconfig', '.plist', '.crt', '.pem', '.key', '.csr', '.pub'
-];
-
 function isCodeFileName(text: string): boolean {
   const trimmed = text.trim();
   return CODE_FILE_SUFFIXES.some(suffix => trimmed.toLowerCase().endsWith(suffix));
 }
-
-// 精简后的 GitHub 代码区选择器和类名（只保留真正代码区/编辑器相关）
-const GITHUB_CODE_SELECTORS = [
-  '.blob-wrapper',
-  '.blob-code',
-  '.blob-code-inner', 
-  '.blob-code-marker',
-  '.blob-code-context',
-  '.blob-code-addition',
-  '.blob-code-deletion',
-  '.blob-num',
-  '.blob-num-addition',
-  '.blob-num-deletion',
-  '.blob-num-context',
-  '.blob-num-hunk',
-  '.CodeMirror',
-  '.CodeMirror-line',
-  '.CodeMirror-code',
-  '.CodeMirror-lines',
-  '.cm-editor',
-  '.cm-content',
-  '.cm-line',
-  '.cm-scroller',
-  '.js-file-line',
-  '.js-line-number',
-  '.monaco-editor',
-  '.monaco-scrollable-element',
-  '.view-lines',
-  '.view-line',
-  '.highlight-source',
-  '.pl-token',
-  '.pl-c',
-  '.pl-s',
-  '.pl-k',
-  '.pl-v',
-  '.pl-en',
-  '.pl-pds',
-  '.pl-smi',
-  '.pl-smw',
-  '.code-list',
-  '.code-list-item',
-  '.search-code-line',
-  '.file-diff',
-  '.diff-table',
-];
-
-const GITHUB_CODE_CLASSES = [
-  'highlight', 'blob-code', 'hljs', 'language-', 'editor', 'CodeMirror', 'monaco', 'blob-textarea',
-  'react-blob', 'file-editor', 'js-blob', 'js-code', 'cm-content', 'blob-code-inner', 'blob-code-marker',
-  'blob-code-context', 'blob-code-addition', 'blob-code-deletion', 'react-blob-textarea',
-  'blob-wrapper', 'blob-num', 'file-diff', 'diff-table', 'js-file-line', 'js-line-number',
-  'code-list', 'search-code-line', 'highlight-source', 'file-navigation', 'js-navigation-item', 'file-tree',
-  'monaco-editor', 'view-lines', 'view-line',
-  // Prism.js/高亮
-  'token', 'keyword', 'string', 'comment', 'number', 'operator', 'punctuation',
-  'function', 'class-name', 'variable', 'constant', 'boolean', 'regex',
-  // 通用代码标识符
-  'source-code', 'syntax-highlight', 'code-block', 'code-snippet', 'terminal',
-  'console', 'shell', 'command-line', 'output'
-];
-
-// 全局排除标签、class、选择器，可后续扩展
-const EXCLUDE_TAGS = [
-  'code', 'pre', 'samp', 'kbd', 'var', 'script', 'style', 'textarea', 'input'
-];
-
-const EXCLUDE_SELECTORS = [
-  '[contenteditable]',
-  // GitHub特定选择器
-  '[data-code-marker]',
-  '[data-line-number]',
-  '[data-file-type]',
-  '[role="gridcell"]', // GitHub表格单元格，通常包含代码
-  '[class*="blob-"]',
-  '[class*="CodeMirror"]',
-  '[class*="monaco"]',
-  '[class*="highlight"]'
-];
 
 /**
  * 检查元素是否匹配特定选择器列表
@@ -292,30 +192,6 @@ function matchesSelectors(element: HTMLElement, selectors: string[]): boolean {
   });
 }
 
-/**
- * 检查是否在GitHub代码相关容器中
- */
-function isInGitHubCodeContainer(element: HTMLElement): boolean {
-  // 检查当前元素及所有祖先元素
-  let current: HTMLElement | null = element;
-  while (current) {
-    // 检查是否匹配GitHub代码选择器
-    if (matchesSelectors(current, GITHUB_CODE_SELECTORS)) {
-      return true;
-    }
-    
-    // 检查data属性
-    if (current.hasAttribute('data-code-marker') ||
-        current.hasAttribute('data-line-number') ||
-        current.hasAttribute('data-file-type') ||
-        current.getAttribute('role') === 'gridcell') {
-      return true;
-    }
-    
-    current = current.parentElement;
-  }
-  return false;
-}
 
 /**
  * 检查文本内容是否像代码

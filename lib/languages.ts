@@ -60,11 +60,13 @@ export function getSpeechLang(code: string): string {
 
 // UI 语言 code 映射为 i18n 资源 key
 export function mapUiLangToI18nKey(lang: string | undefined): string {
-  const supported = ['zh', 'zh-TW', 'en', 'ja', 'ko', 'fr', 'de', 'es', 'ru', 'pt'];
-  if (!lang) return 'zh';
-  if (supported.includes(lang)) return lang;
+  if (!lang) return 'zh-CN';
+  // 先精确匹配 UI_LANGUAGES
+  const uiLang = UI_LANGUAGES.find(l => l.code === lang);
+  if (uiLang) return uiLang.code;
+  // 兼容常见前缀
   if (lang.startsWith('zh-TW') || lang.startsWith('zh-HK') || lang.startsWith('zh-MO')) return 'zh-TW';
-  if (lang.startsWith('zh')) return 'zh';
+  if (lang.startsWith('zh')) return 'zh-CN';
   if (lang.startsWith('en')) return 'en';
   if (lang.startsWith('ja')) return 'ja';
   if (lang.startsWith('ko')) return 'ko';
@@ -73,7 +75,7 @@ export function mapUiLangToI18nKey(lang: string | undefined): string {
   if (lang.startsWith('es')) return 'es';
   if (lang.startsWith('ru')) return 'ru';
   if (lang.startsWith('pt')) return 'pt';
-  return 'zh';
+  return 'zh-CN';
 }
 
 export function getTTSLang(code: string): string {

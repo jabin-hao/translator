@@ -1,21 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Select, Switch, Card, Radio, Divider, Button, message, Upload, Typography, Space, Modal } from 'antd';
+import { Select, Card, Radio, Divider, Button, message, Upload, Typography, Space, Modal } from 'antd';
 import { Storage } from '@plasmohq/storage';
 import { LANGUAGES, UI_LANGUAGES } from '../../lib/languages';
 import { UploadOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
+import {POPUP_SETTINGS_KEY, PLUGIN_THEME_KEY, CONTENT_THEME_KEY, TRANSLATION_CACHE_CONFIG_KEY, UI_LANG_KEY, SHORTCUT_SETTINGS_KEY, PAGE_LANG_KEY, TEXT_LANG_KEY, FAVORITE_LANGS_KEY, NEVER_LANGS_KEY, ALWAYS_LANGS_KEY, TRANSLATE_SETTINGS_KEY, SITE_TRANSLATE_SETTINGS_KEY, DICT_KEY } from '../../lib/constants';
 
 const { Title, Paragraph } = Typography;
 
 const storage = new Storage();
 
-const LOCAL_KEY = 'popup_settings';
-const THEME_KEY = 'plugin_theme_mode';
-const CONTENT_THEME_KEY = 'content_theme_mode';
-
 async function getInitSettings() {
   try {
-    const settings = await storage.get(LOCAL_KEY);
+    const settings = await storage.get(POPUP_SETTINGS_KEY);
     if (settings) return settings;
   } catch {}
   return { targetLang: 'zh', autoTranslate: true };
@@ -39,7 +36,8 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
   const { t, i18n } = useTranslation();
   // 删除 targetLang 相关
   const [contentTheme, setContentTheme] = useState('auto');
-  const [uiLang, setUiLang] = useState('');
+  // 将 uiLang 的 useState 初始值设为 undefined
+  const [uiLang, setUiLang] = useState<string | undefined>(undefined);
   const [clearConfigModalVisible, setClearConfigModalVisible] = useState(false);
 
   useEffect(() => {
@@ -68,7 +66,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
 
   useEffect(() => {
     const getUiLang = async () => {
-      let val = await storage.get('uiLang');
+      let val = await storage.get(UI_LANG_KEY);
       if (!val) {
         // 自动检测浏览器语言，使用正确的映射函数
         const browserLang = navigator.language;
@@ -78,7 +76,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
         val = mapUiLangToI18nKey(browserLang);
         
         // 保存检测到的语言到storage
-        await storage.set('uiLang', val);
+        await storage.set(UI_LANG_KEY, val);
       }
       setUiLang(val);
       // 只有当当前i18n语言与检测到的语言不同时才调用changeLanguage
@@ -91,7 +89,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
 
   const saveUiLang = async (val) => {
     setUiLang(val);
-    await storage.set('uiLang', val);
+    await storage.set(UI_LANG_KEY, val);
     // 只有当语言真正改变时才调用changeLanguage
     if (i18n.language !== val) {
       await i18n.changeLanguage(val);
@@ -102,7 +100,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
   // 主题切换时同步 localStorage，保证多标签页同步
   const handleThemeChange = async (e) => {
     setThemeMode(e.target.value);
-    await storage.set('plugin_theme_mode', e.target.value);
+    await storage.set(PLUGIN_THEME_KEY, e.target.value);
   };
 
   return (
@@ -163,22 +161,26 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
                 icon={<DownloadOutlined />}
                 onClick={async () => {
                   const keys = [
-                    'uiLang',
-                    'pageTargetLang',
-                    'textTargetLang',
-                    'favoriteLangs',
-                    'neverLangs',
-                    'alwaysLangs',
-                    'translate_settings',
-                    'popup_settings',
-                    'plugin_theme_mode',
-                    'content_theme_mode',
-                    'shortcut_settings',
+                    UI_LANG_KEY,
+                    PAGE_LANG_KEY,
+                    TEXT_LANG_KEY,
+                    FAVORITE_LANGS_KEY,
+                    NEVER_LANGS_KEY,
+                    ALWAYS_LANGS_KEY,
+                    TRANSLATE_SETTINGS_KEY,
+                    SITE_TRANSLATE_SETTINGS_KEY,
+                    POPUP_SETTINGS_KEY,
+                    PLUGIN_THEME_KEY,
+                    CONTENT_THEME_KEY,
+                    SHORTCUT_SETTINGS_KEY,
+                    TRANSLATION_CACHE_CONFIG_KEY,
                   ];
                   const data = {};
                   for (const key of keys) {
                     data[key] = await storage.get(key);
                   }
+                  // 直接导出 dict 字段
+                  data['dict'] = await storage.get('dict') || {};
                   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
                   const url = URL.createObjectURL(blob);
                   const a = document.createElement('a');
@@ -201,20 +203,29 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
                     const text = await file.text();
                     const json = JSON.parse(text);
                     const keys = [
-                      'uiLang',
-                      'pageTargetLang',
-                      'textTargetLang',
-                      'favoriteLangs',
-                      'neverLangs',
-                      'alwaysLangs',
-                      'translate_settings',
-                      'popup_settings',
-                      'plugin_theme_mode',
-                      'content_theme_mode',
-                      'shortcut_settings',
+                      UI_LANG_KEY,
+                      PAGE_LANG_KEY,
+                      TEXT_LANG_KEY,
+                      FAVORITE_LANGS_KEY,
+                      NEVER_LANGS_KEY,
+                      ALWAYS_LANGS_KEY,
+                      TRANSLATE_SETTINGS_KEY,
+                      POPUP_SETTINGS_KEY,
+                      PLUGIN_THEME_KEY,
+                      CONTENT_THEME_KEY,
+                      SHORTCUT_SETTINGS_KEY,
+                      TRANSLATION_CACHE_CONFIG_KEY,
                     ];
                     for (const key of keys) {
-                      await storage.set(key, json[key]);
+                      if (json[key] !== undefined) {
+                        await storage.set(key, json[key]);
+                      }
+                    }
+                    // 导入所有自定义词库
+                    if (json.customDicts) {
+                      for (const host in json.customDicts) {
+                        await storage.set(`site_custom_dict_${host}`, json.customDicts[host]);
+                      }
                     }
                     message.success('配置已导入（已完全覆盖）');
                     setTimeout(() => window.location.reload(), 1000);
@@ -261,22 +272,27 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
         onOk={async () => {
           try {
             const keys = [
-              'uiLang',
-              'pageTargetLang',
-              'textTargetLang',
-              'favoriteLangs',
-              'neverLangs',
-              'alwaysLangs',
-              'translate_settings',
-              'popup_settings',
-              'plugin_theme_mode',
-              'content_theme_mode',
-              'shortcut_settings',
+              UI_LANG_KEY,
+              DICT_KEY,
+              PAGE_LANG_KEY,
+              TEXT_LANG_KEY,
+              FAVORITE_LANGS_KEY,
+              NEVER_LANGS_KEY,
+              ALWAYS_LANGS_KEY,
+              TRANSLATE_SETTINGS_KEY,
+              SITE_TRANSLATE_SETTINGS_KEY,
+              POPUP_SETTINGS_KEY,
+              PLUGIN_THEME_KEY,
+              CONTENT_THEME_KEY,
+              SHORTCUT_SETTINGS_KEY,
+              TRANSLATION_CACHE_CONFIG_KEY,
             ];
             // 清空所有配置
             for (const key of keys) {
               await storage.remove(key);
             }
+            // 重置缓存配置为 7*24小时、2000条
+            await storage.set(TRANSLATION_CACHE_CONFIG_KEY, { maxAge: 7*24*60*60*1000, maxSize: 2000 });
             message.success(t('配置已清空，页面即将刷新'));
             setTimeout(() => window.location.reload(), 1000);
           } catch (err) {
