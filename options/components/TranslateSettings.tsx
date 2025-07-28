@@ -12,7 +12,8 @@ import {
   addAlwaysSite,
   addNeverSite,
   removeAlwaysSite,
-  removeNeverSite
+  removeNeverSite,
+  removeCustomDict
 } from '../../lib/siteTranslateSettings';
 import { DeleteOutlined } from '@ant-design/icons';
 import { TRANSLATE_SETTINGS_KEY, SPEECH_KEY, DEEPL_API_KEY } from '../../lib/constants';
@@ -171,10 +172,11 @@ const TranslateSettings: React.FC = () => {
   const handleRemoveAlways = async (host: string) => {
     console.log('remove always', host);
     await removeAlwaysSite(host);
+    await removeCustomDict(host);
     const dict = await getDictConfig();
     console.log('after remove', dict.siteAlwaysList);
     setAlwaysSites(dict.siteAlwaysList || []);
-    message.success(t('已移除白名单'));
+    message.success(t('已移除白名单并清除词库'));
   };
   const handleRemoveNever = async (host: string) => {
     console.log('remove never', host);

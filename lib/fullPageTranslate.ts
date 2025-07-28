@@ -124,6 +124,31 @@ function collectAllTextNodes(root: HTMLElement, translatedSet: Set<Text>, mode?:
     totalFound++;
     const parent = node.parentElement;
     if (parent && isVisible(parent) && node.nodeValue && node.nodeValue.trim()) {
+      // 跳过输入组件及其祖先为输入组件的内容（包括 className 含 input 的）
+      let skip = false;
+      let p = parent;
+      while (p) {
+        const tag = p.tagName.toLowerCase();
+        const className = typeof p.className === 'string'
+          ? p.className
+          : (p.className && typeof (p.className as any).baseVal === 'string'
+              ? (p.className as any).baseVal
+              : '');
+        if (
+          tag === 'input' ||
+          tag === 'textarea' ||
+          p.hasAttribute('contenteditable') ||
+          className.toLowerCase().includes('input')
+        ) {
+          skip = true;
+          break;
+        }
+        p = p.parentElement;
+      }
+      if (skip) {
+        node = walker.nextNode() as Text;
+        continue;
+      }
       if (isCodeContext(node)) { node = walker.nextNode() as Text; continue; }
       if (isCodeFileName(node.nodeValue || '')) {
         node = walker.nextNode() as Text;
@@ -234,7 +259,12 @@ function isCodeContext(node: Text): boolean {
       return true;
     }
     // 检查类名（只针对代码/编辑器类）
-    const classList = (parent.className || '').split(/\s+/).filter(Boolean);
+    const className = typeof parent.className === 'string'
+      ? parent.className
+      : (parent.className && typeof (parent.className as any).baseVal === 'string'
+          ? (parent.className as any).baseVal
+          : '');
+    const classList = className.split(/\s+/).filter(Boolean);
     if (classList.length > 0) {
       for (const cls of classList) {
         if (GITHUB_CODE_CLASSES.includes(cls)) {

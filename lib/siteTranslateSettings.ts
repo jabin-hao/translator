@@ -131,7 +131,7 @@ export async function setCustomDict(host: string, customDict: any) {
   await setDictConfig(dict);
 }
 
-export async function clearCustomDict(host: string) {
+export async function removeCustomDict(host: string) {
   const dict = await getDictConfig();
   delete dict.customDicts[host];
   await setDictConfig(dict);
@@ -141,4 +141,25 @@ export async function setAutoTranslateEnabled(enabled: boolean) {
   const settings = await getSiteTranslateSettings();
   settings.autoTranslateEnabled = enabled;
   await setSiteTranslateSettings(settings);
+}
+
+// 新增：支持路径匹配的工具函数
+export function matchSiteList(list: string[], url: string): boolean {
+  // 完整匹配
+  if (list.includes(url)) return true;
+  // 路径递减匹配
+  try {
+    const u = new URL(url.startsWith('http') ? url : 'https://' + url);
+    let path = u.pathname;
+    while (path && path !== '/') {
+      const test = u.hostname + path;
+      if (list.includes(test)) return true;
+      path = path.substring(0, path.lastIndexOf('/'));
+    }
+    // 主域名匹配
+    return list.includes(u.hostname);
+  } catch {
+    // fallback: 只用字符串包含
+    return list.some(item => url.startsWith(item));
+  }
 } 

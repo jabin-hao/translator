@@ -23,9 +23,9 @@ import InputTranslator from './components/InputTranslator';
 import i18n, { initI18n } from '../i18n';
 
 // 1. 引入 storage 工具
-import { getSiteTranslateSettings, getDictConfig } from '../lib/siteTranslateSettings';
+import { getSiteTranslateSettings, getDictConfig, matchSiteList } from '../lib/siteTranslateSettings';
 import { lazyFullPageTranslate } from '../lib/fullPageTranslate';
-import { TRANSLATE_SETTINGS_KEY, CACHE_KEY, PAGE_LANG_KEY, TEXT_LANG_KEY } from '../lib/constants';
+import { TRANSLATE_SETTINGS_KEY, CACHE_KEY, PAGE_LANG_KEY, TEXT_LANG_KEY, UI_LANG_KEY, ALWAYS_LANGS_KEY, NEVER_LANGS_KEY } from '../lib/constants';
 
 const storage = new Storage();
 
@@ -300,52 +300,6 @@ async function stopTTSAPI(): Promise<void> {
   }
 }
 
-// 1. 新增整页翻译主流程
-async function fullPageTranslate(targetLang: string, mode: 'translated' | 'compare', engine: string) {
-  // 1. 收集所有文本节点
-  const walker = document.createTreeWalker(
-    document.body,
-    NodeFilter.SHOW_TEXT,
-    {
-      acceptNode: (node) => {
-        if (!node.parentElement) return NodeFilter.FILTER_REJECT;
-        const tag = node.parentElement.tagName.toLowerCase();
-        if ([
-          'script', 'style', 'noscript', 'iframe', 'canvas', 'svg', 'textarea', 'input', 'select', 'option', 'pre', 'code', 'kbd', 'samp', 'var', 'math', 'button', 'label', 'datalist', 'output', 'mark', 'ruby', 'rt', 'rp', 'bdi', 'bdo', 'wbr', 'progress', 'meter', 'time', 'audio', 'video', 'track', 'map', 'area', 'object', 'embed', 'applet', 'param', 'source', 'picture', 'portal', 'slot', 'template', 'colgroup', 'col', 'link', 'base', 'meta', 'title', 'head', 'html', 'body'
-        ].includes(tag)) return NodeFilter.FILTER_REJECT;
-        if (!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
-        return NodeFilter.FILTER_ACCEPT;
-      }
-    }
-  );
-  const nodes: Text[] = [];
-  let n: Text | null = walker.nextNode() as Text;
-  while (n) {
-    nodes.push(n);
-    n = walker.nextNode() as Text;
-  }
-  if (nodes.length === 0) return;
-  // 2. 批量翻译（分批，防止超长）
-  const batchSize = 20;
-  let translatedArr: string[] = [];
-  for (let i = 0; i < nodes.length; i += batchSize) {
-    const batch = nodes.slice(i, i + batchSize).map(node => node.nodeValue!);
-    const { result } = await callTranslateAPI(batch.join('\n'), getBrowserLang(), targetLang, engine);
-    translatedArr.push(...result.split('\n'));
-  }
-  // 3. 回填
-  nodes.forEach((node, i) => {
-    if (mode === 'translated') {
-      node.nodeValue = translatedArr[i] || node.nodeValue;
-    } else if (mode === 'compare') {
-      const span = document.createElement('span');
-      span.style.display = 'inline-block';
-      span.innerHTML = `<span style=\"color:#888;\">${node.nodeValue}</span><br/><span style=\"color:#222;\">${translatedArr[i]}</span>`;
-      node.parentNode?.replaceChild(span, node);
-    }
-  });
-}
-
 // 检查元素是否为输入元素或可编辑元素
 function isInputElement(element: Element | null): boolean {
   if (!element) return false;
@@ -401,11 +355,9 @@ const AppContent = ({
   showInputTranslator, 
   handleTranslation, 
   setShowInputTranslator,
-  setIcon, // 新增
   autoRead,
   engine,
   textTargetLang,
-  favoriteLangs,
   shouldTranslate,
   setShouldTranslate,
   callTranslateAPI,
@@ -511,8 +463,6 @@ const ContentScript = () => {
   const [actualTheme, setActualTheme] = useState<'light' | 'dark'>('light');
   const resultPosRef = useRef<{ x: number; y: number; text: string } | null>(null);
   const lastCtrlPressRef = useRef<number>(0);
-  const doubleClickThreshold = 300;
-  const ctrlPressedRef = useRef<boolean>(false);
   // 新增：划词翻译目标语言
   const [textTargetLang, setTextTargetLang] = useState(getBrowserLang()); // 使用浏览器语言作为默认值
   // 新增：偏好语言
@@ -688,12 +638,12 @@ const ContentScript = () => {
   // 语言同步：初始化和监听storage变化
   useEffect(() => {
     // 初始化时读取
-    storage.get('uiLang').then((lang) => {
+    storage.get(UI_LANG_KEY).then((lang) => {
       i18n.changeLanguage(mapUiLangToI18nKey(lang));
     });
     // 监听storage变化
     storage.watch({
-      'uiLang': (change) => {
+      [UI_LANG_KEY]: (change) => {
         i18n.changeLanguage(mapUiLangToI18nKey(change.newValue));
       }
     });
@@ -955,10 +905,14 @@ const ContentScript = () => {
   useEffect(() => {
     const triggerFullPageTranslation = async () => {
       const host = window.location.hostname;
+      const path = window.location.pathname;
+      const fullUrl = path === '/' ? host : host + path;
+      console.log('fullUrl', fullUrl);
       const settings = await getSiteTranslateSettings();
+      const dict = await getDictConfig();
       if (!settings.autoTranslateEnabled) return;
-      if ((await getDictConfig()).siteNeverList.includes(host)) return;
-      if ((await getDictConfig()).siteAlwaysList.includes(host)) {
+      if (matchSiteList(dict.siteNeverList || [], fullUrl)) return;
+      if (matchSiteList(dict.siteAlwaysList || [], fullUrl)) {
         if (typeof (window as any).__autoFullPageTranslated === 'undefined') {
           (window as any).__autoFullPageTranslated = true;
           const mode = (settings as any).pageTranslateMode || 'translated';
@@ -974,8 +928,9 @@ const ContentScript = () => {
   useEffect(() => {
     const triggerFullPageTranslation = async () => {
       const currentUrl = window.location.href;
-      const alwaysTranslate = await storage.get('always_translate_urls');
-      const neverTranslate = await storage.get('never_translate_urls');
+      console.log('currentUrl', currentUrl);
+      const alwaysTranslate = await storage.get(ALWAYS_LANGS_KEY);
+      const neverTranslate = await storage.get(NEVER_LANGS_KEY);
 
       if (alwaysTranslate && Array.isArray(alwaysTranslate) && alwaysTranslate.includes(currentUrl)) {
         // 在 always 列表中，自动触发整页翻译

@@ -25,7 +25,7 @@ const PopupQuickSettings: React.FC = () => {
   const [pageTargetLang, setPageTargetLang] = useState('zh-CN');
   const [textTargetLang, setTextTargetLang] = useState('zh-CN');
 
-  const [siteHost, setSiteHost] = useState('');
+  const [siteKey, setSiteKey] = useState('');
   const [siteSettings, setSiteSettings] = useState({ always: false, never: false });
 
   useEffect(() => {
@@ -47,18 +47,19 @@ const PopupQuickSettings: React.FC = () => {
     });
   }, []);
 
-  // 获取当前 tab 的主域名
+  // 获取当前 tab 的 host+path
   useEffect(() => {
     chrome.tabs && chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
       const url = tabs[0]?.url;
       if (url) {
         try {
-          const host = new URL(url).hostname;
-          setSiteHost(host);
+          const u = new URL(url);
+          const key = u.pathname === '/' ? u.hostname : u.hostname + u.pathname;
+          setSiteKey(key);
           const dict = await getDictConfig();
           setSiteSettings({
-            always: dict.siteAlwaysList.includes(host),
-            never: dict.siteNeverList.includes(host)
+            always: dict.siteAlwaysList.includes(key),
+            never: dict.siteNeverList.includes(key)
           });
         } catch {}
       }
@@ -100,30 +101,30 @@ const PopupQuickSettings: React.FC = () => {
   };
 
   const handleAlways = async () => {
-    if (!siteHost) return;
+    if (!siteKey) return;
     if (siteSettings.always) {
-      await removeAlwaysSite(siteHost);
+      await removeAlwaysSite(siteKey);
     } else {
-      await addAlwaysSite(siteHost);
+      await addAlwaysSite(siteKey);
     }
     const dict = await getDictConfig();
     setSiteSettings({
-      always: dict.siteAlwaysList.includes(siteHost),
-      never: dict.siteNeverList.includes(siteHost)
+      always: dict.siteAlwaysList.includes(siteKey),
+      never: dict.siteNeverList.includes(siteKey)
     });
     message.success(siteSettings.always ? t('已移除总是翻译该网站') : t('已添加到总是翻译该网站'));
   };
   const handleNever = async () => {
-    if (!siteHost) return;
+    if (!siteKey) return;
     if (siteSettings.never) {
-      await removeNeverSite(siteHost);
+      await removeNeverSite(siteKey);
     } else {
-      await addNeverSite(siteHost);
+      await addNeverSite(siteKey);
     }
     const dict = await getDictConfig();
     setSiteSettings({
-      always: dict.siteAlwaysList.includes(siteHost),
-      never: dict.siteNeverList.includes(siteHost)
+      always: dict.siteAlwaysList.includes(siteKey),
+      never: dict.siteNeverList.includes(siteKey)
     });
     message.success(siteSettings.never ? t('已移除永不翻译该网站') : t('已添加到永不翻译该网站'));
   };
