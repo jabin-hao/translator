@@ -345,6 +345,54 @@ async function fullPageTranslate(targetLang: string, mode: 'translated' | 'compa
   });
 }
 
+// 检查元素是否为输入元素或可编辑元素
+function isInputElement(element: Element | null): boolean {
+  if (!element) return false;
+  
+  const tagName = element.tagName.toLowerCase();
+  
+  // 检查是否为输入元素
+  if (['input', 'textarea', 'select'].includes(tagName)) {
+    return true;
+  }
+  
+  // 检查是否为可编辑元素
+  if (element.hasAttribute('contenteditable')) {
+    const contentEditable = element.getAttribute('contenteditable');
+    return contentEditable === '' || contentEditable === 'true';
+  }
+  
+  return false;
+}
+
+// 检查点击路径中是否包含输入元素
+function pathContainsInputElement(path: EventTarget[]): boolean {
+  return path.some(target => {
+    if (target instanceof Element) {
+      return isInputElement(target);
+    }
+    return false;
+  });
+}
+
+// 检查是否点击在翻译组件内部
+function isClickOnTranslatorComponent(path: EventTarget[], shadowRoot: ShadowRoot | null): boolean {
+  if (!shadowRoot) return false;
+  
+  const inputTranslatorElement = shadowRoot.querySelector('.input-translator-card');
+  const resultElement = shadowRoot.querySelector('[data-translator-result]');
+  const iconElement = shadowRoot.querySelector('.translator-icon');
+  
+  return path.some(target => {
+    return (inputTranslatorElement && target === inputTranslatorElement) ||
+           (resultElement && target === resultElement) ||
+           (iconElement && target === iconElement) ||
+           (inputTranslatorElement && target instanceof Node && inputTranslatorElement.contains(target)) ||
+           (resultElement && target instanceof Node && resultElement.contains(target)) ||
+           (iconElement && target instanceof Node && iconElement.contains(target));
+  });
+}
+
 // 在App组件内部使用message的组件
 const AppContent = ({ 
   icon, 
@@ -682,40 +730,30 @@ const ContentScript = () => {
     setShouldTranslate(true); // 设置开始翻译
   };
 
-  // 修复 icon 一出现就消失、input 输入框无法输入的问题
+  // 修复输入框光标问题的事件处理逻辑
   useEffect(() => {
     const handleMouseUp = (e: MouseEvent) => {
-      // 1. 获取 shadowRoot 下的弹窗、icon、result 节点
-      let inputTranslatorElement = null, resultElement = null, iconElement = null;
-      if (shadowRoot) {
-        inputTranslatorElement = shadowRoot.querySelector('.input-translator-card');
-        resultElement = shadowRoot.querySelector('[data-translator-result]');
-        iconElement = shadowRoot.querySelector('.translator-icon');
-      }
       const path = e.composedPath();
-
-      // 2. 如果点击在弹窗/输入框/icon 内部，直接 return
-      if (
-        (showInputTranslator && inputTranslatorElement && path.includes(inputTranslatorElement)) ||
-        (result && resultElement && path.includes(resultElement)) ||
-        (icon && iconElement && path.includes(iconElement))
-      ) {
+      
+      // 1. 如果点击路径中包含输入元素，直接返回，不处理翻译逻辑
+      if (pathContainsInputElement(path)) {
+        return;
+      }
+      
+      // 2. 如果点击在翻译组件内部，直接返回
+      if (isClickOnTranslatorComponent(path, shadowRoot)) {
         return;
       }
 
-      // 3. 判断 selection
+      // 3. 处理文本选择逻辑
       const selection = window.getSelection();
       const text = selection?.toString().trim();
 
       if (text && text.length > 0 && selection && selection.rangeCount > 0) {
-        // 只在不是点击 icon 时显示 icon
-        if (!(icon && iconElement && path.includes(iconElement))) {
         const rect = selection.getRangeAt(0).getBoundingClientRect();
         showTranslationIcon(text, rect);
-        }
-        // 不要立刻清空 icon/result，但也不要阻止后续处理
       } else {
-        // 4. 没有选中内容，且不是点击在弹窗/输入框/icon 内部，清空所有
+        // 4. 没有选中内容，且不是点击在翻译组件内部，清空所有
         resultPosRef.current = null;
         setResult(null);
         setIcon(null);
@@ -729,41 +767,38 @@ const ContentScript = () => {
       }
     };
 
-    // 添加 mousedown 事件监听器，确保点击外部时能清空结果
+    // 优化 mousedown 事件处理器，减少对输入框的干扰
     const handleMouseDown = (e: MouseEvent) => {
-      // 获取 shadowRoot 下的弹窗、icon、result 节点
-      let inputTranslatorElement = null, resultElement = null, iconElement = null;
-      if (shadowRoot) {
-        inputTranslatorElement = shadowRoot.querySelector('.input-translator-card');
-        resultElement = shadowRoot.querySelector('[data-translator-result]');
-        iconElement = shadowRoot.querySelector('.translator-icon');
-      }
       const path = e.composedPath();
-
-      // 如果点击在弹窗/输入框/icon 内部，不处理
-      if (
-        (showInputTranslator && inputTranslatorElement && path.includes(inputTranslatorElement)) ||
-        (result && resultElement && path.includes(resultElement)) ||
-        (icon && iconElement && path.includes(iconElement))
-      ) {
+      
+      // 如果点击路径中包含输入元素，直接返回，不处理任何逻辑
+      if (pathContainsInputElement(path)) {
+        return;
+      }
+      
+      // 如果点击在翻译组件内部，不处理
+      if (isClickOnTranslatorComponent(path, shadowRoot)) {
         return;
       }
 
-      // 点击外部，清空所有状态
-        resultPosRef.current = null;
-      setResult(null);
-      setIcon(null);
-      setShowInputTranslator(false);
-      
-      // 清除选中状态
-      if (window.getSelection) {
-        const sel = window.getSelection();
-        if (sel) sel.removeAllRanges();
-      }
+      // 只在点击外部且没有输入元素时才清空状态
+      // 延迟执行，避免干扰正常的点击事件
+      setTimeout(() => {
+        const currentSelection = window.getSelection();
+        const currentText = currentSelection?.toString().trim();
+        
+        // 如果当前没有选中文本，则清空翻译状态
+        if (!currentText) {
+          resultPosRef.current = null;
+          setResult(null);
+          setIcon(null);
+          setShowInputTranslator(false);
+        }
+      }, 10);
     };
 
-    document.addEventListener('mouseup', handleMouseUp);
-    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('mouseup', handleMouseUp, { passive: true });
+    document.addEventListener('mousedown', handleMouseDown, { passive: true });
     return () => {
       document.removeEventListener('mouseup', handleMouseUp);
       document.removeEventListener('mousedown', handleMouseDown);
@@ -790,6 +825,12 @@ const ContentScript = () => {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // 如果当前焦点在输入元素上，不处理快捷键
+      const activeElement = document.activeElement;
+      if (activeElement && isInputElement(activeElement)) {
+        return;
+      }
+
       let shouldTrigger = false;
       let isDoubleCtrl = false;
 
@@ -871,9 +912,13 @@ const ContentScript = () => {
             isTranslatingRef.current = true;
             
             // 只设置 result 状态，让 TranslatorResult 组件处理翻译
-                setResult({ x, y, originalText: text });
+            setResult({ x, y, originalText: text });
             setShouldTranslate(true); // 设置开始翻译
-            isTranslatingRef.current = false;
+            
+            // 重置翻译状态
+            setTimeout(() => {
+              isTranslatingRef.current = false;
+            }, 100);
           } else {
             setShowInputTranslator(true);
           }
@@ -886,13 +931,9 @@ const ContentScript = () => {
       }
     };
 
-    const handleKeyUp = (e: KeyboardEvent) => {};
-
     document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('keyup', handleKeyUp);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('keyup', handleKeyUp);
     };
   }, [shortcutEnabled, customShortcut, textTargetLang, favoriteLangs, shouldTranslate, autoTranslate]);
 
@@ -1039,4 +1080,4 @@ const ContentRoot = () => {
   return <ContentScript />;
 };
 
-export default ContentRoot; 
+export default ContentRoot;

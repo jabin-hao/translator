@@ -1,17 +1,9 @@
-// 判断是否为 block 元素
-const blockTags = [
-  'p', 'div', 'li', 'ul', 'ol', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'table', 'tr', 'td', 'th', 'section', 'article', 'header', 'footer', 'aside', 'nav', 'main', 'blockquote', 'pre', 'dl', 'dt', 'dd', 'form', 'fieldset', 'legend', 'address', 'figure', 'figcaption'
-];
-
 function isVisible(node: Node): boolean {
   if (!(node instanceof HTMLElement)) return true;
   
   // 检查元素是否真的隐藏
   const style = window.getComputedStyle(node);
   if (style.display === 'none' || style.visibility === 'hidden') return false;
-  
-  // 对于 opacity 为 0 的元素，我们仍然翻译，因为它们可能是动画的一部分
-  // if (style.opacity === '0') return false;
   
   return true;
 }
@@ -34,8 +26,6 @@ async function batchTranslateTexts(texts: string[], from: string, to: string, en
   }
 }
 
-// 删除 translateSubtree、fullPageTranslateV2 及相关 observer，只保留 lazyFullPageTranslate 及 collectAllTextNodes、isCodeContext、isCodeFileName 等依赖
-
 // 判断块是否在视窗内
 function isInViewport(node: Text): boolean {
   const el = node.parentElement;
@@ -49,18 +39,6 @@ function hasCompareAncestor(node: Node): boolean {
   while (p) {
     if (p.getAttribute && p.getAttribute('data-compare-translated') === '1') return true;
     p = p.parentElement;
-  }
-  return false;
-}
-
-function isInInputOrTextarea(node: Node): boolean {
-  let parent = node.parentElement;
-  while (parent) {
-    const tag = parent.tagName.toLowerCase();
-    if (tag === 'input' || tag === 'textarea') {
-      return true;
-    }
-    parent = parent.parentElement;
   }
   return false;
 }
@@ -89,11 +67,6 @@ function collectAllTextNodes(root: HTMLElement, translatedSet: Set<Text>, mode?:
   while (node) {
     totalFound++;
     const parent = node.parentElement;
-    // 新增：彻底排除 input/textarea 及其所有子孙节点
-    if (isInInputOrTextarea(node)) {
-      node = walker.nextNode() as Text;
-      continue;
-    }
     if (parent && isVisible(parent) && node.nodeValue && node.nodeValue.trim()) {
       if (isCodeContext(node)) { node = walker.nextNode() as Text; continue; }
       if (isCodeFileName(node.nodeValue || '')) {
@@ -146,9 +119,8 @@ function isCodeFileName(text: string): boolean {
   return CODE_FILE_SUFFIXES.some(suffix => trimmed.toLowerCase().endsWith(suffix));
 }
 
-// 增强的GitHub特定选择器和类名匹配
+// 精简后的 GitHub 代码区选择器和类名（只保留真正代码区/编辑器相关）
 const GITHUB_CODE_SELECTORS = [
-  // GitHub文件查看器
   '.blob-wrapper',
   '.blob-code',
   '.blob-code-inner', 
@@ -161,8 +133,6 @@ const GITHUB_CODE_SELECTORS = [
   '.blob-num-deletion',
   '.blob-num-context',
   '.blob-num-hunk',
-  
-  // GitHub代码编辑器
   '.CodeMirror',
   '.CodeMirror-line',
   '.CodeMirror-code',
@@ -171,32 +141,12 @@ const GITHUB_CODE_SELECTORS = [
   '.cm-content',
   '.cm-line',
   '.cm-scroller',
-  
-  // GitHub文件树和导航
-  '.js-navigation-item',
-  '.file-navigation',
-  '.file-tree',
-  '.repository-content',
-  
-  // GitHub代码搜索结果
-  '.code-list',
-  '.code-list-item',
-  '.highlight',
-  '.search-code-line',
-  
-  // GitHub Pull Request diff
-  '.file-diff',
-  '.diff-table',
   '.js-file-line',
   '.js-line-number',
-  
-  // Monaco Editor (GitHub Codespaces)
   '.monaco-editor',
   '.monaco-scrollable-element',
   '.view-lines',
   '.view-line',
-  
-  // 其他代码相关
   '.highlight-source',
   '.pl-token',
   '.pl-c',
@@ -206,24 +156,24 @@ const GITHUB_CODE_SELECTORS = [
   '.pl-en',
   '.pl-pds',
   '.pl-smi',
-  '.pl-smw'
+  '.pl-smw',
+  '.code-list',
+  '.code-list-item',
+  '.search-code-line',
+  '.file-diff',
+  '.diff-table',
 ];
 
 const GITHUB_CODE_CLASSES = [
-  // GitHub原生类名
   'highlight', 'blob-code', 'hljs', 'language-', 'editor', 'CodeMirror', 'monaco', 'blob-textarea',
   'react-blob', 'file-editor', 'js-blob', 'js-code', 'cm-content', 'blob-code-inner', 'blob-code-marker',
   'blob-code-context', 'blob-code-addition', 'blob-code-deletion', 'react-blob-textarea',
-  
-  // 新增GitHub特定类名
   'blob-wrapper', 'blob-num', 'file-diff', 'diff-table', 'js-file-line', 'js-line-number',
-  'code-list', 'search-code-line', 'highlight-source', 'repository-content', 'file-navigation',
-  'js-navigation-item', 'file-tree', 'monaco-editor', 'view-lines', 'view-line',
-  
-  // Prism.js 和其他语法高亮
+  'code-list', 'search-code-line', 'highlight-source', 'file-navigation', 'js-navigation-item', 'file-tree',
+  'monaco-editor', 'view-lines', 'view-line',
+  // Prism.js/高亮
   'token', 'keyword', 'string', 'comment', 'number', 'operator', 'punctuation',
   'function', 'class-name', 'variable', 'constant', 'boolean', 'regex',
-  
   // 通用代码标识符
   'source-code', 'syntax-highlight', 'code-block', 'code-snippet', 'terminal',
   'console', 'shell', 'command-line', 'output'
@@ -308,48 +258,36 @@ function looksLikeCode(text: string): boolean {
   return codePatterns.some(pattern => pattern.test(trimmed));
 }
 
+// isCodeContext 保持递归父级，但不再对主内容区 class/selector 做排除
 function isCodeContext(node: Text): boolean {
   let parent = node.parentElement;
   if (!parent) return false;
-  
   // 首先检查文本内容是否像代码
   if (looksLikeCode(node.nodeValue || '')) {
     return true;
   }
-  
   while (parent) {
     const tag = parent.tagName.toLowerCase();
-    
-    // 检查标签名
     if (EXCLUDE_TAGS.includes(tag) || parent.hasAttribute('contenteditable')) {
       return true;
     }
-    
-    // 检查是否在GitHub代码容器中
-    if (isInGitHubCodeContainer(parent)) {
+    // 只检查真正的代码区选择器
+    if (matchesSelectors(parent, GITHUB_CODE_SELECTORS)) {
       return true;
     }
-    
-    // 检查类名（增强模式）
+    // 检查类名（只针对代码/编辑器类）
     const classList = (parent.className || '').split(/\s+/).filter(Boolean);
     if (classList.length > 0) {
-      // 完全匹配
       for (const cls of classList) {
         if (GITHUB_CODE_CLASSES.includes(cls)) {
           return true;
         }
-      }
-      
-      // 部分匹配（包含关键词的类名）
-      for (const cls of classList) {
-        if (GITHUB_CODE_CLASSES.some(key => 
-          cls.includes(key) || key.includes(cls)
-        )) {
+        // 只做部分匹配，不再对主内容区关键词做匹配
+        if (GITHUB_CODE_CLASSES.some(key => cls.includes(key) || key.includes(cls))) {
           return true;
         }
       }
     }
-    
     // 检查特殊属性
     if (parent.hasAttribute('data-code-marker') ||
         parent.hasAttribute('data-line-number') ||
@@ -357,23 +295,19 @@ function isCodeContext(node: Text): boolean {
         parent.getAttribute('role') === 'gridcell') {
       return true;
     }
-    
-    // 检查是否为代码编辑器的特征元素
+    // 检查等宽字体且在代码容器中
     const style = window.getComputedStyle(parent);
     if (style.fontFamily && 
         (style.fontFamily.includes('monospace') || 
          style.fontFamily.includes('Monaco') || 
          style.fontFamily.includes('Consolas') ||
          style.fontFamily.includes('Courier'))) {
-      // 如果使用等宽字体，进一步检查是否在代码容器中
       if (parent.closest('.highlight, .blob-code, .CodeMirror, .monaco-editor, pre, code')) {
         return true;
       }
     }
-    
     parent = parent.parentElement;
   }
-  
   return false;
 }
 
@@ -387,55 +321,59 @@ export async function lazyFullPageTranslate(targetLang: string, mode: 'translate
     const nodes = collectAllTextNodes(document.body, translatedSet, mode);
     console.log(`懒加载翻译: 收集到 ${nodes.length} 个节点`);
     
-    // 复制一份，避免遍历过程中DOM变化影响本轮节点
-    const nodesToProcess = nodes.slice();
-    let translatedCount = 0;
-    let skippedCodeCount = 0;
+    // 只处理在视窗内的节点
+    const visibleNodes = nodes.filter(node => isInViewport(node));
+    if (visibleNodes.length === 0) return;
     
-    for (const node of nodesToProcess) {
-      // 检查是否在视窗内（对于懒加载模式）
-      if (isInViewport(node)) {
-        // compare模式下，祖先链上有compare span直接跳过
-        if (mode === 'compare' && hasCompareAncestor(node)) continue;
-        if (mode === 'compare' && hasSiblingCompareSpan(node)) continue;
-        
-        // 增强的代码检测
-        if (isCodeContext(node)) {
-          skippedCodeCount++;
-          continue;
-        }
-        
-        try {
-          const { result } = await callTranslateAPI(node.nodeValue, 'auto', targetLang, engine);
-          if (mode === 'translated') {
-            if (node.parentNode) node.nodeValue = result;
-            translatedSet.add(node);
-            translatedCount++;
-          } else if (mode === 'compare') {
-            if (node.parentNode) {
-              // 动态获取原文颜色
-              let origColor = '';
-              try {
-                const computed = window.getComputedStyle(node.parentElement);
-                origColor = computed && computed.color ? computed.color : '';
-              } catch {}
-              const span = document.createElement('span');
-              span.style.display = 'inline-block';
-              span.setAttribute('data-compare-translated', '1');
-              span.setAttribute('data-compare-id', String(compareIdCounter++));
-              span.setAttribute('data-compare-original', node.nodeValue || '');
-              span.innerHTML = `<span style=\"color:#888;\">${node.nodeValue}</span><br/><span style=\"color:${origColor || '#222'};\">${result}</span>`;
-              node.parentNode.replaceChild(span, node);
-              translatedCount++;
-            }
-          }
-        } catch (error) {
-          console.warn('翻译失败:', error);
+    // compare模式下过滤 compare span
+    const validNodes: Text[] = [];
+    for (const node of visibleNodes) {
+      if (mode === 'compare' && (hasCompareAncestor(node) || hasSiblingCompareSpan(node))) continue;
+      if (!node.parentNode) continue;
+      validNodes.push(node);
+    }
+    if (validNodes.length === 0) return;
+    
+    // 批量翻译，每批20个
+    const BATCH_SIZE = 20;
+    let translatedCount = 0;
+    for (let i = 0; i < validNodes.length; i += BATCH_SIZE) {
+      const batch = validNodes.slice(i, i + BATCH_SIZE);
+      const texts = batch.map(n => n.nodeValue || '');
+      let translatedArr: string[] = [];
+      try {
+        translatedArr = await batchTranslateTexts(texts, 'auto', targetLang, engine);
+      } catch (e) {
+        // 批量失败时，回退为原文
+        translatedArr = texts;
+      }
+      for (let j = 0; j < batch.length; j++) {
+        const node = batch[j];
+        const translated = translatedArr[j];
+        if (!node.parentNode) continue;
+        if (mode === 'translated') {
+          node.nodeValue = translated;
+          translatedSet.add(node);
+          translatedCount++;
+        } else if (mode === 'compare') {
+          // 动态获取原文颜色
+          let origColor = '';
+          try {
+            const computed = window.getComputedStyle(node.parentElement!);
+            origColor = computed && computed.color ? computed.color : '';
+          } catch {}
+          const span = document.createElement('span');
+          span.style.display = 'inline-block';
+          span.setAttribute('data-compare-translated', '1');
+          span.setAttribute('data-compare-id', String(compareIdCounter++));
+          span.setAttribute('data-compare-original', node.nodeValue || '');
+          span.innerHTML = `<span style=\"color:#888;\">${node.nodeValue}</span><br/><span style=\"color:${origColor || '#222'};\">${translated}</span>`;
+          node.parentNode.replaceChild(span, node);
+          translatedCount++;
         }
       }
     }
-    
-    console.log(`懒加载翻译完成: 翻译了 ${translatedCount} 个节点，跳过代码 ${skippedCodeCount} 个节点`);
+    console.log(`懒加载翻译完成: 批量翻译了 ${translatedCount} 个节点`);
   }
   
   // 初始翻译
