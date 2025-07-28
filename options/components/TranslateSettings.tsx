@@ -11,7 +11,7 @@ import {
   removeAlwaysTranslateSite,
   removeNeverTranslateSite,
   setSiteTranslateSettings
-} from '../../lib/site-translate-settings';
+} from '../../lib/siteTranslateSettings';
 const { Option } = Select;
 
 const LOCAL_KEY = 'translate_settings';

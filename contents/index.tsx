@@ -23,10 +23,24 @@ import InputTranslator from './components/InputTranslator';
 import i18n, { initI18n } from '../i18n';
 
 // 1. 引入 storage 工具
-import { getSiteTranslateSettings } from '../lib/site-translate-settings';
+import { getSiteTranslateSettings } from '../lib/siteTranslateSettings';
 import { lazyFullPageTranslate } from '../lib/fullPageTranslate';
 
 const storage = new Storage();
+
+// 初始化默认设置
+async function initializeDefaultSettings() {
+  try {
+    // 检查并设置缓存默认值
+    const cacheEnabled = await storage.get('translation_cache_enabled');
+    if (cacheEnabled === null || cacheEnabled === undefined) {
+      console.log('设置缓存默认值为启用');
+      await storage.set('translation_cache_enabled', true);
+    }
+  } catch (error) {
+    console.error('初始化默认设置失败:', error);
+  }
+}
 
 // 主题检测和应用函数
 const CONTENT_THEME_KEY = 'content_theme_mode';
@@ -230,22 +244,28 @@ async function callTTSAPI(
             { type: response.data.audioType || 'audio/mpeg' }
           );
           
-          
-          const audioUrl = URL.createObjectURL(audioBlob);
-          const audio = new Audio(audioUrl);
-          
-          // 添加音频加载事件监听
-          audio.onloadstart = () => {};
-          audio.oncanplay = () => {};
-          audio.onerror = (e) => {};
-          
-          // 播放音频
-          await audio.play();
-          
-          // 播放完成后清理 URL
-          audio.onended = () => {
-            URL.revokeObjectURL(audioUrl);
+          // 使用 data URL 而不是 blob URL 来避免 CSP 问题
+          const reader = new FileReader();
+          reader.onload = async () => {
+            try {
+              const audio = new Audio(reader.result as string);
+              
+              // 添加音频加载事件监听
+              audio.onloadstart = () => {};
+              audio.oncanplay = () => {};
+              audio.onerror = (e) => {
+                console.warn('音频播放错误:', e);
+              };
+              
+              // 播放音频
+              await audio.play();
+              
+            } catch (audioError) {
+              console.warn('音频播放失败:', audioError);
+            }
           };
+          
+          reader.readAsDataURL(audioBlob);
           
           return { success: true };
         } catch (audioError) {
@@ -457,6 +477,11 @@ const ContentScript = () => {
   const textTargetLangRef = useRef(textTargetLang);
   useEffect(() => { textTargetLangRef.current = textTargetLang }, [textTargetLang]);
 
+  // 初始化默认设置
+  useEffect(() => {
+    initializeDefaultSettings();
+  }, []);
+
   // 主题检测和应用
   useEffect(() => {
     if (shadowRoot) {
@@ -540,17 +565,14 @@ const ContentScript = () => {
       }
     });
     // 新增：监听 storage 变化，实时同步引擎设置
-    const handler = (changes, area) => {
-      if (area === 'local' && changes['translate_settings']) {
-        const data = changes['translate_settings'].newValue;
-        if (data && typeof data === 'object') {
-          setEngine(data.engine || 'google');
-          setAutoRead(!!data.autoRead);
+    storage.watch({
+      'translate_settings': (newValue) => {
+        if (newValue && typeof newValue === 'object') {
+          setEngine((newValue as any)?.engine || 'google');
+          setAutoRead(!!(newValue as any)?.autoRead);
         }
       }
-    };
-    chrome.storage.onChanged.addListener(handler);
-    return () => chrome.storage.onChanged.removeListener(handler);
+    });
   }, []);
 
   // 新增：初始化快捷键设置，并监听storage变化
@@ -565,21 +587,18 @@ const ContentScript = () => {
       }
     });
     // 监听快捷键设置变化
-    const handler = (changes, area) => {
-      if (area === 'local' && changes['shortcut_settings']) {
-        const data = changes['shortcut_settings'].newValue;
-        if (data && typeof data === 'object') {
-          const enabled = data.enabled !== false;
-          const shortcut = data.customShortcut || '';
+    storage.watch({
+      'shortcut_settings': (change) => {
+        if (change.newValue && typeof change.newValue === 'object') {
+          const enabled = change.newValue.enabled !== false;
+          const shortcut = change.newValue.customShortcut || '';
           setShortcutEnabled(enabled);
           setCustomShortcut(shortcut);
           // 重置状态
           lastCtrlPressRef.current = 0;
         }
       }
-    };
-    chrome.storage.onChanged.addListener(handler);
-    return () => chrome.storage.onChanged.removeListener(handler);
+    });
   }, []);
 
   // 新增：初始化textTargetLang和favoriteLangs，并监听storage变化
@@ -590,14 +609,14 @@ const ContentScript = () => {
     storage.get('favoriteLangs').then(val => {
       if (Array.isArray(val)) setFavoriteLangs(val);
     });
-    const handler = (changes, area) => {
-      if (area === 'local') {
-        if (changes['textTargetLang']) setTextTargetLang(changes['textTargetLang'].newValue);
-        if (changes['favoriteLangs']) setFavoriteLangs(changes['favoriteLangs'].newValue || []);
+    storage.watch({
+      'textTargetLang': (change) => {
+        if (change.newValue) setTextTargetLang(change.newValue);
+      },
+      'favoriteLangs': (change) => {
+        if (Array.isArray(change.newValue)) setFavoriteLangs(change.newValue);
       }
-    };
-    chrome.storage.onChanged.addListener(handler);
-    return () => chrome.storage.onChanged.removeListener(handler);
+    });
   }, []);
 
   // 新增：控制自动翻译
@@ -608,16 +627,13 @@ const ContentScript = () => {
       }
     });
     // 监听 storage 变化
-    const handler = (changes, area) => {
-      if (area === 'local' && changes['translate_settings']) {
-        const data = changes['translate_settings'].newValue;
-        if (data && typeof data === 'object') {
-          setAutoTranslate(data.autoTranslate ?? true);
+    storage.watch({
+      'translate_settings': (change) => {
+        if (change.newValue && typeof change.newValue === 'object') {
+          setAutoTranslate((change.newValue as any)?.autoTranslate ?? true);
         }
       }
-    };
-    chrome.storage.onChanged.addListener(handler);
-    return () => chrome.storage.onChanged.removeListener(handler);
+    });
   }, []);
 
   // 语言同步：初始化和监听storage变化
@@ -627,16 +643,11 @@ const ContentScript = () => {
       i18n.changeLanguage(mapUiLangToI18nKey(lang));
     });
     // 监听storage变化
-    if (chrome && chrome.storage && chrome.storage.onChanged) {
-      const handler = (changes, area) => {
-        if (area === 'local' && changes['uiLang']) {
-          const newLang = changes['uiLang'].newValue;
-          i18n.changeLanguage(mapUiLangToI18nKey(newLang));
-        }
-      };
-      chrome.storage.onChanged.addListener(handler);
-      return () => chrome.storage.onChanged.removeListener(handler);
-    }
+    storage.watch({
+      'uiLang': (change) => {
+        i18n.changeLanguage(mapUiLangToI18nKey(change.newValue));
+      }
+    });
   }, []);
 
   const showTranslationIcon = (text: string, rect: DOMRect) => {
@@ -860,7 +871,7 @@ const ContentScript = () => {
             isTranslatingRef.current = true;
             
             // 只设置 result 状态，让 TranslatorResult 组件处理翻译
-            setResult({ x, y, originalText: text });
+                setResult({ x, y, originalText: text });
             setShouldTranslate(true); // 设置开始翻译
             isTranslatingRef.current = false;
           } else {
@@ -891,13 +902,11 @@ const ContentScript = () => {
     storage.get('pageTargetLang').then((val) => {
       if (val) setPageTargetLang(val);
     });
-    const handler = (changes, area) => {
-      if (area === 'local' && changes['pageTargetLang']) {
-        setPageTargetLang(changes['pageTargetLang'].newValue);
+    storage.watch({
+      'pageTargetLang': (change) => {
+        if (change.newValue) setPageTargetLang(change.newValue);
       }
-    };
-    chrome.storage.onChanged.addListener(handler);
-    return () => chrome.storage.onChanged.removeListener(handler);
+    });
   }, []);
 
   // 新增：整页翻译自动触发逻辑
@@ -990,7 +999,7 @@ const ContentScript = () => {
             top: 20,
             duration: 2.5,
             maxCount: 3,
-            getContainer: () => shadowRoot || document.body,
+            getContainer: () => (shadowRoot?.host || document.body) as HTMLElement,
           }}
         >
           <AppContent 

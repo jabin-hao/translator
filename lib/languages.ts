@@ -55,7 +55,7 @@ export function getBrowserLang() {
 // 新增：获取 TTS 语音代码
 export function getSpeechLang(code: string): string {
   const lang = LANGUAGES.find(l => l.code === code);
-  return lang?.speech || code;
+  return lang?.tts || code;
 }
 
 // UI 语言 code 映射为 i18n 资源 key

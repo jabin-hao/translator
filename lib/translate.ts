@@ -35,9 +35,10 @@ async function isCacheEnabled(): Promise<boolean> {
     const enabled = await storage.get('translation_cache_enabled');
     console.log('缓存开关状态:', enabled, '类型:', typeof enabled);
     
-    // 如果值为 null 或 undefined，默认启用
+    // 如果值为 null 或 undefined，设置默认值为 true 并返回
     if (enabled === null || enabled === undefined) {
-      console.log('缓存开关未设置，默认启用');
+      console.log('缓存开关未设置，设置默认值为 true');
+      await storage.set('translation_cache_enabled', true);
       return true;
     }
     

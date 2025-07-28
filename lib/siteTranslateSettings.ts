@@ -18,7 +18,7 @@ const defaultSettings: SiteTranslateSettings = {
 export async function getSiteTranslateSettings(): Promise<SiteTranslateSettings> {
   const data = await storage.get(STORAGE_KEY);
   if (data && typeof data === 'object') {
-    return { ...defaultSettings, ...data };
+    return { ...defaultSettings, ...(data as SiteTranslateSettings) };
   }
   return { ...defaultSettings };
 }

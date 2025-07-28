@@ -5,8 +5,14 @@ const blockTags = [
 
 function isVisible(node: Node): boolean {
   if (!(node instanceof HTMLElement)) return true;
+  
+  // 检查元素是否真的隐藏
   const style = window.getComputedStyle(node);
-  if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;
+  if (style.display === 'none' || style.visibility === 'hidden') return false;
+  
+  // 对于 opacity 为 0 的元素，我们仍然翻译，因为它们可能是动画的一部分
+  // if (style.opacity === '0') return false;
+  
   return true;
 }
 
@@ -28,94 +34,7 @@ async function batchTranslateTexts(texts: string[], from: string, to: string, en
   }
 }
 
-async function translateSubtree(root: HTMLElement | ShadowRoot, targetLang: string, mode: 'translated' | 'compare', engine: string, callTranslateAPI: any, progress?: {done: number, total: number}) {
-  // 1. 处理 select/option
-  const selects = root.querySelectorAll?.('select, datalist') || [];
-  for (const el of selects) {
-    for (const option of (el as HTMLSelectElement | HTMLDataListElement).querySelectorAll('option')) {
-      if (option.textContent && option.textContent.trim()) {
-        const { result } = await callTranslateAPI(option.textContent, 'auto', targetLang, engine);
-        option.textContent = result;
-      }
-    }
-  }
-  // 2. 处理普通文本节点（批量请求）
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
-  let nodes: Text[] = [];
-  let node: Text | null = walker.nextNode() as Text;
-  while (node) {
-    if (!isVisible(node.parentElement!)) {
-      node = walker.nextNode() as Text;
-      continue;
-    }
-    // 新增：如果父节点已是 compare span，跳过
-    if (node.parentElement && node.parentElement.getAttribute && node.parentElement.getAttribute('data-compare-translated') === '1') {
-      node = walker.nextNode() as Text;
-      continue;
-    }
-    if (node.parentElement && ['option'].includes(node.parentElement.tagName.toLowerCase())) {
-      node = walker.nextNode() as Text;
-      continue;
-    }
-    if (node.nodeValue && node.nodeValue.trim()) {
-      nodes.push(node);
-    }
-    node = walker.nextNode() as Text;
-  }
-  // 批量翻译（内容脚本端直接发消息到 background 批量接口）
-  const batchSize = 20;
-  for (let i = 0; i < nodes.length; i += batchSize) {
-    const batch = nodes.slice(i, i + batchSize);
-    const texts = batch.map(n => n.nodeValue!);
-    let translatedArr: string[] = [];
-    try {
-      translatedArr = await batchTranslateTexts(texts, 'auto', targetLang, engine);
-    } catch (e) {
-      translatedArr = texts.map(() => '');
-    }
-    for (let j = 0; j < batch.length; j++) {
-      const node = batch[j];
-      if (mode === 'translated') {
-        if (node.parentNode) node.nodeValue = translatedArr[j] || node.nodeValue;
-      } else if (mode === 'compare') {
-        if (node.parentNode) {
-          const span = document.createElement('span');
-          span.style.display = 'inline-block';
-          span.setAttribute('data-compare-translated', '1'); // 标记已对照翻译
-          span.innerHTML = `<span style=\"color:#888;\">${node.nodeValue}</span><br/><span style=\"color:#222;\">${translatedArr[j]}</span>`;
-          node.parentNode.replaceChild(span, node);
-        }
-      }
-      if (progress) {
-        progress.done++;
-        // showProgress(progress.done, progress.total); // Removed
-      }
-    }
-  }
-  // 3. 递归 shadowRoot
-  const elements = root instanceof HTMLElement ? root.querySelectorAll('*') : [];
-  for (const el of elements) {
-    if ((el as any).shadowRoot) {
-      await translateSubtree((el as any).shadowRoot, targetLang, mode, engine, callTranslateAPI, progress);
-    }
-  }
-  // 4. 属性翻译
-  const attrList = [
-    { selector: 'input[placeholder], textarea[placeholder]', attr: 'placeholder' },
-    { selector: 'img[alt], area[alt], input[type=\"image\"][alt]', attr: 'alt' },
-    { selector: '[title]', attr: 'title' }
-  ];
-  for (const { selector, attr } of attrList) {
-    const nodes = root.querySelectorAll?.(selector) || [];
-    for (const el of nodes) {
-      const val = el.getAttribute(attr);
-      if (val && val.trim()) {
-        const { result } = await callTranslateAPI(val, 'auto', targetLang, engine);
-        el.setAttribute(attr, result);
-      }
-    }
-  }
-}
+// 删除 translateSubtree、fullPageTranslateV2 及相关 observer，只保留 lazyFullPageTranslate 及 collectAllTextNodes、isCodeContext、isCodeFileName 等依赖
 
 // 判断块是否在视窗内
 function isInViewport(node: Text): boolean {
@@ -124,39 +43,6 @@ function isInViewport(node: Text): boolean {
   const rect = el.getBoundingClientRect();
   return rect.bottom > 0 && rect.top < window.innerHeight;
 }
-
-// 分块收集文本节点及主块元素
-function getPiecesToTranslateWithBlock(root: HTMLElement): { nodes: Text[], block: HTMLElement }[] {
-  const pieces: { nodes: Text[], block: HTMLElement }[] = [];
-  let currentPiece: Text[] = [];
-  let currentBlock: HTMLElement | null = null;
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
-  let node: Text | null = walker.nextNode() as Text;
-  while (node) {
-    const parent = node.parentElement;
-    if (!parent || !isVisible(parent)) {
-      node = walker.nextNode() as Text;
-      continue;
-    }
-    const tag = parent.tagName.toLowerCase();
-    if (blockTags.includes(tag)) {
-      if (currentPiece.length > 0 && currentBlock) {
-        pieces.push({ nodes: currentPiece, block: currentBlock });
-        currentPiece = [];
-      }
-      currentBlock = parent;
-    }
-    if (node.nodeValue && node.nodeValue.trim()) {
-      currentPiece.push(node);
-      if (!currentBlock) currentBlock = parent;
-    }
-    node = walker.nextNode() as Text;
-  }
-  if (currentPiece.length > 0 && currentBlock) pieces.push({ nodes: currentPiece, block: currentBlock });
-  return pieces;
-}
-
-const translatedTextNodes = new WeakSet<Text>();
 
 function hasCompareAncestor(node: Node): boolean {
   let p = node.parentElement;
@@ -185,19 +71,33 @@ function collectAllTextNodes(root: HTMLElement, translatedSet: Set<Text>, mode?:
       : null
   );
   let node: Text | null = walker.nextNode() as Text;
+  let totalFound = 0;
+  let totalCollected = 0;
+  
   while (node) {
+    totalFound++;
     const parent = node.parentElement;
     if (parent && isVisible(parent) && node.nodeValue && node.nodeValue.trim()) {
+      if (isCodeContext(node)) { node = walker.nextNode() as Text; continue; }
+      if (isCodeFileName(node.nodeValue || '')) {
+        node = walker.nextNode() as Text;
+        continue;
+      }
       if (mode === 'compare') {
         nodes.push(node);
+        totalCollected++;
       } else {
+        // 在 translated 模式下，只收集未翻译过的节点
         if (!translatedSet.has(node)) {
           nodes.push(node);
+          totalCollected++;
         }
       }
     }
     node = walker.nextNode() as Text;
   }
+  
+  console.log(`收集文本节点: 找到 ${totalFound}, 收集 ${totalCollected}`);
   return nodes;
 }
 
@@ -219,25 +119,281 @@ function hasSiblingCompareSpan(node: Text): boolean {
   return false;
 }
 
+// 常见编程和配置文件后缀（去重并补充）
+const CODE_FILE_SUFFIXES = [
+  '.js', '.ts', '.jsx', '.tsx', '.c', '.cpp', '.h', '.hpp', '.py', '.java', '.go', '.rb', '.php', '.cs', '.swift', '.kt', '.m', '.sh', '.bat', '.pl', '.rs', '.dart', '.scala', '.lua', '.json', '.yaml', '.yml', '.xml', '.ini', '.conf', '.md', '.txt', '.csv', '.tsv', '.log', '.html', '.htm', '.css', '.scss', '.less', '.vue', '.svelte', '.lock', '.toml', '.gradle', '.make', '.mk', '.dockerfile', '.gitignore', '.gitattributes', '.env', '.config', '.properties', '.asm', '.sql', '.db', '.db3', '.sqlite', '.ps1', '.psm1', '.jsp', '.asp', '.aspx', '.vb', '.vbs', '.f90', '.f95', '.f03', '.f08', '.r', '.jl', '.groovy', '.erl', '.ex', '.exs', '.clj', '.cljs', '.edn', '.coffee', '.mjs', '.cjs', '.eslintrc', '.babelrc', '.npmrc', '.prettierrc', '.editorconfig', '.plist', '.crt', '.pem', '.key', '.csr', '.pub'
+];
+
+function isCodeFileName(text: string): boolean {
+  const trimmed = text.trim();
+  return CODE_FILE_SUFFIXES.some(suffix => trimmed.toLowerCase().endsWith(suffix));
+}
+
+// 增强的GitHub特定选择器和类名匹配
+const GITHUB_CODE_SELECTORS = [
+  // GitHub文件查看器
+  '.blob-wrapper',
+  '.blob-code',
+  '.blob-code-inner', 
+  '.blob-code-marker',
+  '.blob-code-context',
+  '.blob-code-addition',
+  '.blob-code-deletion',
+  '.blob-num',
+  '.blob-num-addition',
+  '.blob-num-deletion',
+  '.blob-num-context',
+  '.blob-num-hunk',
+  
+  // GitHub代码编辑器
+  '.CodeMirror',
+  '.CodeMirror-line',
+  '.CodeMirror-code',
+  '.CodeMirror-lines',
+  '.cm-editor',
+  '.cm-content',
+  '.cm-line',
+  '.cm-scroller',
+  
+  // GitHub文件树和导航
+  '.js-navigation-item',
+  '.file-navigation',
+  '.file-tree',
+  '.repository-content',
+  
+  // GitHub代码搜索结果
+  '.code-list',
+  '.code-list-item',
+  '.highlight',
+  '.search-code-line',
+  
+  // GitHub Pull Request diff
+  '.file-diff',
+  '.diff-table',
+  '.js-file-line',
+  '.js-line-number',
+  
+  // Monaco Editor (GitHub Codespaces)
+  '.monaco-editor',
+  '.monaco-scrollable-element',
+  '.view-lines',
+  '.view-line',
+  
+  // 其他代码相关
+  '.highlight-source',
+  '.pl-token',
+  '.pl-c',
+  '.pl-s',
+  '.pl-k',
+  '.pl-v',
+  '.pl-en',
+  '.pl-pds',
+  '.pl-smi',
+  '.pl-smw'
+];
+
+const GITHUB_CODE_CLASSES = [
+  // GitHub原生类名
+  'highlight', 'blob-code', 'hljs', 'language-', 'editor', 'CodeMirror', 'monaco', 'blob-textarea',
+  'react-blob', 'file-editor', 'js-blob', 'js-code', 'cm-content', 'blob-code-inner', 'blob-code-marker',
+  'blob-code-context', 'blob-code-addition', 'blob-code-deletion', 'react-blob-textarea',
+  
+  // 新增GitHub特定类名
+  'blob-wrapper', 'blob-num', 'file-diff', 'diff-table', 'js-file-line', 'js-line-number',
+  'code-list', 'search-code-line', 'highlight-source', 'repository-content', 'file-navigation',
+  'js-navigation-item', 'file-tree', 'monaco-editor', 'view-lines', 'view-line',
+  
+  // Prism.js 和其他语法高亮
+  'token', 'keyword', 'string', 'comment', 'number', 'operator', 'punctuation',
+  'function', 'class-name', 'variable', 'constant', 'boolean', 'regex',
+  
+  // 通用代码标识符
+  'source-code', 'syntax-highlight', 'code-block', 'code-snippet', 'terminal',
+  'console', 'shell', 'command-line', 'output'
+];
+
+// 全局排除标签、class、选择器，可后续扩展
+const EXCLUDE_TAGS = [
+  'code', 'pre', 'samp', 'kbd', 'var', 'script', 'style', 'textarea', 'input'
+];
+
+const EXCLUDE_SELECTORS = [
+  '[contenteditable]',
+  // GitHub特定选择器
+  '[data-code-marker]',
+  '[data-line-number]',
+  '[data-file-type]',
+  '[role="gridcell"]', // GitHub表格单元格，通常包含代码
+  '[class*="blob-"]',
+  '[class*="CodeMirror"]',
+  '[class*="monaco"]',
+  '[class*="highlight"]'
+];
+
+/**
+ * 检查元素是否匹配特定选择器列表
+ */
+function matchesSelectors(element: HTMLElement, selectors: string[]): boolean {
+  return selectors.some(selector => {
+    try {
+      return element.matches(selector);
+    } catch {
+      return false;
+    }
+  });
+}
+
+/**
+ * 检查是否在GitHub代码相关容器中
+ */
+function isInGitHubCodeContainer(element: HTMLElement): boolean {
+  // 检查当前元素及所有祖先元素
+  let current: HTMLElement | null = element;
+  while (current) {
+    // 检查是否匹配GitHub代码选择器
+    if (matchesSelectors(current, GITHUB_CODE_SELECTORS)) {
+      return true;
+    }
+    
+    // 检查data属性
+    if (current.hasAttribute('data-code-marker') ||
+        current.hasAttribute('data-line-number') ||
+        current.hasAttribute('data-file-type') ||
+        current.getAttribute('role') === 'gridcell') {
+      return true;
+    }
+    
+    current = current.parentElement;
+  }
+  return false;
+}
+
+/**
+ * 检查文本内容是否像代码
+ */
+function looksLikeCode(text: string): boolean {
+  const trimmed = text.trim();
+  if (trimmed.length < 3) return false;
+  
+  // 常见代码模式
+  const codePatterns = [
+    /^[\s]*[\{\}\[\]();,][\s]*$/, // 只包含标点符号
+    /^[\s]*[a-zA-Z_$][a-zA-Z0-9_$]*[\s]*[=:(){\[\]]+/, // 变量赋值或函数调用
+    /^[\s]*(<\/?[a-zA-Z][^>]*>|<!--.*-->)/, // HTML标签
+    /^[\s]*(\/\/|\/\*|\*|#|<!--)/, // 注释
+    /^[\s]*(import|export|function|class|const|let|var|if|for|while|return)\s/, // 关键字
+    /^[\s]*\d+[\s]*[\|\-\+]/, // 行号或表格分隔符
+    /^\s*[+\-]\s*/, // Git diff标记
+    /^[\s]*[a-zA-Z0-9_]+\s*[:=]\s*['""]/, // 配置文件格式
+    /^[\s]*\$\s+/, // Shell命令提示符
+  ];
+  
+  return codePatterns.some(pattern => pattern.test(trimmed));
+}
+
+function isCodeContext(node: Text): boolean {
+  let parent = node.parentElement;
+  if (!parent) return false;
+  
+  // 首先检查文本内容是否像代码
+  if (looksLikeCode(node.nodeValue || '')) {
+    return true;
+  }
+  
+  while (parent) {
+    const tag = parent.tagName.toLowerCase();
+    
+    // 检查标签名
+    if (EXCLUDE_TAGS.includes(tag) || parent.hasAttribute('contenteditable')) {
+      return true;
+    }
+    
+    // 检查是否在GitHub代码容器中
+    if (isInGitHubCodeContainer(parent)) {
+      return true;
+    }
+    
+    // 检查类名（增强模式）
+    const classList = (parent.className || '').split(/\s+/).filter(Boolean);
+    if (classList.length > 0) {
+      // 完全匹配
+      for (const cls of classList) {
+        if (GITHUB_CODE_CLASSES.includes(cls)) {
+          return true;
+        }
+      }
+      
+      // 部分匹配（包含关键词的类名）
+      for (const cls of classList) {
+        if (GITHUB_CODE_CLASSES.some(key => 
+          cls.includes(key) || key.includes(cls)
+        )) {
+          return true;
+        }
+      }
+    }
+    
+    // 检查特殊属性
+    if (parent.hasAttribute('data-code-marker') ||
+        parent.hasAttribute('data-line-number') ||
+        parent.hasAttribute('data-file-type') ||
+        parent.getAttribute('role') === 'gridcell') {
+      return true;
+    }
+    
+    // 检查是否为代码编辑器的特征元素
+    const style = window.getComputedStyle(parent);
+    if (style.fontFamily && 
+        (style.fontFamily.includes('monospace') || 
+         style.fontFamily.includes('Monaco') || 
+         style.fontFamily.includes('Consolas') ||
+         style.fontFamily.includes('Courier'))) {
+      // 如果使用等宽字体，进一步检查是否在代码容器中
+      if (parent.closest('.highlight, .blob-code, .CodeMirror, .monaco-editor, pre, code')) {
+        return true;
+      }
+    }
+    
+    parent = parent.parentElement;
+  }
+  
+  return false;
+}
+
 export async function lazyFullPageTranslate(targetLang: string, mode: 'translated' | 'compare', engine: string) {
   const callTranslateAPI = (window as any).callTranslateAPI;
   if (typeof callTranslateAPI !== 'function') throw new Error('callTranslateAPI not found on window');
   let translatedSet = new Set<Text>();
+  
   async function translateVisible() {
-    // 每次只收集一次未被 compare span 包裹的原始文本节点
+    // 收集所有可见的文本节点
     const nodes = collectAllTextNodes(document.body, translatedSet, mode);
+    console.log(`懒加载翻译: 收集到 ${nodes.length} 个节点`);
+    
     // 复制一份，避免遍历过程中DOM变化影响本轮节点
     const nodesToProcess = nodes.slice();
+    let translatedCount = 0;
+    let skippedCodeCount = 0;
+    
     for (const node of nodesToProcess) {
+      // 检查是否在视窗内（对于懒加载模式）
       if (isInViewport(node)) {
         // compare模式下，祖先链上有compare span直接跳过
         if (mode === 'compare' && hasCompareAncestor(node)) continue;
         if (mode === 'compare' && hasSiblingCompareSpan(node)) continue;
+        
+        // 增强的代码检测
+        if (isCodeContext(node)) {
+          skippedCodeCount++;
+          continue;
+        }
+        
         try {
           const { result } = await callTranslateAPI(node.nodeValue, 'auto', targetLang, engine);
           if (mode === 'translated') {
             if (node.parentNode) node.nodeValue = result;
             translatedSet.add(node);
+            translatedCount++;
           } else if (mode === 'compare') {
             if (node.parentNode) {
               // 动态获取原文颜色
@@ -248,53 +404,33 @@ export async function lazyFullPageTranslate(targetLang: string, mode: 'translate
               } catch {}
               const span = document.createElement('span');
               span.style.display = 'inline-block';
-              span.setAttribute('data-compare-translated', '1'); // 标记已对照翻译
+              span.setAttribute('data-compare-translated', '1');
               span.setAttribute('data-compare-id', String(compareIdCounter++));
               span.setAttribute('data-compare-original', node.nodeValue || '');
-              // 译文颜色跟随原文
               span.innerHTML = `<span style=\"color:#888;\">${node.nodeValue}</span><br/><span style=\"color:${origColor || '#222'};\">${result}</span>`;
               node.parentNode.replaceChild(span, node);
+              translatedCount++;
             }
           }
-        } catch {}
+        } catch (error) {
+          console.warn('翻译失败:', error);
+        }
       }
     }
+    
+    console.log(`懒加载翻译完成: 翻译了 ${translatedCount} 个节点，跳过代码 ${skippedCodeCount} 个节点`);
   }
+  
   // 初始翻译
   await translateVisible();
+  
   // 监听滚动/resize
   window.addEventListener('scroll', translateVisible, { passive: true });
   window.addEventListener('resize', translateVisible);
+  
   // 动态内容监听
   let observer: MutationObserver | null = new MutationObserver(async () => {
     await translateVisible();
   });
   observer.observe(document.body, { childList: true, subtree: true });
 }
-
-// 动态内容监听
-let observer: MutationObserver | null = null;
-export async function fullPageTranslateV2(targetLang: string, mode: 'translated' | 'compare', engine: string) {
-  const callTranslateAPI = (window as any).callTranslateAPI;
-  if (typeof callTranslateAPI !== 'function') throw new Error('callTranslateAPI not found on window');
-  // 统计总节点数
-  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
-  let total = 0;
-  let n = walker.nextNode();
-  while (n) { total++; n = walker.nextNode(); }
-  // showProgress(0, total); // Removed
-  await translateSubtree(document.body, targetLang, mode, engine, callTranslateAPI, { done: 0, total });
-  // hideProgress(); // Removed
-  // 动态内容监听
-  if (observer) observer.disconnect();
-  observer = new MutationObserver(async (mutations) => {
-    for (const mutation of mutations) {
-      for (const node of Array.from(mutation.addedNodes)) {
-        if (node.nodeType === 1) {
-          await translateSubtree(node as HTMLElement, targetLang, mode, engine, callTranslateAPI);
-        }
-      }
-    }
-  });
-  observer.observe(document.body, { childList: true, subtree: true });
-} 

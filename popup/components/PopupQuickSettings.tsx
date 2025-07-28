@@ -11,7 +11,7 @@ import {
   addNeverTranslateSite,
   removeAlwaysTranslateSite,
   removeNeverTranslateSite
-} from '../../lib/site-translate-settings';
+} from '../../lib/siteTranslateSettings';
 
 const storage = new Storage();
 

@@ -21,11 +21,11 @@ export interface HandlerResponse {
 
 // 通用消息处理器
 const handler: PlasmoMessaging.MessageHandler<HandlerRequest, HandlerResponse> = async (req, res) => {
-  console.log('=== 收到消息请求 ===');
-  console.log('收到消息请求:', req.body);
-  console.log('请求类型:', typeof req.body);
-  console.log('请求服务:', req.body?.service);
-  console.log('请求操作:', req.body?.action);
+  // console.log('=== 收到消息请求 ===');
+  // console.log('收到消息请求:', req.body);
+  // console.log('请求类型:', typeof req.body);
+  // console.log('请求服务:', req.body?.service);
+  // console.log('请求操作:', req.body?.action);
   
   try {
     if (!req.body) {
@@ -43,17 +43,6 @@ const handler: PlasmoMessaging.MessageHandler<HandlerRequest, HandlerResponse> =
     switch (service) {
       case 'translate':
         try {
-          console.log('处理翻译请求:', { action, data });
-          console.log('翻译请求详情:', {
-            type: action as 'translate' | 'translateBatch',
-            text: data.text,
-            options: {
-              from: data.options?.from || 'auto',
-              to: data.options?.to || 'zh-CN',
-              engine: data.options?.engine || 'bing',
-              useCache: data.options?.useCache ?? true,
-            }
-          });
           // 处理翻译相关消息
           const translateResponse = await handleTranslateMessage({
             type: action as 'translate' | 'translateBatch',

@@ -69,9 +69,13 @@ const CacheSettings: React.FC = () => {
 
   useEffect(() => {
     loadStats();
-    // 加载缓存开关状态
+    // 加载缓存开关状态，如果未设置则默认为 true
     storage.get('translation_cache_enabled').then((enabled) => {
-      if (enabled !== null) {
+      if (enabled === null || enabled === undefined) {
+        // 如果未设置，设置默认值为 true
+        storage.set('translation_cache_enabled', true);
+        setCacheEnabled(true);
+      } else {
         setCacheEnabled(Boolean(enabled));
       }
     });

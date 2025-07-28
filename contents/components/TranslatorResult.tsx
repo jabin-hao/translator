@@ -91,8 +91,8 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
   useEffect(() => {
     const fetchFav = async () => {
       try {
-        const fav = await storage.get('favoriteLangs');
-        if (Array.isArray(fav)) setFavoriteLangs(fav);
+      const fav = await storage.get('favoriteLangs');
+      if (Array.isArray(fav)) setFavoriteLangs(fav);
       } catch (e) {
         // 容错，防止 context invalidated 报错
       }
