@@ -53,6 +53,18 @@ function hasCompareAncestor(node: Node): boolean {
   return false;
 }
 
+function isInInputOrTextarea(node: Node): boolean {
+  let parent = node.parentElement;
+  while (parent) {
+    const tag = parent.tagName.toLowerCase();
+    if (tag === 'input' || tag === 'textarea') {
+      return true;
+    }
+    parent = parent.parentElement;
+  }
+  return false;
+}
+
 function collectAllTextNodes(root: HTMLElement, translatedSet: Set<Text>, mode?: 'translated' | 'compare'): Text[] {
   const nodes: Text[] = [];
   const walker = document.createTreeWalker(
@@ -77,6 +89,11 @@ function collectAllTextNodes(root: HTMLElement, translatedSet: Set<Text>, mode?:
   while (node) {
     totalFound++;
     const parent = node.parentElement;
+    // 新增：彻底排除 input/textarea 及其所有子孙节点
+    if (isInInputOrTextarea(node)) {
+      node = walker.nextNode() as Text;
+      continue;
+    }
     if (parent && isVisible(parent) && node.nodeValue && node.nodeValue.trim()) {
       if (isCodeContext(node)) { node = walker.nextNode() as Text; continue; }
       if (isCodeFileName(node.nodeValue || '')) {
