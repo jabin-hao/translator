@@ -9,21 +9,70 @@ function isVisible(node: Node): boolean {
 }
 
 import { sendToBackground } from '@plasmohq/messaging';
+import { Storage } from '@plasmohq/storage';
+const storage = new Storage();
+
+function getDomain() {
+  return location.hostname.replace(/^www\./, '');
+}
+
+async function applyCustomDictionaryBatch(texts: string[], domain: string): Promise<string[]> {
+  const dict = await storage.get(`site_custom_dict_${domain}`) || {};
+  // 构建去除前后空格的映射，提升健壮性
+  const dictTrimmed: Record<string, string> = {};
+  for (const k in dict) {
+    dictTrimmed[k.trim()] = dict[k].trim();
+  }
+  return texts.map(t => dictTrimmed[(t || '').trim()] || t);
+}
+
 async function batchTranslateTexts(texts: string[], from: string, to: string, engine: string): Promise<string[]> {
-  const resp = await sendToBackground({
-    name: 'handle',
-    body: {
-      service: 'translate',
-      action: 'translateBatch',
-      texts,
-      options: { from, to, engine }
+  const domain = getDomain();
+  const dict = await storage.get(`site_custom_dict_${domain}`) || {};
+  const dictTrimmed: Record<string, string> = {};
+  for (const k in dict) {
+    dictTrimmed[k.trim()] = dict[k].trim();
+  }
+
+  // 记录哪些文本命中词库，哪些需要翻译
+  const result: string[] = [];
+  const toTranslate: string[] = [];
+  const toTranslateIndices: number[] = [];
+
+  texts.forEach((t, i) => {
+    const key = (t || '').trim();
+    if (dictTrimmed[key]) {
+      result[i] = dictTrimmed[key];
+    } else {
+      toTranslate.push(t);
+      toTranslateIndices.push(i);
     }
   });
-  if (resp && resp.success && Array.isArray(resp.data)) {
-    return resp.data.map((r: any) => r.translation || '');
-  } else {
-    throw new Error(resp?.error || '批量翻译失败');
+
+  // 只对未命中的文本调用翻译API
+  let translatedArr: string[] = [];
+  if (toTranslate.length > 0) {
+    const resp = await sendToBackground({
+      name: 'handle',
+      body: {
+        service: 'translate',
+        action: 'translateBatch',
+        texts: toTranslate,
+        options: { from, to, engine }
+      }
+    });
+    if (resp && resp.success && Array.isArray(resp.data)) {
+      translatedArr = resp.data.map((r: any) => r.translation || '');
+    } else {
+      translatedArr = toTranslate;
+    }
+    // 回填到 result
+    toTranslateIndices.forEach((idx, j) => {
+      result[idx] = translatedArr[j];
+    });
   }
+
+  return result;
 }
 
 // 判断块是否在视窗内
@@ -41,6 +90,30 @@ function hasCompareAncestor(node: Node): boolean {
     p = p.parentElement;
   }
   return false;
+}
+
+// 常见编程语言名称
+const PROGRAMMING_LANGUAGES = [
+  'javascript', 'typescript', 'python', 'java', 'c', 'c++', 'c#', 'go', 'rust', 'php', 'ruby', 'swift', 'kotlin',
+  'scala', 'perl', 'lua', 'dart', 'objective-c', 'shell', 'bash', 'powershell', 'sql', 'html', 'css', 'json', 'yaml', 'xml',
+  'r', 'matlab', 'groovy', 'elixir', 'clojure', 'haskell', 'fortran', 'assembly', 'erlang', 'f#', 'vb', 'visual basic', 'delphi'
+];
+
+function isProgrammingLanguageName(text: string): boolean {
+  const t = text.trim().toLowerCase();
+  return PROGRAMMING_LANGUAGES.includes(t);
+}
+
+function isPureNumber(text: string): boolean {
+  const t = text.trim();
+  // 匹配纯数字、小数、百分数、科学计数法
+  return /^([+-]?(\d+(\.\d+)?|\.\d+)(e[+-]?\d+)?%?)$/.test(t);
+}
+
+function isCopyrightText(text: string): boolean {
+  const t = text.trim().toLowerCase();
+  // 以 © 或 (c) 开头，或包含 copyright
+  return /^©|^\(c\)|copyright/.test(t);
 }
 
 function collectAllTextNodes(root: HTMLElement, translatedSet: Set<Text>, mode?: 'translated' | 'compare'): Text[] {
@@ -70,6 +143,15 @@ function collectAllTextNodes(root: HTMLElement, translatedSet: Set<Text>, mode?:
     if (parent && isVisible(parent) && node.nodeValue && node.nodeValue.trim()) {
       if (isCodeContext(node)) { node = walker.nextNode() as Text; continue; }
       if (isCodeFileName(node.nodeValue || '')) {
+        node = walker.nextNode() as Text;
+        continue;
+      }
+      // 跳过编程语言名称、纯数字、版权信息
+      if (
+        isProgrammingLanguageName(node.nodeValue || '') ||
+        isPureNumber(node.nodeValue || '') ||
+        isCopyrightText(node.nodeValue || '')
+      ) {
         node = walker.nextNode() as Text;
         continue;
       }

@@ -7,6 +7,7 @@ export interface SiteTranslateSettings {
   autoTranslateEnabled: boolean;
   alwaysTranslateSites: string[];
   neverTranslateSites: string[];
+  pageTranslateMode?: string;
 }
 
 const defaultSettings: SiteTranslateSettings = {

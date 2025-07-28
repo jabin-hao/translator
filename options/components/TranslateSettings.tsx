@@ -12,6 +12,7 @@ import {
   removeNeverTranslateSite,
   setSiteTranslateSettings
 } from '../../lib/siteTranslateSettings';
+import { DeleteOutlined } from '@ant-design/icons';
 const { Option } = Select;
 
 const LOCAL_KEY = 'translate_settings';
@@ -49,6 +50,12 @@ const TranslateSettings: React.FC = () => {
   const [selectedNever, setSelectedNever] = useState<string[]>([]);
 
   const [pageTranslateMode, setPageTranslateMode] = useState<'translated'|'compare'>('translated');
+
+  const [dictModalOpen, setDictModalOpen] = useState(false);
+  const [dictHost, setDictHost] = useState<string | null>(null);
+  const [dictData, setDictData] = useState<{[k: string]: string}>({});
+  const [dictAddKey, setDictAddKey] = useState('');
+  const [dictAddValue, setDictAddValue] = useState('');
 
   useEffect(() => {
     // 读取翻译设置
@@ -190,6 +197,21 @@ const TranslateSettings: React.FC = () => {
     const s = await getSiteTranslateSettings();
     await setSiteTranslateSettings({ ...s, pageTranslateMode: e.target.value });
     message.success(t('整页翻译模式已保存'));
+  };
+
+  const handleEditDict = async (host: string) => {
+    setDictHost(host);
+    const dict = await storage.get(`site_custom_dict_${host}`) || {};
+    setDictData(dict);
+    setDictModalOpen(true);
+  };
+
+  const handleSaveDict = async () => {
+    if (dictHost) {
+      await storage.set(`site_custom_dict_${dictHost}`, dictData);
+      setDictModalOpen(false);
+      message.success('词库已保存');
+    }
   };
 
   // 只展示最新5个（倒序）
@@ -382,6 +404,7 @@ const TranslateSettings: React.FC = () => {
             renderItem={host => (
               <List.Item
                 actions={[
+                  <Button size="small" type="link" onClick={() => handleEditDict(host)}>{t('自定义词库')}</Button>,
                   <Button size="small" type="link" danger onClick={() => handleRemoveAlways(host)}>{t('移除')}</Button>
                 ]}
                 style={{ alignItems: 'center' }}
@@ -527,6 +550,118 @@ const TranslateSettings: React.FC = () => {
             )}
           />
         </Checkbox.Group>
+      </Modal>
+
+      <Modal
+        open={dictModalOpen}
+        onCancel={() => setDictModalOpen(false)}
+        onOk={handleSaveDict}
+        title={dictHost ? `自定义词库 - ${dictHost}` : '自定义词库'}
+        width={480}
+        bodyStyle={{ display: 'block' }}
+        cancelText="取消"
+        okText="保存"
+      >
+        <div style={{ marginBottom: 8, color: '#888', fontSize: 13 }}>
+          你可以为该网站设置专属词典，优先替换翻译结果。原文需精确匹配，建议区分大小写。
+        </div>
+        {/* 词条列表 */}
+        <List
+          size="small"
+          dataSource={Object.entries(dictData)}
+          locale={{ emptyText: '暂无词条' }}
+          style={{ maxHeight: 320, minHeight: 40, overflowY: 'auto', marginBottom: 12 }}
+          renderItem={([k, v], idx) => (
+            <List.Item
+              style={{ padding: '4px 0', alignItems: 'center' }}
+              actions={[
+                <Tooltip title="删除">
+                  <Button
+                    size="small"
+                    type="text"
+                    icon={<DeleteOutlined />}
+                    danger
+                    onClick={() => {
+                      const newDict = { ...dictData };
+                      delete newDict[k];
+                      setDictData(newDict);
+                    }}
+                  />
+                </Tooltip>
+              ]}
+            >
+              <Input
+                value={k}
+                disabled
+                style={{ width: 120, marginRight: 8 }}
+              />
+              <Input
+                value={v}
+                onChange={e => {
+                  const newDict = { ...dictData };
+                  newDict[k] = e.target.value;
+                  setDictData(newDict);
+                }}
+                style={{ flex: 1 }}
+                placeholder="自定义译文"
+              />
+            </List.Item>
+          )}
+        />
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Input
+            placeholder="原文"
+            style={{ width: 120 }}
+            value={dictAddKey}
+            onChange={e => setDictAddKey(e.target.value)}
+            onPressEnter={() => {
+              const key = dictAddKey.trim();
+              const value = dictAddValue.trim();
+              if (!key || !value) return;
+              if (dictData[key]) {
+                message.warning('该原文已存在');
+                return;
+              }
+              setDictData({ ...dictData, [key]: value });
+              setDictAddKey('');
+              setDictAddValue('');
+            }}
+          />
+          <Input
+            placeholder="自定义译文"
+            style={{ flex: 1 }}
+            value={dictAddValue}
+            onChange={e => setDictAddValue(e.target.value)}
+            onPressEnter={() => {
+              const key = dictAddKey.trim();
+              const value = dictAddValue.trim();
+              if (!key || !value) return;
+              if (dictData[key]) {
+                message.warning('该原文已存在');
+                return;
+              }
+              setDictData({ ...dictData, [key]: value });
+              setDictAddKey('');
+              setDictAddValue('');
+            }}
+          />
+          <Button
+            onClick={() => {
+              const key = dictAddKey.trim();
+              const value = dictAddValue.trim();
+              if (!key || !value) return;
+              if (dictData[key]) {
+                message.warning('该原文已存在');
+                return;
+              }
+              setDictData({ ...dictData, [key]: value });
+              setDictAddKey('');
+              setDictAddValue('');
+            }}
+          >
+            添加
+          </Button>
+        </div>
       </Modal>
     </Card>
   );
