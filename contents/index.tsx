@@ -215,7 +215,7 @@ async function callTranslateAPI(
 async function callTTSAPI(
   text: string,
   lang: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; audioData?: ArrayBuffer; error?: string }> {
   try {
     
     // 使用通用消息处理器
@@ -235,42 +235,22 @@ async function callTTSAPI(
     });
 
     if (response.success && response.data) {
-      // 如果有音频数据，播放音频
+      // 如果有音频数据，返回 ArrayBuffer
       if (response.data.audioData) {
         try {
+          // 将 base64 数据转换为 ArrayBuffer
+          const binaryString = atob(response.data.audioData);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
           
-          // 将 base64 数据转换为 blob
-          const audioBlob = new Blob(
-            [Uint8Array.from(atob(response.data.audioData), c => c.charCodeAt(0))],
-            { type: response.data.audioType || 'audio/mpeg' }
-          );
-          
-          // 使用 data URL 而不是 blob URL 来避免 CSP 问题
-          const reader = new FileReader();
-          reader.onload = async () => {
-            try {
-              const audio = new Audio(reader.result as string);
-              
-              // 添加音频加载事件监听
-              audio.onloadstart = () => {};
-              audio.oncanplay = () => {};
-              audio.onerror = (e) => {
-                console.warn('音频播放错误:', e);
-              };
-              
-              // 播放音频
-              await audio.play();
-              
-            } catch (audioError) {
-              console.warn('音频播放失败:', audioError);
-            }
+          return { 
+            success: true, 
+            audioData: bytes.buffer 
           };
-          
-          reader.readAsDataURL(audioBlob);
-          
-          return { success: true };
         } catch (audioError) {
-          return { success: false, error: `音频播放失败: ${audioError.message}` };
+          return { success: false, error: `音频数据转换失败: ${audioError.message}` };
         }
       } else {
         return { success: true };
@@ -378,7 +358,7 @@ const AppContent = ({
   shouldTranslate: boolean;
   setShouldTranslate: (should: boolean) => void;
   callTranslateAPI: (text: string, from: string, to: string, engine: string) => Promise<{ result: string, engine: string }>;
-  callTTSAPI: (text: string, lang: string) => Promise<{ success: boolean; error?: string }>;
+  callTTSAPI: (text: string, lang: string) => Promise<{ success: boolean; audioData?: ArrayBuffer; error?: string }>;
   stopTTSAPI: () => Promise<void>;
   onCloseResult: () => void; // 新增
 }) => {
