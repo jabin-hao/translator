@@ -303,8 +303,11 @@ export async function lazyFullPageTranslate(targetLang: string, mode: 'translate
   const callTranslateAPI = (window as any).callTranslateAPI;
   if (typeof callTranslateAPI !== 'function') throw new Error('callTranslateAPI not found on window');
   let translatedSet = new Set<Text>();
+  let isStopped = false;
   
   async function translateVisible() {
+    if (isStopped) return;
+    
     // 收集所有可见的文本节点
     const nodes = collectAllTextNodes(document.body, translatedSet, mode);
     console.log(`懒加载翻译: 收集到 ${nodes.length} 个节点`);
@@ -326,6 +329,8 @@ export async function lazyFullPageTranslate(targetLang: string, mode: 'translate
     const BATCH_SIZE = 20;
     let translatedCount = 0;
     for (let i = 0; i < validNodes.length; i += BATCH_SIZE) {
+      if (isStopped) break;
+      
       const batch = validNodes.slice(i, i + BATCH_SIZE);
       const texts = batch.map(n => n.nodeValue || '');
       let translatedArr: string[] = [];
@@ -336,6 +341,8 @@ export async function lazyFullPageTranslate(targetLang: string, mode: 'translate
         translatedArr = texts;
       }
       for (let j = 0; j < batch.length; j++) {
+        if (isStopped) break;
+        
         const node = batch[j];
         const translated = translatedArr[j];
         if (!node.parentNode) continue;
@@ -343,6 +350,10 @@ export async function lazyFullPageTranslate(targetLang: string, mode: 'translate
           node.nodeValue = translated;
           translatedSet.add(node);
           translatedCount++;
+          // 标记节点为已翻译
+          if (node.parentElement) {
+            node.parentElement.setAttribute('data-translated', 'true');
+          }
         } else if (mode === 'compare') {
           // 动态获取原文颜色
           let origColor = '';
@@ -368,12 +379,32 @@ export async function lazyFullPageTranslate(targetLang: string, mode: 'translate
   await translateVisible();
   
   // 监听滚动/resize
-  window.addEventListener('scroll', translateVisible, { passive: true });
-  window.addEventListener('resize', translateVisible);
+  const handleScroll = () => {
+    if (!isStopped) translateVisible();
+  };
+  const handleResize = () => {
+    if (!isStopped) translateVisible();
+  };
+  
+  window.addEventListener('scroll', handleScroll, { passive: true });
+  window.addEventListener('resize', handleResize);
   
   // 动态内容监听
   let observer: MutationObserver | null = new MutationObserver(async () => {
-    await translateVisible();
+    if (!isStopped) await translateVisible();
   });
   observer.observe(document.body, { childList: true, subtree: true });
+  
+  // 返回停止函数
+  return {
+    stop: () => {
+      isStopped = true;
+      if (observer) {
+        observer.disconnect();
+        observer = null;
+      }
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleResize);
+    }
+  };
 }

@@ -95,3 +95,4 @@ export const TRANSLATION_CACHE_CONFIG_KEY = 'translation_cache_config';
 
 export const UI_LANG_KEY = 'uiLang';
 export const SHORTCUT_SETTINGS_KEY = 'shortcut_settings';
+export const SITE_LANG_KEY = 'site_page_lang';

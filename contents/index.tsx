@@ -962,6 +962,65 @@ const ContentScript = () => {
     };
   }, [textTargetLang, engine, autoTranslate]);
 
+  // ========== 新增：监听 popup 消息，实现整页翻译/还原/状态查询 ==========
+  if (typeof window !== 'undefined' && chrome?.runtime?.onMessage) {
+    if (!(window as any).__originalPageTextMap) {
+      (window as any).__originalPageTextMap = new Map();
+    }
+    let isPageTranslated = false;
+    let stopTranslation: (() => void) | null = null;
+    
+    chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+      if (msg.type === 'FULL_PAGE_TRANSLATE') {
+        // 保存原文
+        const textNodes = [];
+        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+        let node;
+        const originalMap = (window as any).__originalPageTextMap;
+        while ((node = walker.nextNode())) {
+          if (node.nodeValue && node.nodeValue.trim()) {
+            originalMap.set(node, node.nodeValue);
+          }
+        }
+        // 调用整页翻译
+        lazyFullPageTranslate(msg.lang, 'translated', msg.engine).then((result) => {
+          stopTranslation = result.stop;
+          isPageTranslated = true;
+          sendResponse({ success: true });
+        }).catch(err => {
+          console.error('整页翻译失败:', err);
+          sendResponse({ success: false, error: err.message });
+        });
+        return true; // 异步响应
+      } else if (msg.type === 'RESTORE_ORIGINAL_PAGE') {
+        // 停止翻译
+        if (stopTranslation) {
+          stopTranslation();
+          stopTranslation = null;
+        }
+        
+        // 还原原文
+        const originalMap = (window as any).__originalPageTextMap;
+        for (const [node, text] of originalMap.entries()) {
+          try {
+            node.nodeValue = text;
+          } catch {}
+        }
+        
+        // 清理已翻译的节点标记
+        const translatedNodes = document.querySelectorAll('[data-translated="true"]');
+        translatedNodes.forEach(node => {
+          node.removeAttribute('data-translated');
+        });
+        
+        isPageTranslated = false;
+        sendResponse({ success: true });
+      } else if (msg.type === 'CHECK_PAGE_TRANSLATED') {
+        sendResponse({ translated: isPageTranslated });
+      }
+    });
+  }
+
   (window as any).callTranslateAPI = callTranslateAPI;
 
   return (

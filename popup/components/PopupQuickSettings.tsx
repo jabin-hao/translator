@@ -3,6 +3,7 @@ import { Card, Select, Switch, Divider, message, Button } from 'antd';
 import { Storage } from '@plasmohq/storage';
 import { TRANSLATE_ENGINES } from '../../lib/engines';
 import { useTranslation } from 'react-i18next';
+import { ReloadOutlined, TranslationOutlined } from '@ant-design/icons';
 
 // 1. 引入 storage 工具
 import {
@@ -24,6 +25,7 @@ const PopupQuickSettings: React.FC = () => {
   const [cacheEnabled, setCacheEnabled] = useState(true);
   const [pageTargetLang, setPageTargetLang] = useState('zh-CN');
   const [textTargetLang, setTextTargetLang] = useState('zh-CN');
+  const [isPageTranslated, setIsPageTranslated] = useState(false); // 新增：页面翻译状态
 
   const [siteKey, setSiteKey] = useState('');
   const [siteSettings, setSiteSettings] = useState({ always: false, never: false });
@@ -63,6 +65,17 @@ const PopupQuickSettings: React.FC = () => {
           });
         } catch {}
       }
+    });
+  }, []);
+
+  // 检查当前页面是否已翻译
+  useEffect(() => {
+    chrome.tabs && chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+      const tabId = tabs[0]?.id;
+      if (!tabId) return;
+      chrome.tabs.sendMessage(tabId, { type: 'CHECK_PAGE_TRANSLATED' }, (res) => {
+        setIsPageTranslated(res?.translated === true);
+      });
     });
   }, []);
 
@@ -127,6 +140,39 @@ const PopupQuickSettings: React.FC = () => {
       never: dict.siteNeverList.includes(siteKey)
     });
     message.success(siteSettings.never ? t('已移除永不翻译该网站') : t('已添加到永不翻译该网站'));
+  };
+
+  // 切换整页翻译/还原
+  const handleToggleFullPageTranslate = async () => {
+    chrome.tabs && chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+      const tabId = tabs[0]?.id;
+      if (!tabId) return;
+      if (!isPageTranslated) {
+        // 执行整页翻译
+        chrome.tabs.sendMessage(tabId, {
+          type: 'FULL_PAGE_TRANSLATE',
+          lang: pageTargetLang,
+          engine
+        }, (res) => {
+          if (res?.success) {
+            setIsPageTranslated(true);
+            message.success(t('已翻译当前网站'));
+          } else {
+            message.error(t('翻译失败'));
+          }
+        });
+      } else {
+        // 还原原网页
+        chrome.tabs.sendMessage(tabId, { type: 'RESTORE_ORIGINAL_PAGE' }, (res) => {
+          if (res?.success) {
+            setIsPageTranslated(false);
+            message.success(t('已还原原网页'));
+          } else {
+            message.error(t('还原失败'));
+          }
+        });
+      }
+    });
   };
 
   // 语言选项（可根据实际支持的语言调整）
@@ -234,6 +280,18 @@ const PopupQuickSettings: React.FC = () => {
           style={{ borderRadius: 6 }}
         >
           {siteSettings.never ? t('已设为永不翻译该网站') : t('永不翻译该网站')}
+        </Button>
+      </div>
+      <Divider style={{ margin: '8px 0' }} />
+      <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Button
+          type={isPageTranslated ? 'default' : 'primary'}
+          icon={isPageTranslated ? <ReloadOutlined /> : <TranslationOutlined />}
+          onClick={handleToggleFullPageTranslate}
+          block
+          style={{ borderRadius: 6 }}
+        >
+          {isPageTranslated ? t('显示原网页') : t('翻译当前网站')}
         </Button>
       </div>
     </Card>
