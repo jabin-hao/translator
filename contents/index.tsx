@@ -22,9 +22,14 @@ import TranslatorResult from './components/TranslatorResult';
 import InputTranslator from './components/InputTranslator';
 import i18n, { initI18n } from '../i18n';
 
+// 引入拆分后的模块
+import { setupSelectionHandler, getTargetLanguage } from './lib/selection';
+import { setupShortcutHandler } from './lib/shortcuts';
+import { setupMessageHandler } from './lib/messaging';
+import { setupAutoTranslate } from './lib/autoTranslate';
+
 // 1. 引入 storage 工具
 import { getSiteTranslateSettings, getDictConfig, matchSiteList } from '../lib/siteTranslateSettings';
-import { lazyFullPageTranslate } from '../lib/fullPageTranslate';
 import { TRANSLATE_SETTINGS_KEY, CACHE_KEY, PAGE_LANG_KEY, TEXT_LANG_KEY, UI_LANG_KEY, ALWAYS_LANGS_KEY, NEVER_LANGS_KEY } from '../lib/constants';
 
 const storage = new Storage();
@@ -278,54 +283,6 @@ async function stopTTSAPI(): Promise<void> {
     
   } catch (error) {
   }
-}
-
-// 检查元素是否为输入元素或可编辑元素
-function isInputElement(element: Element | null): boolean {
-  if (!element) return false;
-  
-  const tagName = element.tagName.toLowerCase();
-  
-  // 检查是否为输入元素
-  if (['input', 'textarea', 'select'].includes(tagName)) {
-    return true;
-  }
-  
-  // 检查是否为可编辑元素
-  if (element.hasAttribute('contenteditable')) {
-    const contentEditable = element.getAttribute('contenteditable');
-    return contentEditable === '' || contentEditable === 'true';
-  }
-  
-  return false;
-}
-
-// 检查点击路径中是否包含输入元素
-function pathContainsInputElement(path: EventTarget[]): boolean {
-  return path.some(target => {
-    if (target instanceof Element) {
-      return isInputElement(target);
-    }
-    return false;
-  });
-}
-
-// 检查是否点击在翻译组件内部
-function isClickOnTranslatorComponent(path: EventTarget[], shadowRoot: ShadowRoot | null): boolean {
-  if (!shadowRoot) return false;
-  
-  const inputTranslatorElement = shadowRoot.querySelector('.input-translator-card');
-  const resultElement = shadowRoot.querySelector('[data-translator-result]');
-  const iconElement = shadowRoot.querySelector('.translator-icon');
-  
-  return path.some(target => {
-    return (inputTranslatorElement && target === inputTranslatorElement) ||
-           (resultElement && target === resultElement) ||
-           (iconElement && target === iconElement) ||
-           (inputTranslatorElement && target instanceof Node && inputTranslatorElement.contains(target)) ||
-           (resultElement && target instanceof Node && resultElement.contains(target)) ||
-           (iconElement && target instanceof Node && iconElement.contains(target));
-  });
 }
 
 // 在App组件内部使用message的组件
@@ -661,80 +618,48 @@ const ContentScript = () => {
     setShouldTranslate(true); // 设置开始翻译
   };
 
-  // 修复输入框光标问题的事件处理逻辑
+  // 清空翻译状态的函数
+  const clearTranslationState = () => {
+    resultPosRef.current = null;
+    setResult(null);
+    setIcon(null);
+    setShowInputTranslator(false);
+  };
+
+  // 触发翻译的函数（用于快捷键）
+  const triggerTranslation = (text: string, rect: DOMRect) => {
+    const x = rect.left;
+    const y = rect.bottom;
+    resultPosRef.current = { x, y, text };
+    setIcon(null);
+    setResult({ x, y, originalText: text });
+    setShouldTranslate(true);
+  };
+
+  // 设置文本选择处理器
   useEffect(() => {
-    const handleMouseUp = (e: MouseEvent) => {
-      const path = e.composedPath();
-      
-      // 1. 如果点击路径中包含输入元素，直接返回，不处理翻译逻辑
-      if (pathContainsInputElement(path)) {
-        return;
-      }
-      
-      // 2. 如果点击在翻译组件内部，直接返回
-      if (isClickOnTranslatorComponent(path, shadowRoot)) {
-        return;
-      }
-
-      // 3. 处理文本选择逻辑
-      const selection = window.getSelection();
-      const text = selection?.toString().trim();
-
-      if (text && text.length > 0 && selection && selection.rangeCount > 0) {
-        const rect = selection.getRangeAt(0).getBoundingClientRect();
-        showTranslationIcon(text, rect);
-      } else {
-        // 4. 没有选中内容，且不是点击在翻译组件内部，清空所有
-        resultPosRef.current = null;
-        setResult(null);
-        setIcon(null);
-        setShowInputTranslator(false);
-        
-        // 清除选中状态
-        if (window.getSelection) {
-          const sel = window.getSelection();
-          if (sel) sel.removeAllRanges();
-        }
-      }
-    };
-
-    // 优化 mousedown 事件处理器，减少对输入框的干扰
-    const handleMouseDown = (e: MouseEvent) => {
-      const path = e.composedPath();
-      
-      // 如果点击路径中包含输入元素，直接返回，不处理任何逻辑
-      if (pathContainsInputElement(path)) {
-        return;
-      }
-      
-      // 如果点击在翻译组件内部，不处理
-      if (isClickOnTranslatorComponent(path, shadowRoot)) {
-        return;
-      }
-
-      // 只在点击外部且没有输入元素时才清空状态
-      // 延迟执行，避免干扰正常的点击事件
-      setTimeout(() => {
-        const currentSelection = window.getSelection();
-        const currentText = currentSelection?.toString().trim();
-        
-        // 如果当前没有选中文本，则清空翻译状态
-        if (!currentText) {
-          resultPosRef.current = null;
-          setResult(null);
-          setIcon(null);
-          setShowInputTranslator(false);
-        }
-      }, 10);
-    };
-
-    document.addEventListener('mouseup', handleMouseUp, { passive: true });
-    document.addEventListener('mousedown', handleMouseDown, { passive: true });
-    return () => {
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.removeEventListener('mousedown', handleMouseDown);
-    };
+    const cleanup = setupSelectionHandler(
+      shadowRoot,
+      showTranslationIcon,
+      clearTranslationState,
+      setShowInputTranslator
+    );
+    return cleanup;
   }, [showInputTranslator, result, icon, autoTranslate]);
+
+  // 设置快捷键处理器
+  useEffect(() => {
+    const cleanup = setupShortcutHandler(
+      triggerTranslation,
+      setShowInputTranslator
+    );
+    return cleanup;
+  }, [shortcutEnabled, customShortcut, textTargetLang, favoriteLangs, shouldTranslate, autoTranslate]);
+
+  // 设置消息处理器
+  useEffect(() => {
+    setupMessageHandler();
+  }, []);
 
   // 2. 监听 result 状态变化，result 出现后再 setIcon(null)
   useEffect(() => {
@@ -742,131 +667,6 @@ const ContentScript = () => {
       setIcon(null);
     }
   }, [result]);
-
-  // 新增：双击快捷键检测状态
-  const [doubleClickState, setDoubleClickState] = useState<{
-    lastKey: string;
-    lastTime: number;
-    threshold: number;
-  }>({ lastKey: '', lastTime: 0, threshold: 300 });
-
-  // 组件外部
-  const lastCtrlPressTimeRef = useRef(0);
-  const isTranslatingRef = useRef(false); // 添加翻译状态标记
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // 如果当前焦点在输入元素上，不处理快捷键
-      const activeElement = document.activeElement;
-      if (activeElement && isInputElement(activeElement)) {
-        return;
-      }
-
-      let shouldTrigger = false;
-      let isDoubleCtrl = false;
-
-      // 检测双击Ctrl
-      if (e.key === 'Control') {
-        const now = Date.now();
-        if (now - lastCtrlPressTimeRef.current < 300) {
-          isDoubleCtrl = true;
-        }
-        lastCtrlPressTimeRef.current = now;
-      }
-
-      // 检查自定义快捷键
-      let isCustomShortcut = false;
-      if (customShortcut) {
-        const isCtrlPressed = e.ctrlKey || e.key === 'Control';
-        const isAltPressed = e.altKey || e.key === 'Alt';
-        const isShiftPressed = e.shiftKey || e.key === 'Shift';
-        const isMetaPressed = e.metaKey || e.key === 'Meta';
-        const pressedKeys = [];
-        if (isCtrlPressed) pressedKeys.push('ctrl');
-        if (isAltPressed) pressedKeys.push('alt');
-        if (isShiftPressed) pressedKeys.push('shift');
-        if (isMetaPressed) pressedKeys.push('meta');
-        let keyName = e.key.toLowerCase();
-        if (keyName === ' ') keyName = 'space';
-        if (keyName === 'enter') keyName = 'enter';
-        if (keyName === 'escape') keyName = 'escape';
-        if (keyName === 'tab') keyName = 'tab';
-        if (keyName === 'backspace') keyName = 'backspace';
-        if (keyName === 'delete') keyName = 'delete';
-        if (!['control', 'alt', 'shift', 'meta'].includes(keyName)) {
-          pressedKeys.push(keyName);
-        }
-        const currentCombination = pressedKeys.join('+');
-        if (currentCombination === customShortcut) {
-          isCustomShortcut = true;
-        }
-      }
-
-      const selection = window.getSelection();
-      const text = selection?.toString().trim();
-
-      if (text && text.length > 0 && selection && selection.rangeCount > 0) {
-        // 有选中文字
-        if (customShortcut) {
-          if (isCustomShortcut) {
-            shouldTrigger = true;
-          }
-        } else {
-          if (isDoubleCtrl) {
-            shouldTrigger = true;
-          }
-        }
-        if (shouldTrigger) {
-          // 防止重复调用
-          if (isTranslatingRef.current) {
-            return;
-          }
-          
-          const selection = window.getSelection();
-          const text = selection?.toString().trim();
-          if (text && text.length > 0 && selection && selection.rangeCount > 0) {
-            if (!shortcutEnabled) return;
-            const rect = selection.getRangeAt(0).getBoundingClientRect();
-            if (isNaN(rect.left) || isNaN(rect.bottom)) {
-              return;
-            }
-            const x = rect.left;
-            const y = rect.bottom;
-            setIcon(null);
-            let targetLang = textTargetLangRef.current;
-            if (!targetLang) {
-              if (favoriteLangs && favoriteLangs.length > 0) targetLang = favoriteLangs[0];
-              else targetLang = getBrowserLang();
-            }
-            
-            // 设置翻译状态
-            isTranslatingRef.current = true;
-            
-            // 只设置 result 状态，让 TranslatorResult 组件处理翻译
-            setResult({ x, y, originalText: text });
-            setShouldTranslate(true); // 设置开始翻译
-            
-            // 重置翻译状态
-            setTimeout(() => {
-              isTranslatingRef.current = false;
-            }, 100);
-          } else {
-            setShowInputTranslator(true);
-          }
-        }
-      } else {
-        // 没有选中文字，双击Ctrl始终唤起输入组件
-        if (isDoubleCtrl) {
-          setShowInputTranslator(true);
-        }
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [shortcutEnabled, customShortcut, textTargetLang, favoriteLangs, shouldTranslate, autoTranslate]);
 
   // 读取网页翻译目标语言
   const [pageTargetLang, setPageTargetLang] = useState('zh-CN');
@@ -881,145 +681,11 @@ const ContentScript = () => {
     });
   }, []);
 
-  // 新增：整页翻译自动触发逻辑
+  // 设置自动翻译
   useEffect(() => {
-    const triggerFullPageTranslation = async () => {
-      const host = window.location.hostname;
-      const path = window.location.pathname;
-      const fullUrl = path === '/' ? host : host + path;
-      console.log('fullUrl', fullUrl);
-      const settings = await getSiteTranslateSettings();
-      const dict = await getDictConfig();
-      if (!settings.autoTranslateEnabled) return;
-      if (matchSiteList(dict.siteNeverList || [], fullUrl)) return;
-      if (matchSiteList(dict.siteAlwaysList || [], fullUrl)) {
-        if (typeof (window as any).__autoFullPageTranslated === 'undefined') {
-          (window as any).__autoFullPageTranslated = true;
-          const mode = (settings as any).pageTranslateMode || 'translated';
-          await lazyFullPageTranslate(pageTargetLang, mode, engine);
-        }
-      }
-    };
-    // 页面加载后触发
-    triggerFullPageTranslation();
+    const cleanup = setupAutoTranslate(pageTargetLang, engine, stopTTSAPI);
+    return cleanup;
   }, [pageTargetLang, engine]);
-
-  // 新增：整页翻译触发逻辑
-  useEffect(() => {
-    const triggerFullPageTranslation = async () => {
-      const currentUrl = window.location.href;
-      console.log('currentUrl', currentUrl);
-      const alwaysTranslate = await storage.get(ALWAYS_LANGS_KEY);
-      const neverTranslate = await storage.get(NEVER_LANGS_KEY);
-
-      if (alwaysTranslate && Array.isArray(alwaysTranslate) && alwaysTranslate.includes(currentUrl)) {
-        // 在 always 列表中，自动触发整页翻译
-        await callTranslateAPI(document.body.innerText, getBrowserLang(), textTargetLang, engine);
-        message.success('整页翻译完成！');
-      } else if (neverTranslate && Array.isArray(neverTranslate) && neverTranslate.includes(currentUrl)) {
-        // 在 never 列表中，禁止自动整页翻译
-        message.warning('当前页面禁止自动整页翻译。');
-      } else {
-        // 不在列表中，不自动触发整页翻译
-      }
-    };
-
-    // 监听页面加载完成事件
-    const handleLoad = () => {
-      // 延迟执行，确保 DOM 已完全加载
-      setTimeout(triggerFullPageTranslation, 100);
-    };
-
-    // 监听页面卸载事件
-    const handleBeforeUnload = () => {
-      // 在页面卸载前，停止所有 TTS 播放
-      stopTTSAPI();
-    };
-
-    // 监听页面内容变化事件
-    const handleContentChange = () => {
-      // 当页面内容发生变化时，重新触发整页翻译
-      triggerFullPageTranslation();
-    };
-
-    // 监听页面卸载事件
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    // 监听页面加载完成事件
-    window.addEventListener('load', handleLoad);
-    // 监听页面内容变化事件
-    document.addEventListener('DOMContentLoaded', handleContentChange);
-    document.addEventListener('readystatechange', () => {
-      if (document.readyState === 'interactive') {
-        handleContentChange(); // 在交互状态时也触发一次
-      }
-    });
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      window.removeEventListener('load', handleLoad);
-      document.removeEventListener('DOMContentLoaded', handleContentChange);
-      document.removeEventListener('readystatechange', () => {});
-    };
-  }, [textTargetLang, engine, autoTranslate]);
-
-  // ========== 新增：监听 popup 消息，实现整页翻译/还原/状态查询 ==========
-  if (typeof window !== 'undefined' && chrome?.runtime?.onMessage) {
-    if (!(window as any).__originalPageTextMap) {
-      (window as any).__originalPageTextMap = new Map();
-    }
-    let isPageTranslated = false;
-    let stopTranslation: (() => void) | null = null;
-    
-    chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-      if (msg.type === 'FULL_PAGE_TRANSLATE') {
-        // 保存原文
-        const textNodes = [];
-        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-        let node;
-        const originalMap = (window as any).__originalPageTextMap;
-        while ((node = walker.nextNode())) {
-          if (node.nodeValue && node.nodeValue.trim()) {
-            originalMap.set(node, node.nodeValue);
-          }
-        }
-        // 调用整页翻译
-        lazyFullPageTranslate(msg.lang, 'translated', msg.engine).then((result) => {
-          stopTranslation = result.stop;
-          isPageTranslated = true;
-          sendResponse({ success: true });
-        }).catch(err => {
-          console.error('整页翻译失败:', err);
-          sendResponse({ success: false, error: err.message });
-        });
-        return true; // 异步响应
-      } else if (msg.type === 'RESTORE_ORIGINAL_PAGE') {
-        // 停止翻译
-        if (stopTranslation) {
-          stopTranslation();
-          stopTranslation = null;
-        }
-        
-        // 还原原文
-        const originalMap = (window as any).__originalPageTextMap;
-        for (const [node, text] of originalMap.entries()) {
-          try {
-            node.nodeValue = text;
-          } catch {}
-        }
-        
-        // 清理已翻译的节点标记
-        const translatedNodes = document.querySelectorAll('[data-translated="true"]');
-        translatedNodes.forEach(node => {
-          node.removeAttribute('data-translated');
-        });
-        
-        isPageTranslated = false;
-        sendResponse({ success: true });
-      } else if (msg.type === 'CHECK_PAGE_TRANSLATED') {
-        sendResponse({ translated: isPageTranslated });
-      }
-    });
-  }
 
   (window as any).callTranslateAPI = callTranslateAPI;
 
