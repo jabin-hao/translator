@@ -8,6 +8,7 @@ export interface TranslationCache {
   translatedText: string;
   detectedLanguage: string;
   key: string;
+  timestamp: number; // 缓存创建时间戳
 }
 
 export interface CacheConfig {
@@ -54,10 +55,34 @@ export class TranslationCacheManager {
   private storage: Storage;
   private db: IDBDatabase | null = null;
   private cache = new Map<string, TranslationCache>();
+  private initPromise: Promise<void> | null = null; // 添加初始化锁
 
   constructor(config: Partial<CacheConfig> = {}) {
     this.config = { ...DEFAULT_CACHE_CONFIG, ...config };
     this.storage = new Storage();
+    
+    // 从storage中读取用户配置
+    this.loadConfig().catch(error => {
+      console.error('初始化时加载配置失败:', error);
+    });
+  }
+
+  // 从storage加载配置
+  private async loadConfig(): Promise<void> {
+    try {
+      const config = await this.storage.get('translation_cache_config');
+      console.log('从storage加载的缓存配置:', config);
+      
+      if (config && typeof config === 'object') {
+        this.config = { ...this.config, ...config };
+        console.log('合并后的缓存配置:', this.config);
+      } else {
+        console.log('使用默认缓存配置:', this.config);
+      }
+    } catch (error) {
+      console.error('加载缓存配置失败:', error);
+      console.log('使用默认缓存配置:', this.config);
+    }
   }
 
   // 获取缓存
@@ -95,6 +120,7 @@ export class TranslationCacheManager {
         translatedText: translation,
         detectedLanguage: from,
         key: hash,
+        timestamp: Date.now(), // 设置时间戳
       };
 
       // 保存到内存缓存
@@ -102,6 +128,11 @@ export class TranslationCacheManager {
 
       // 保存到 IndexedDB
       await this.addInDB(cacheEntry);
+      
+      console.log(`已添加缓存条目: ${hash}, 当前配置: maxSize=${this.config.maxSize}`);
+      
+      // 检查缓存数量，如果超过限制则清理最旧的条目
+      await this.cleanupIfNeeded();
       
     } catch (error) {
       console.error('设置翻译缓存失败:', error);
@@ -123,11 +154,11 @@ export class TranslationCacheManager {
   // 清空所有缓存
   async clear(): Promise<void> {
     try {
-      
       // 清空内存缓存
       this.cache.clear();
       
       // 清空 IndexedDB
+      await this.initDB();
       if (this.db) {
         const objectStore = this.db.transaction(['cache'], 'readwrite').objectStore('cache');
         await new Promise<void>((resolve, reject) => {
@@ -144,68 +175,101 @@ export class TranslationCacheManager {
 
   // 从 IndexedDB 查询
   private async queryInDB(hash: string): Promise<TranslationCache | null> {
+    await this.initDB();
     if (!this.db) return null;
 
     return new Promise((resolve, reject) => {
-      const objectStore = this.db!.transaction(['cache'], 'readonly').objectStore('cache');
-      const request = objectStore.get(hash);
+      try {
+        const objectStore = this.db!.transaction(['cache'], 'readonly').objectStore('cache');
+        const request = objectStore.get(hash);
 
-      request.onsuccess = () => {
-        const result = request.result;
-        resolve(result || null);
-      };
+        request.onsuccess = () => {
+          const result = request.result;
+          resolve(result || null);
+        };
 
-      request.onerror = () => {
-        console.error('查询 IndexedDB 失败:', request.error);
-        reject(request.error);
-      };
+        request.onerror = () => {
+          console.error('查询 IndexedDB 失败:', request.error);
+          reject(request.error);
+        };
+      } catch (error) {
+        console.error('查询 IndexedDB 失败:', error);
+        reject(error);
+      }
     });
   }
 
   // 添加到 IndexedDB
   private async addInDB(data: TranslationCache): Promise<boolean> {
+    await this.initDB();
     if (!this.db) return false;
 
     return new Promise((resolve) => {
-      const objectStore = this.db!.transaction(['cache'], 'readwrite').objectStore('cache');
-      const request = objectStore.put(data);
+      try {
+        const objectStore = this.db!.transaction(['cache'], 'readwrite').objectStore('cache');
+        const request = objectStore.put(data);
 
-      request.onsuccess = () => {
-        resolve(true);
-      };
+        request.onsuccess = () => {
+          resolve(true);
+        };
 
-      request.onerror = () => {
-        console.error('保存到 IndexedDB 失败:', request.error);
+        request.onerror = () => {
+          console.error('保存到 IndexedDB 失败:', request.error);
+          resolve(false);
+        };
+      } catch (error) {
+        console.error('保存到 IndexedDB 失败:', error);
         resolve(false);
-      };
+      }
     });
   }
 
   // 从 IndexedDB 删除
   private async removeFromDB(hash: string): Promise<void> {
+    await this.initDB();
     if (!this.db) return;
 
     return new Promise((resolve, reject) => {
-      const objectStore = this.db!.transaction(['cache'], 'readwrite').objectStore('cache');
-      const request = objectStore.delete(hash);
+      try {
+        const objectStore = this.db!.transaction(['cache'], 'readwrite').objectStore('cache');
+        const request = objectStore.delete(hash);
 
-      request.onsuccess = () => {
-        resolve();
-      };
+        request.onsuccess = () => {
+          resolve();
+        };
 
-      request.onerror = () => {
-        console.error('从 IndexedDB 删除失败:', request.error);
-        reject(request.error);
-      };
+        request.onerror = () => {
+          console.error('从 IndexedDB 删除失败:', request.error);
+          reject(request.error);
+        };
+      } catch (error) {
+        console.error('从 IndexedDB 删除失败:', error);
+        reject(error);
+      }
     });
   }
 
   // 初始化 IndexedDB
   async initDB(): Promise<void> {
     if (this.db) return;
+    
+    // 如果已经有初始化在进行，等待它完成
+    if (this.initPromise) {
+      return this.initPromise;
+    }
 
+    this.initPromise = this._initDB();
+    try {
+      await this.initPromise;
+    } finally {
+      this.initPromise = null;
+    }
+  }
+
+  // 实际的数据库初始化逻辑
+  private async _initDB(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open('TranslationCache', 1);
+      const request = indexedDB.open('TranslationCache', 2);
 
       request.onerror = () => {
         console.error('打开 IndexedDB 失败:', request.error);
@@ -217,11 +281,30 @@ export class TranslationCacheManager {
         resolve();
       };
 
-      request.onupgradeneeded = () => {
+      request.onupgradeneeded = (event) => {
         const db = request.result;
-        if (!db.objectStoreNames.contains('cache')) {
-          const objectStore = db.createObjectStore('cache', { keyPath: 'key' });
-          objectStore.createIndex('key', 'key', { unique: true });
+        const oldVersion = event.oldVersion;
+        const newVersion = event.newVersion;
+        
+        console.log(`IndexedDB 版本升级: ${oldVersion} -> ${newVersion}`);
+        
+        try {
+          if (!db.objectStoreNames.contains('cache')) {
+            const objectStore = db.createObjectStore('cache', { keyPath: 'key' });
+            objectStore.createIndex('key', 'key', { unique: true });
+            objectStore.createIndex('timestamp', 'timestamp', { unique: false });
+            console.log('创建了新的 cache 对象存储');
+          } else {
+            // 如果对象存储已存在，检查是否需要添加timestamp索引
+            const objectStore = db.transaction(['cache'], 'readwrite').objectStore('cache');
+            if (!objectStore.indexNames.contains('timestamp')) {
+              objectStore.createIndex('timestamp', 'timestamp', { unique: false });
+              console.log('添加了 timestamp 索引');
+            }
+          }
+        } catch (error) {
+          console.error('数据库升级失败:', error);
+          reject(error);
         }
       };
     });
@@ -237,23 +320,28 @@ export class TranslationCacheManager {
       }
 
       return new Promise((resolve) => {
-        const objectStore = this.db!.transaction(['cache'], 'readonly').objectStore('cache');
-        const request = objectStore.getAll();
+        try {
+          const objectStore = this.db!.transaction(['cache'], 'readonly').objectStore('cache');
+          const request = objectStore.getAll();
 
-        request.onsuccess = () => {
-          const entries = request.result;
-          const count = entries.length;
-          const size = entries.reduce((total, entry) => {
-            return total + JSON.stringify(entry).length;
-          }, 0);
+          request.onsuccess = () => {
+            const entries = request.result;
+            const count = entries.length;
+            const size = entries.reduce((total, entry) => {
+              return total + JSON.stringify(entry).length;
+            }, 0);
 
-          resolve({ count, size });
-        };
+            resolve({ count, size });
+          };
 
-        request.onerror = () => {
-          console.error('获取缓存统计失败:', request.error);
+          request.onerror = () => {
+            console.error('获取缓存统计失败:', request.error);
+            resolve({ count: 0, size: 0 });
+          };
+        } catch (error) {
+          console.error('获取缓存统计失败:', error);
           resolve({ count: 0, size: 0 });
-        };
+        }
       });
     } catch (error) {
       console.error('获取缓存统计失败:', error);
@@ -262,8 +350,97 @@ export class TranslationCacheManager {
   }
 
   // 更新配置
-  updateConfig(newConfig: Partial<CacheConfig>): void {
+  async updateConfig(newConfig: Partial<CacheConfig>): Promise<void> {
     this.config = { ...this.config, ...newConfig };
+    await this.storage.set('translation_cache_config', this.config);
+    
+    // 配置更新后立即检查是否需要清理缓存
+    await this.cleanupIfNeeded();
+  }
+
+  // 检查并清理缓存（如果超过限制）
+  private async cleanupIfNeeded(): Promise<void> {
+    try {
+      console.log('开始检查缓存清理需求...');
+      const stats = await this.getStats();
+      console.log(`当前缓存统计: 数量=${stats.count}, 大小=${Utils.humanReadableSize(stats.size)}`);
+      console.log(`缓存配置: maxSize=${this.config.maxSize}, maxAge=${this.config.maxAge}ms`);
+      
+      // 如果缓存数量超过限制，删除最旧的条目
+      if (stats.count > this.config.maxSize) {
+        const toDelete = stats.count - this.config.maxSize;
+        console.log(`缓存数量超过限制，需要删除 ${toDelete} 个条目`);
+        await this.removeOldestEntries(toDelete);
+      } else {
+        console.log('缓存数量在限制范围内，无需清理');
+      }
+    } catch (error) {
+      console.error('缓存清理检查失败:', error);
+    }
+  }
+
+  // 删除最旧的缓存条目
+  private async removeOldestEntries(count: number): Promise<void> {
+    if (count <= 0) return;
+
+    try {
+      await this.initDB();
+      
+      if (!this.db) {
+        console.warn('数据库未初始化，无法删除缓存条目');
+        return;
+      }
+
+      console.log(`开始清理缓存，需要删除 ${count} 个条目`);
+
+      const objectStore = this.db.transaction(['cache'], 'readwrite').objectStore('cache');
+      
+      // 获取所有缓存条目
+      const request = objectStore.getAll();
+      
+      request.onsuccess = () => {
+        const entries = request.result;
+        console.log(`当前缓存总数: ${entries.length}, 最大限制: ${this.config.maxSize}`);
+        
+        // 按时间戳排序
+        entries.sort((a, b) => {
+          if (a.timestamp && b.timestamp) {
+            return a.timestamp - b.timestamp;
+          }
+          // 如果没有时间戳，按key排序作为备选
+          return a.key.localeCompare(b.key);
+        });
+        
+        // 删除最旧的count个条目
+        const toDelete = entries.slice(0, count);
+        console.log(`准备删除 ${toDelete.length} 个最旧的缓存条目`);
+        
+        let deletedCount = 0;
+        toDelete.forEach(entry => {
+          const deleteRequest = objectStore.delete(entry.key);
+          deleteRequest.onsuccess = () => {
+            deletedCount++;
+            console.log(`已删除缓存条目: ${entry.key}, 时间戳: ${new Date(entry.timestamp).toLocaleString()}`);
+          };
+          deleteRequest.onerror = () => {
+            console.error('删除缓存条目失败:', deleteRequest.error, 'key:', entry.key);
+          };
+        });
+        
+        // 同时从内存缓存中删除
+        toDelete.forEach(entry => {
+          this.cache.delete(entry.key);
+        });
+        
+        console.log(`缓存清理完成，删除了 ${deletedCount} 个条目，剩余缓存数量: ${entries.length - count}`);
+      };
+      
+      request.onerror = () => {
+        console.error('获取缓存条目失败:', request.error);
+      };
+    } catch (error) {
+      console.error('删除最旧缓存条目失败:', error);
+    }
   }
 }
 

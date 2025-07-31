@@ -16,7 +16,7 @@ import {
   removeCustomDict
 } from '../../lib/siteTranslateSettings';
 import { DeleteOutlined } from '@ant-design/icons';
-import { TRANSLATE_SETTINGS_KEY, SPEECH_KEY, DEEPL_API_KEY } from '../../lib/constants';
+import { TRANSLATE_SETTINGS_KEY, SPEECH_KEY, DEEPL_API_KEY, SITE_TRANSLATE_SETTINGS_KEY, DICT_KEY } from '../../lib/constants';
 const { Option } = Select;
 
 const storage = new Storage();
@@ -93,6 +93,64 @@ const TranslateSettings: React.FC = () => {
       setNeverSites(dict.siteNeverList || []);
       setPageTranslateMode(dict.pageTranslateMode === 'compare' ? 'compare' : 'translated');
     });
+
+    // 监听storage变化，实现与popup的同步
+    const handleStorageChange = (changes: { [key: string]: any }) => {
+      // 监听翻译设置变化
+      if (changes[TRANSLATE_SETTINGS_KEY]) {
+        const data = changes[TRANSLATE_SETTINGS_KEY].newValue;
+        if (data && typeof data === 'object') {
+          setEngine((data as any)?.engine || 'google');
+          setAutoRead(!!(data as any)?.autoRead);
+          setAutoTranslate((data as any)?.autoTranslate ?? false);
+        }
+      }
+      
+      // 监听朗读设置变化
+      if (changes[SPEECH_KEY]) {
+        const data = changes[SPEECH_KEY].newValue;
+        if (data && typeof data === 'object') {
+          setSpeechEngine((data as any)?.engine || 'edge');
+          setSpeechSpeed((data as any)?.speed ?? 1);
+          setSpeechPitch((data as any)?.pitch ?? 1);
+          setSpeechVolume((data as any)?.volume ?? 1);
+        }
+      }
+      
+      // 监听DeepL API key变化
+      if (changes[DEEPL_API_KEY]) {
+        const key = changes[DEEPL_API_KEY].newValue;
+        if (key && typeof key === 'string') {
+          setDeeplApiKey(key);
+          setDeeplApiKeyInput(key);
+        }
+      }
+      
+      // 监听网站自动翻译设置变化
+      if (changes[SITE_TRANSLATE_SETTINGS_KEY]) {
+        const settings = changes[SITE_TRANSLATE_SETTINGS_KEY].newValue;
+        if (settings && typeof settings === 'object') {
+          setSiteAutoEnabled(settings.autoTranslateEnabled);
+        }
+      }
+      
+      // 监听字典配置变化（白名单、黑名单等）
+      if (changes[DICT_KEY]) {
+        const dict = changes[DICT_KEY].newValue;
+        if (dict && typeof dict === 'object') {
+          setSiteAutoEnabled(dict.autoTranslateEnabled ?? false);
+          setAlwaysSites(dict.siteAlwaysList || []);
+          setNeverSites(dict.siteNeverList || []);
+          setPageTranslateMode(dict.pageTranslateMode === 'compare' ? 'compare' : 'translated');
+        }
+      }
+    };
+
+    // 添加storage监听器
+    if (chrome?.storage?.onChanged) {
+      chrome.storage.onChanged.addListener(handleStorageChange);
+      return () => chrome.storage.onChanged.removeListener(handleStorageChange);
+    }
   }, []);
 
   useEffect(() => {

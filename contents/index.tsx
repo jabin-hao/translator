@@ -12,7 +12,7 @@ export const getRootContainer = async () => {
 
 import React, { useEffect, useRef, useState } from 'react';
 import { StyleProvider } from '@ant-design/cssinjs';
-import { ConfigProvider, theme, App, Progress } from 'antd';
+import { ConfigProvider, theme, App } from 'antd';
 import { Storage } from '@plasmohq/storage';
 import { sendToBackground } from '@plasmohq/messaging';
 import { getEngineLangCode, getBrowserLang, mapUiLangToI18nKey, getTTSLang } from '../lib/languages';

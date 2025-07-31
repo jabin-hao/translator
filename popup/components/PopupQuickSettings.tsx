@@ -16,7 +16,7 @@ import {
   addNeverSite,
   removeNeverSite
 } from '../../lib/siteTranslateSettings';
-import { TRANSLATE_SETTINGS_KEY, CACHE_KEY, SITE_LANG_KEY, TEXT_LANG_KEY } from '../../lib/constants';
+import { TRANSLATE_SETTINGS_KEY, CACHE_KEY, SITE_LANG_KEY, TEXT_LANG_KEY, SITE_TRANSLATE_SETTINGS_KEY } from '../../lib/constants';
 
 const storage = new Storage();
 
@@ -58,6 +58,51 @@ const PopupQuickSettings: React.FC = () => {
     getSiteTranslateSettings().then((settings) => {
       setSiteAutoTranslateEnabled(settings.autoTranslateEnabled);
     });
+
+    // 监听storage变化，实现与options页面的同步
+    const handleStorageChange = (changes: { [key: string]: any }) => {
+      // 监听翻译设置变化
+      if (changes[TRANSLATE_SETTINGS_KEY]) {
+        const data = changes[TRANSLATE_SETTINGS_KEY].newValue;
+        if (data && typeof data === 'object') {
+          setEngine((data as any)?.engine || 'google');
+          setAutoTranslate((data as any)?.autoTranslate ?? true);
+          setAutoRead((data as any)?.autoRead ?? false);
+        }
+      }
+      
+      // 监听缓存设置变化
+      if (changes[CACHE_KEY]) {
+        const enabled = changes[CACHE_KEY].newValue;
+        if (enabled !== null && enabled !== undefined) {
+          setCacheEnabled(Boolean(enabled));
+        }
+      }
+      
+      // 监听语言设置变化
+      if (changes[SITE_LANG_KEY]) {
+        const val = changes[SITE_LANG_KEY].newValue;
+        if (val) setPageTargetLang(val);
+      }
+      if (changes[TEXT_LANG_KEY]) {
+        const val = changes[TEXT_LANG_KEY].newValue;
+        if (val) setTextTargetLang(val);
+      }
+      
+      // 监听网站自动翻译设置变化
+      if (changes[SITE_TRANSLATE_SETTINGS_KEY]) {
+        const settings = changes[SITE_TRANSLATE_SETTINGS_KEY].newValue;
+        if (settings && typeof settings === 'object') {
+          setSiteAutoTranslateEnabled(settings.autoTranslateEnabled);
+        }
+      }
+    };
+
+    // 添加storage监听器
+    if (chrome?.storage?.onChanged) {
+      chrome.storage.onChanged.addListener(handleStorageChange);
+      return () => chrome.storage.onChanged.removeListener(handleStorageChange);
+    }
   }, []);
 
   // 获取当前 tab 的 host+path
@@ -234,8 +279,8 @@ const PopupQuickSettings: React.FC = () => {
       }}
       headStyle={{ border: 'none', padding: '12px 16px 0 16px', borderRadius: 12 }}
     >
-      <div style={{ marginBottom: 16 }}>
-        <b>{t('翻译引擎')}：</b>
+      <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center' }}>
+        <b style={{ width: 100, flexShrink: 0 }}>{t('翻译引擎')}：</b>
         <Select
           value={engine}
           onChange={handleEngineChange}
@@ -249,8 +294,8 @@ const PopupQuickSettings: React.FC = () => {
           ))}
         </Select>
       </div>
-      <div style={{ marginBottom: 12 }}>
-        <b>{t('网页目标语言')}：</b>
+      <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center' }}>
+        <b style={{ width: 100, flexShrink: 0 }}>{t('网页目标语言')}：</b>
         <Select
           value={pageTargetLang}
           onChange={handlePageLangChange}
@@ -261,8 +306,8 @@ const PopupQuickSettings: React.FC = () => {
           ))}
         </Select>
       </div>
-      <div style={{ marginBottom: 12 }}>
-        <b>{t('划词目标语言')}：</b>
+      <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center' }}>
+        <b style={{ width: 100, flexShrink: 0 }}>{t('划词目标语言')}：</b>
         <Select
           value={textTargetLang}
           onChange={handleTextLangChange}
@@ -274,16 +319,16 @@ const PopupQuickSettings: React.FC = () => {
         </Select>
       </div>
       <Divider style={{ margin: '8px 0' }} />
-      <div style={{ marginBottom: 12 }}>
-        <b>{t('网站自动翻译')}：</b>
+      <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center' }}>
+        <b style={{ width: 100, flexShrink: 0 }}>{t('网站自动翻译')}：</b>
         <Switch checked={siteAutoTranslateEnabled} onChange={handleSiteAutoTranslateChange} style={{ marginLeft: 8 }} />
       </div>
-      <div style={{ marginBottom: 12 }}>
-        <b>{t('自动朗读翻译结果')}：</b>
+      <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center' }}>
+        <b style={{ width: 100, flexShrink: 0 }}>{t('自动朗读翻译结果')}：</b>
         <Switch checked={autoRead} onChange={handleAutoReadChange} style={{ marginLeft: 8 }} />
       </div>
-      <div style={{ marginBottom: 12 }}>
-        <b>{t('是否启用缓存')}：</b>
+      <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center' }}>
+        <b style={{ width: 100, flexShrink: 0 }}>{t('是否启用缓存')}：</b>
         <Switch checked={cacheEnabled} onChange={handleCacheToggle} style={{ marginLeft: 8 }} />
       </div>
       <Divider style={{ margin: '8px 0' }} />

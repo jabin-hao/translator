@@ -85,7 +85,7 @@ export const EXCLUDE_TAGS = [
 ];
 
 export const DEFAULT_CACHE_CONFIG = {
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7天
+  maxAge: 30 * 24 * 60 * 60 * 1000, // 30天（1个月）
   maxSize: 2000
 };
 

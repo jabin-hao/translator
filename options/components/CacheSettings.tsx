@@ -161,17 +161,64 @@ const CacheSettings: React.FC = () => {
               <div style={{ fontSize: 13, color: '#888', marginTop: 2 }}>
                 {t('超过此时间的缓存将被自动删除')}
               </div>
-              <div style={{ marginTop: 4 }}>
+              <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <InputNumber
-                  min={1}
-                  max={720}
-                  value={pendingConfig.maxAge / (1000 * 60 * 60)}
+                  min={0}
+                  max={24}
+                  value={Math.floor(pendingConfig.maxAge / (1000 * 60 * 60 * 24 * 30))}
                   onChange={value => {
-                    if (value) setPendingConfig(pc => ({ ...pc, maxAge: value * 1000 * 60 * 60 }));
+                    if (value !== null) {
+                      const currentDays = Math.floor((pendingConfig.maxAge % (1000 * 60 * 60 * 24 * 30)) / (1000 * 60 * 60 * 24));
+                      const currentHours = Math.floor((pendingConfig.maxAge % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                      const newMaxAge = value * 1000 * 60 * 60 * 24 * 30 + currentDays * 1000 * 60 * 60 * 24 + currentHours * 1000 * 60 * 60;
+                      setPendingConfig(pc => ({ ...pc, maxAge: newMaxAge }));
+                    }
+                  }}
+                  addonAfter={t('月')}
+                  style={{ width: 120 }}
+                />
+                <InputNumber
+                  min={0}
+                  max={30}
+                  value={Math.floor((pendingConfig.maxAge % (1000 * 60 * 60 * 24 * 30)) / (1000 * 60 * 60 * 24))}
+                  onChange={value => {
+                    if (value !== null) {
+                      const currentMonths = Math.floor(pendingConfig.maxAge / (1000 * 60 * 60 * 24 * 30));
+                      const currentHours = Math.floor((pendingConfig.maxAge % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                      const newMaxAge = currentMonths * 1000 * 60 * 60 * 24 * 30 + value * 1000 * 60 * 60 * 24 + currentHours * 1000 * 60 * 60;
+                      setPendingConfig(pc => ({ ...pc, maxAge: newMaxAge }));
+                    }
+                  }}
+                  addonAfter={t('日')}
+                  style={{ width: 120 }}
+                />
+                <InputNumber
+                  min={0}
+                  max={23}
+                  value={Math.floor((pendingConfig.maxAge % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))}
+                  onChange={value => {
+                    if (value !== null) {
+                      const currentMonths = Math.floor(pendingConfig.maxAge / (1000 * 60 * 60 * 24 * 30));
+                      const currentDays = Math.floor((pendingConfig.maxAge % (1000 * 60 * 60 * 24 * 30)) / (1000 * 60 * 60 * 24));
+                      const newMaxAge = currentMonths * 1000 * 60 * 60 * 24 * 30 + currentDays * 1000 * 60 * 60 * 24 + value * 1000 * 60 * 60;
+                      setPendingConfig(pc => ({ ...pc, maxAge: newMaxAge }));
+                    }
                   }}
                   addonAfter={t('小时')}
                   style={{ width: 120 }}
                 />
+              </div>
+              <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
+                {(() => {
+                  const months = Math.floor(pendingConfig.maxAge / (1000 * 60 * 60 * 24 * 30));
+                  const days = Math.floor((pendingConfig.maxAge % (1000 * 60 * 60 * 24 * 30)) / (1000 * 60 * 60 * 24));
+                  const hours = Math.floor((pendingConfig.maxAge % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                  const parts = [];
+                  if (months > 0) parts.push(`${months}${t('月')}`);
+                  if (days > 0) parts.push(`${days}${t('天')}`);
+                  if (hours > 0) parts.push(`${hours}${t('小时')}`);
+                  return parts.length > 0 ? `${t('总计')}: ${parts.join(' ')}` : `${t('总计')}: 0${t('小时')}`;
+                })()}
               </div>
             </div>
             <div style={{ marginBottom: 0 }}>
@@ -194,7 +241,6 @@ const CacheSettings: React.FC = () => {
             <Button type="primary" style={{ marginTop: 16 }} onClick={async () => {
               setConfig(pendingConfig);
               await cacheManager.updateConfig(pendingConfig);
-              await storage.set('translation_cache_config', pendingConfig);
               await sendToBackground({ name: 'handle', body: { service: 'cache', action: 'reschedule' } });
               message.success(t('缓存配置已保存'));
             }}>{t('保存')}</Button>
