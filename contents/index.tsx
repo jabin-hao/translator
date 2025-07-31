@@ -12,7 +12,7 @@ export const getRootContainer = async () => {
 
 import React, { useEffect, useRef, useState } from 'react';
 import { StyleProvider } from '@ant-design/cssinjs';
-import { message, ConfigProvider, theme, App } from 'antd';
+import { ConfigProvider, theme, App, Progress } from 'antd';
 import { Storage } from '@plasmohq/storage';
 import { sendToBackground } from '@plasmohq/messaging';
 import { getEngineLangCode, getBrowserLang, mapUiLangToI18nKey, getTTSLang } from '../lib/languages';
@@ -23,14 +23,13 @@ import InputTranslator from './components/InputTranslator';
 import i18n, { initI18n } from '../i18n';
 
 // 引入拆分后的模块
-import { setupSelectionHandler, getTargetLanguage } from './lib/selection';
+import { setupSelectionHandler } from './lib/selection';
 import { setupShortcutHandler } from './lib/shortcuts';
 import { setupMessageHandler } from './lib/messaging';
 import { setupAutoTranslate } from './lib/autoTranslate';
 
 // 1. 引入 storage 工具
-import { getSiteTranslateSettings, getDictConfig, matchSiteList } from '../lib/siteTranslateSettings';
-import { TRANSLATE_SETTINGS_KEY, CACHE_KEY, PAGE_LANG_KEY, TEXT_LANG_KEY, UI_LANG_KEY, ALWAYS_LANGS_KEY, NEVER_LANGS_KEY } from '../lib/constants';
+import { TRANSLATE_SETTINGS_KEY, CACHE_KEY, PAGE_LANG_KEY, TEXT_LANG_KEY, UI_LANG_KEY } from '../lib/constants';
 
 const storage = new Storage();
 
@@ -408,6 +407,7 @@ const ContentScript = () => {
   const [shouldTranslate, setShouldTranslate] = useState(false);
   // 新增：控制自动翻译
   const [autoTranslate, setAutoTranslate] = useState(true);
+  // 移除 isPageTranslating 状态，不再需要全局 loading
 
   // 新增：用 ref 保证 handleTranslation 始终用到最新的 textTargetLang
   const textTargetLangRef = useRef(textTargetLang);
@@ -656,7 +656,7 @@ const ContentScript = () => {
     return cleanup;
   }, [shortcutEnabled, customShortcut, textTargetLang, favoriteLangs, shouldTranslate, autoTranslate]);
 
-  // 设置消息处理器
+  // 设置消息处理器，确保只注册一次
   useEffect(() => {
     setupMessageHandler();
   }, []);
@@ -683,11 +683,61 @@ const ContentScript = () => {
 
   // 设置自动翻译
   useEffect(() => {
+    console.log('ContentScript: 准备设置自动翻译，参数:', { pageTargetLang, engine });
     const cleanup = setupAutoTranslate(pageTargetLang, engine, stopTTSAPI);
+    console.log('ContentScript: setupAutoTranslate 已调用，返回清理函数');
     return cleanup;
-  }, [pageTargetLang, engine]);
+  }, [pageTargetLang, engine, stopTTSAPI]);
+
+  // 移除全局 loading
+  // useEffect(() => {
+  //   if (chrome?.runtime?.onMessage) {
+  //     const handler = (msg, sender, sendResponse) => {
+  //       if (msg.type === 'FULL_PAGE_TRANSLATE') {
+  //         setIsPageTranslating(true);
+  //       }
+  //       if (msg.type === 'FULL_PAGE_TRANSLATE_DONE') {
+  //         setIsPageTranslating(false);
+  //       }
+  //       if (msg.type === 'RESTORE_ORIGINAL_PAGE') {
+  //         setIsPageTranslating(true);
+  //       }
+  //       if (msg.type === 'RESTORE_ORIGINAL_PAGE_DONE') {
+  //         setIsPageTranslating(false);
+  //       }
+  //     };
+  //     chrome.runtime.onMessage.addListener(handler);
+  //     return () => chrome.runtime.onMessage.removeListener(handler);
+  //   }
+  // }, []);
+
+  // 在网页翻译完成后自动隐藏 loading（可在 lazyFullPageTranslate 完成后发送消息）
+  useEffect(() => {
+    // 假设 lazyFullPageTranslate 完成后会发送 'FULL_PAGE_TRANSLATE_DONE' 消息
+    // 这里可以添加一个逻辑，当翻译完成时，发送 'FULL_PAGE_TRANSLATE_DONE' 消息
+    // 例如，在 setupAutoTranslate 的 onComplete 回调中
+    // 或者在翻译结果显示后，手动发送
+    // 为了简化，这里直接在翻译完成后发送消息
+    // 实际应用中，可能需要更复杂的逻辑来判断翻译是否真正完成
+    // 例如，检查是否有新的翻译结果出现，或者等待一段时间
+    // 这里简单地假设翻译完成后，isPageTranslating 会变为 false
+    // 如果需要更精确的控制，可以考虑在翻译结果显示后，手动发送消息
+  }, []); // 依赖于 isPageTranslating 的变化
 
   (window as any).callTranslateAPI = callTranslateAPI;
+
+  // 新增：整页翻译/还原按钮逻辑（示例）
+  const handleFullPageTranslate = () => {
+    // setIsPageTranslating(true); // 移除全局 loading
+    // setIsPageTranslated(true); // 移除全局 loading
+    // 发送消息给 content-script 执行整页翻译
+    chrome.runtime.sendMessage({ type: 'FULL_PAGE_TRANSLATE', lang: pageTargetLang, engine });
+  };
+  const handleRestorePage = () => {
+    // setIsPageTranslating(true); // 移除全局 loading
+    // setIsPageTranslated(false); // 移除全局 loading
+    chrome.runtime.sendMessage({ type: 'RESTORE_ORIGINAL_PAGE' });
+  };
 
   return (
     <StyleProvider hashPriority="high" container={shadowRoot}>
@@ -725,6 +775,7 @@ const ContentScript = () => {
               setShouldTranslate(false);
             }}
         />
+        {/* 移除全局 loading */}
         </App>
       </ConfigProvider>
     </StyleProvider>

@@ -4,7 +4,7 @@ import { Storage } from '@plasmohq/storage';
 import { LANGUAGES, UI_LANGUAGES } from '../../lib/languages';
 import { UploadOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import {POPUP_SETTINGS_KEY, PLUGIN_THEME_KEY, CONTENT_THEME_KEY, TRANSLATION_CACHE_CONFIG_KEY, UI_LANG_KEY, SHORTCUT_SETTINGS_KEY, PAGE_LANG_KEY, TEXT_LANG_KEY, FAVORITE_LANGS_KEY, NEVER_LANGS_KEY, ALWAYS_LANGS_KEY, TRANSLATE_SETTINGS_KEY, SITE_TRANSLATE_SETTINGS_KEY, DICT_KEY } from '../../lib/constants';
+import {POPUP_SETTINGS_KEY, PLUGIN_THEME_KEY, CONTENT_THEME_KEY, TRANSLATION_CACHE_CONFIG_KEY, UI_LANG_KEY, SHORTCUT_SETTINGS_KEY, PAGE_LANG_KEY, TEXT_LANG_KEY, FAVORITE_LANGS_KEY, TRANSLATE_SETTINGS_KEY, SITE_TRANSLATE_SETTINGS_KEY, DICT_KEY } from '../../lib/constants';
 
 const { Title, Paragraph } = Typography;
 
@@ -165,8 +165,6 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
                     PAGE_LANG_KEY,
                     TEXT_LANG_KEY,
                     FAVORITE_LANGS_KEY,
-                    NEVER_LANGS_KEY,
-                    ALWAYS_LANGS_KEY,
                     TRANSLATE_SETTINGS_KEY,
                     SITE_TRANSLATE_SETTINGS_KEY,
                     POPUP_SETTINGS_KEY,
@@ -207,8 +205,6 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
                       PAGE_LANG_KEY,
                       TEXT_LANG_KEY,
                       FAVORITE_LANGS_KEY,
-                      NEVER_LANGS_KEY,
-                      ALWAYS_LANGS_KEY,
                       TRANSLATE_SETTINGS_KEY,
                       POPUP_SETTINGS_KEY,
                       PLUGIN_THEME_KEY,
@@ -277,8 +273,6 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
               PAGE_LANG_KEY,
               TEXT_LANG_KEY,
               FAVORITE_LANGS_KEY,
-              NEVER_LANGS_KEY,
-              ALWAYS_LANGS_KEY,
               TRANSLATE_SETTINGS_KEY,
               SITE_TRANSLATE_SETTINGS_KEY,
               POPUP_SETTINGS_KEY,

@@ -1,3 +1,71 @@
+// 全局状态管理
+if (!(window as any).__translationState) {
+  (window as any).__translationState = {
+    isPageTranslated: false,
+    stopTranslation: null
+  };
+}
+
+// 初始化原始文本映射
+if (!(window as any).__originalPageTextMap) {
+  (window as any).__originalPageTextMap = new Map();
+}
+
+// 获取翻译状态
+const getTranslationState = () => {
+  return (window as any).__translationState;
+};
+
+// 设置翻译状态
+const setTranslationState = (state: { isPageTranslated: boolean; stopTranslation: (() => void) | null }) => {
+  (window as any).__translationState = state;
+};
+
+// 保存原始文本映射
+const saveOriginalTextMap = () => {
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  let node;
+  const originalMap = (window as any).__originalPageTextMap;
+  while ((node = walker.nextNode())) {
+    if (node.nodeValue && node.nodeValue.trim()) {
+      originalMap.set(node, node.nodeValue);
+    }
+  }
+};
+
+// 恢复原始文本映射
+const restoreOriginalTextMap = () => {
+  const originalMap = (window as any).__originalPageTextMap;
+  for (const [node, text] of originalMap.entries()) {
+    try {
+      node.nodeValue = text;
+    } catch {}
+  }
+  
+  // 清理已翻译的节点标记
+  const translatedNodes = document.querySelectorAll('[data-translated="true"]');
+  translatedNodes.forEach(node => {
+    node.removeAttribute('data-translated');
+  });
+  
+  // 清理 compare 模式的 span
+  const compareSpans = document.querySelectorAll('[data-compare-translated="1"]');
+  compareSpans.forEach(span => {
+    const originalText = span.getAttribute('data-compare-original');
+    if (originalText && span.parentNode) {
+      const textNode = document.createTextNode(originalText);
+      span.parentNode.replaceChild(textNode, span);
+    }
+  });
+};
+
+// 重置自动翻译标记
+const resetAutoTranslateFlag = () => {
+  if ((window as any).__autoFullPageTranslated) {
+    delete (window as any).__autoFullPageTranslated;
+  }
+};
+
 function isVisible(node: Node): boolean {
   if (!(node instanceof HTMLElement)) return true;
   
@@ -305,6 +373,9 @@ export async function lazyFullPageTranslate(targetLang: string, mode: 'translate
   let translatedSet = new Set<Text>();
   let isStopped = false;
   
+  // 保存原始文本映射
+  saveOriginalTextMap();
+  
   async function translateVisible() {
     if (isStopped) return;
     
@@ -405,6 +476,43 @@ export async function lazyFullPageTranslate(targetLang: string, mode: 'translate
       }
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', handleResize);
+      
+      // 恢复原始文本映射
+      restoreOriginalTextMap();
+      
+      // 重置翻译状态
+      const state = getTranslationState();
+      state.stopTranslation = null;
+      state.isPageTranslated = false;
+      setTranslationState(state);
+      
+      // 重置自动翻译标记
+      resetAutoTranslateFlag();
     }
   };
 }
+
+// 导出状态管理函数
+export const getPageTranslationStatus = (): boolean => {
+  const state = getTranslationState();
+  return state.isPageTranslated;
+};
+
+export const restoreOriginalPage = () => {
+  // 停止翻译
+  const state = getTranslationState();
+  if (state.stopTranslation) {
+    state.stopTranslation();
+  }
+  
+  // 恢复原始文本映射
+  restoreOriginalTextMap();
+  
+  // 重置翻译状态
+  state.stopTranslation = null;
+  state.isPageTranslated = false;
+  setTranslationState(state);
+  
+  // 重置自动翻译标记
+  resetAutoTranslateFlag();
+};

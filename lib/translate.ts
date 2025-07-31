@@ -136,64 +136,150 @@ export async function translateBatch(
   texts: string[],
   options: TranslateOptions
 ): Promise<TranslateResult[]> {
-  const { from, to, engine } = options;
-  // 优先用底层批量API
-  if (engine === 'google' && typeof googleTranslateBatch === 'function') {
-    try {
-      const translations = await googleTranslateBatch(texts, from, to);
-      return texts.map((text, i) => ({
-        text,
-        translation: translations[i] || '',
-        engine,
-        from,
-        to,
-        cached: false,
-      }));
-    } catch (e) {}
+  const { from, to, engine, useCache = true } = options;
+  
+  // 检查缓存开关
+  const shouldUseCache = useCache && await isCacheEnabled();
+  console.log('批量翻译是否使用缓存:', shouldUseCache);
+  
+  // 如果启用缓存，确保 IndexedDB 已初始化
+  if (shouldUseCache) {
+    await cacheManager.initDB();
   }
-  if (engine === 'bing' && typeof bingTranslateBatch === 'function') {
-    try {
-      const translations = await bingTranslateBatch(texts, from, to);
-      return texts.map((text, i) => ({
-        text,
-        translation: translations[i] || '',
-        engine,
-        from,
-        to,
-        cached: false,
-      }));
-    } catch (e) {}
-  }
-  if (engine === 'deepl' && typeof deeplTranslateBatch === 'function') {
-    try {
-      const translations = await deeplTranslateBatch(texts, from, to);
-      return texts.map((text, i) => ({
-        text,
-        translation: translations[i] || '',
-        engine,
-        from,
-        to,
-        cached: false,
-      }));
-    } catch (e) {}
-  }
-  // fallback: 单条循环
+  
+  // ========== 新增：先查缓存，提高命中率 ==========
   const results: TranslateResult[] = [];
-  for (const text of texts) {
-    try {
-      const result = await translate(text, options);
-      results.push(result);
-    } catch (error) {
-      results.push({
-        text,
-        translation: `翻译失败: ${error instanceof Error ? error.message : String(error)}`,
-        engine,
-        from,
-        to,
-        cached: false,
-      });
+  const toTranslate: string[] = [];
+  const toTranslateIndices: number[] = [];
+  
+  // 先查缓存，分离命中和未命中的文本
+  for (let i = 0; i < texts.length; i++) {
+    const text = texts[i];
+    if (shouldUseCache) {
+      const cached = await cacheManager.get(text, from, to, engine);
+      if (cached) {
+        results[i] = {
+          text,
+          translation: cached,
+          engine,
+          from,
+          to,
+          cached: true,
+        };
+        continue;
+      }
+    }
+    toTranslate.push(text);
+    toTranslateIndices.push(i);
+  }
+  
+  // 只对未命中的文本调用翻译API
+  if (toTranslate.length > 0) {
+    console.log(`批量翻译: ${texts.length} 个文本，${toTranslate.length} 个需要翻译`);
+    
+    // 优先用底层批量API
+    if (engine === 'google' && typeof googleTranslateBatch === 'function') {
+      try {
+        const translations = await googleTranslateBatch(toTranslate, from, to);
+        // ========== 新增：批量翻译结果写入缓存 ==========
+        if (shouldUseCache) {
+          for (let i = 0; i < toTranslate.length; i++) {
+            try {
+              await cacheManager.set(toTranslate[i], translations[i], from, to, engine);
+            } catch (cacheError) {
+              console.error('批量翻译缓存写入失败:', cacheError);
+            }
+          }
+        }
+        // ========== END ==========
+        // 回填结果
+        toTranslateIndices.forEach((originalIdx, j) => {
+          results[originalIdx] = {
+            text: toTranslate[j],
+            translation: translations[j] || '',
+            engine,
+            from,
+            to,
+            cached: false,
+          };
+        });
+        return results;
+      } catch (e) {}
+    }
+    if (engine === 'bing' && typeof bingTranslateBatch === 'function') {
+      try {
+        const translations = await bingTranslateBatch(toTranslate, from, to);
+        // ========== 新增：批量翻译结果写入缓存 ==========
+        if (shouldUseCache) {
+          for (let i = 0; i < toTranslate.length; i++) {
+            try {
+              await cacheManager.set(toTranslate[i], translations[i], from, to, engine);
+            } catch (cacheError) {
+              console.error('批量翻译缓存写入失败:', cacheError);
+            }
+          }
+        }
+        // ========== END ==========
+        // 回填结果
+        toTranslateIndices.forEach((originalIdx, j) => {
+          results[originalIdx] = {
+            text: toTranslate[j],
+            translation: translations[j] || '',
+            engine,
+            from,
+            to,
+            cached: false,
+          };
+        });
+        return results;
+      } catch (e) {}
+    }
+    if (engine === 'deepl' && typeof deeplTranslateBatch === 'function') {
+      try {
+        const translations = await deeplTranslateBatch(toTranslate, from, to);
+        // ========== 新增：批量翻译结果写入缓存 ==========
+        if (shouldUseCache) {
+          for (let i = 0; i < toTranslate.length; i++) {
+            try {
+              await cacheManager.set(toTranslate[i], translations[i], from, to, engine);
+            } catch (cacheError) {
+              console.error('批量翻译缓存写入失败:', cacheError);
+            }
+          }
+        }
+        // ========== END ==========
+        // 回填结果
+        toTranslateIndices.forEach((originalIdx, j) => {
+          results[originalIdx] = {
+            text: toTranslate[j],
+            translation: translations[j] || '',
+            engine,
+            from,
+            to,
+            cached: false,
+          };
+        });
+        return results;
+      } catch (e) {}
+    }
+    // fallback: 单条循环
+    for (let i = 0; i < toTranslate.length; i++) {
+      try {
+        const result = await translate(toTranslate[i], options);
+        results[toTranslateIndices[i]] = result;
+      } catch (error) {
+        results[toTranslateIndices[i]] = {
+          text: toTranslate[i],
+          translation: `翻译失败: ${error instanceof Error ? error.message : String(error)}`,
+          engine,
+          from,
+          to,
+          cached: false,
+        };
+      }
     }
   }
+  
   return results;
 }
 

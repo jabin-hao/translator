@@ -2,12 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { Card, Select, Switch, Divider, message, Button } from 'antd';
 import { Storage } from '@plasmohq/storage';
 import { TRANSLATE_ENGINES } from '../../lib/engines';
+import { LANGUAGES } from '../../lib/languages';
 import { useTranslation } from 'react-i18next';
 import { ReloadOutlined, TranslationOutlined } from '@ant-design/icons';
 
 // 1. 引入 storage 工具
 import {
   getDictConfig,
+  getSiteTranslateSettings,
+  setAutoTranslateEnabled,
   addAlwaysSite,
   removeAlwaysSite,
   addNeverSite,
@@ -26,7 +29,10 @@ const PopupQuickSettings: React.FC = () => {
   const [pageTargetLang, setPageTargetLang] = useState('zh-CN');
   const [textTargetLang, setTextTargetLang] = useState('zh-CN');
   const [isPageTranslated, setIsPageTranslated] = useState(false); // 新增：页面翻译状态
+  const [isPageTranslating, setIsPageTranslating] = useState(false); // 新增：按钮 loading 状态
 
+  // 新增：网站自动翻译相关状态
+  const [siteAutoTranslateEnabled, setSiteAutoTranslateEnabled] = useState(false);
   const [siteKey, setSiteKey] = useState('');
   const [siteSettings, setSiteSettings] = useState({ always: false, never: false });
 
@@ -46,6 +52,11 @@ const PopupQuickSettings: React.FC = () => {
     });
     storage.get(TEXT_LANG_KEY).then((val) => {
       if (val) setTextTargetLang(val);
+    });
+    
+    // 新增：读取网站自动翻译设置
+    getSiteTranslateSettings().then((settings) => {
+      setSiteAutoTranslateEnabled(settings.autoTranslateEnabled);
     });
   }, []);
 
@@ -70,13 +81,41 @@ const PopupQuickSettings: React.FC = () => {
 
   // 检查当前页面是否已翻译
   useEffect(() => {
-    chrome.tabs && chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
-      const tabId = tabs[0]?.id;
-      if (!tabId) return;
-      chrome.tabs.sendMessage(tabId, { type: 'CHECK_PAGE_TRANSLATED' }, (res) => {
-        setIsPageTranslated(res?.translated === true);
+    const checkPageTranslationStatus = () => {
+      chrome.tabs && chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+        const tabId = tabs[0]?.id;
+        if (!tabId) return;
+        chrome.tabs.sendMessage(tabId, { type: 'CHECK_PAGE_TRANSLATED' }, (res) => {
+          setIsPageTranslated(res?.translated === true);
+        });
       });
-    });
+    };
+    
+    // 立即检查一次
+    checkPageTranslationStatus();
+    
+    // 定期检查（每2秒检查一次，确保能捕获自动翻译的状态变化）
+    const interval = setInterval(checkPageTranslationStatus, 2000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  // 监听 content-script 的翻译完成/还原完成消息
+  useEffect(() => {
+    if (chrome?.runtime?.onMessage) {
+      const handler = (msg, sender, sendResponse) => {
+        if (msg.type === 'FULL_PAGE_TRANSLATE_DONE') {
+          setIsPageTranslating(false);
+          setIsPageTranslated(true);
+        }
+        if (msg.type === 'RESTORE_ORIGINAL_PAGE_DONE') {
+          setIsPageTranslating(false);
+          setIsPageTranslated(false);
+        }
+      };
+      chrome.runtime.onMessage.addListener(handler);
+      return () => chrome.runtime.onMessage.removeListener(handler);
+    }
   }, []);
 
   const handleEngineChange = async (val: string) => {
@@ -113,6 +152,13 @@ const PopupQuickSettings: React.FC = () => {
     message.success(t('划词翻译目标语言已保存'));
   };
 
+  // 新增：网站自动翻译开关处理
+  const handleSiteAutoTranslateChange = async (checked: boolean) => {
+    setSiteAutoTranslateEnabled(checked);
+    await setAutoTranslateEnabled(checked);
+    message.success(checked ? t('已开启网站自动翻译') : t('已关闭网站自动翻译'));
+  };
+
   const handleAlways = async () => {
     if (!siteKey) return;
     if (siteSettings.always) {
@@ -142,51 +188,33 @@ const PopupQuickSettings: React.FC = () => {
     message.success(siteSettings.never ? t('已移除永不翻译该网站') : t('已添加到永不翻译该网站'));
   };
 
-  // 切换整页翻译/还原
-  const handleToggleFullPageTranslate = async () => {
+  // 按钮点击逻辑
+  const handleFullPageTranslate = () => {
+    setIsPageTranslating(true);
     chrome.tabs && chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
       const tabId = tabs[0]?.id;
       if (!tabId) return;
-      if (!isPageTranslated) {
-        // 执行整页翻译
-        chrome.tabs.sendMessage(tabId, {
-          type: 'FULL_PAGE_TRANSLATE',
-          lang: pageTargetLang,
-          engine
-        }, (res) => {
-          if (res?.success) {
-            setIsPageTranslated(true);
-            message.success(t('已翻译当前网站'));
-          } else {
-            message.error(t('翻译失败'));
-          }
-        });
-      } else {
-        // 还原原网页
-        chrome.tabs.sendMessage(tabId, { type: 'RESTORE_ORIGINAL_PAGE' }, (res) => {
-          if (res?.success) {
-            setIsPageTranslated(false);
-            message.success(t('已还原原网页'));
-          } else {
-            message.error(t('还原失败'));
-          }
-        });
-      }
+      chrome.tabs.sendMessage(tabId, {
+        type: 'FULL_PAGE_TRANSLATE',
+        lang: pageTargetLang,
+        engine
+      });
+    });
+  };
+  const handleRestorePage = () => {
+    // 不要 setIsPageTranslating(true)
+    chrome.tabs && chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+      const tabId = tabs[0]?.id;
+      if (!tabId) return;
+      chrome.tabs.sendMessage(tabId, { type: 'RESTORE_ORIGINAL_PAGE' });
     });
   };
 
-  // 语言选项（可根据实际支持的语言调整）
-  const langOptions = [
-    { value: 'zh-CN', label: t('中文（简体）') },
-    { value: 'en', label: t('英语') },
-    { value: 'ja', label: t('日语') },
-    { value: 'ko', label: t('韩语') },
-    { value: 'fr', label: t('法语') },
-    { value: 'de', label: t('德语') },
-    { value: 'es', label: t('西班牙语') },
-    { value: 'ru', label: t('俄语') },
-    { value: 'pt', label: t('葡萄牙语') },
-  ];
+  // 语言选项（使用 languages.ts 中的配置）
+  const langOptions = LANGUAGES.map(lang => ({
+    value: lang.code,
+    label: lang.label
+  }));
 
   return (
     <Card
@@ -217,6 +245,7 @@ const PopupQuickSettings: React.FC = () => {
         >
           {TRANSLATE_ENGINES.map(e => (
             <Select.Option key={e.value} value={e.value} disabled={e.disabled}>
+              {e.icon && <img src={e.icon} alt={e.label} style={{ width: 16, height: 16, verticalAlign: 'middle', marginRight: 6 }} />}
               {e.label}
             </Select.Option>
           ))}
@@ -224,8 +253,8 @@ const PopupQuickSettings: React.FC = () => {
       </div>
       <Divider style={{ margin: '8px 0' }} />
       <div style={{ marginBottom: 12 }}>
-        <b>{t('自动翻译')}：</b>
-        <Switch checked={autoTranslate} onChange={handleAutoTranslateChange} style={{ marginLeft: 8 }} size="small" />
+        <b>{t('网站自动翻译')}：</b>
+        <Switch checked={siteAutoTranslateEnabled} onChange={handleSiteAutoTranslateChange} style={{ marginLeft: 8 }} size="small" />
       </div>
       <div style={{ marginBottom: 12 }}>
         <b>{t('自动朗读翻译结果')}：</b>
@@ -263,31 +292,37 @@ const PopupQuickSettings: React.FC = () => {
         </Select>
       </div>
       <Divider style={{ margin: '8px 0' }} />
-      <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
-        <Button
-          type={siteSettings.always ? 'primary' : 'default'}
-          block
-          onClick={handleAlways}
-          style={{ borderRadius: 6 }}
-        >
-          {siteSettings.always ? t('已设为总是翻译该网站') : t('总是翻译该网站')}
-        </Button>
-        <Button
-          type={siteSettings.never ? 'primary' : 'default'}
-          danger={siteSettings.never}
-          block
-          onClick={handleNever}
-          style={{ borderRadius: 6 }}
-        >
-          {siteSettings.never ? t('已设为永不翻译该网站') : t('永不翻译该网站')}
-        </Button>
-      </div>
-      <Divider style={{ margin: '8px 0' }} />
+      {/* 只有在开启网站自动翻译后才显示网站白名单按钮 */}
+      {siteAutoTranslateEnabled && (
+        <>
+          <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+            <Button
+              type={siteSettings.always ? 'primary' : 'default'}
+              block
+              onClick={handleAlways}
+              style={{ borderRadius: 6 }}
+            >
+              {siteSettings.always ? t('已设为总是翻译该网站') : t('总是翻译该网站')}
+            </Button>
+            <Button
+              type={siteSettings.never ? 'primary' : 'default'}
+              danger={siteSettings.never}
+              block
+              onClick={handleNever}
+              style={{ borderRadius: 6 }}
+            >
+              {siteSettings.never ? t('已设为永不翻译该网站') : t('永不翻译该网站')}
+            </Button>
+          </div>
+          <Divider style={{ margin: '8px 0' }} />
+        </>
+      )}
       <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
         <Button
           type={isPageTranslated ? 'default' : 'primary'}
           icon={isPageTranslated ? <ReloadOutlined /> : <TranslationOutlined />}
-          onClick={handleToggleFullPageTranslate}
+          loading={isPageTranslating}
+          onClick={isPageTranslated ? handleRestorePage : handleFullPageTranslate}
           block
           style={{ borderRadius: 6 }}
         >
