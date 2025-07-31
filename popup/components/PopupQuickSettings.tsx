@@ -219,7 +219,6 @@ const PopupQuickSettings: React.FC = () => {
   return (
     <Card
       title={t('快速设置')}
-      size="small"
       bodyStyle={{ padding: 16, width: '100%', height: '100%' }}
       style={{
         width: '100%',
@@ -241,7 +240,6 @@ const PopupQuickSettings: React.FC = () => {
           value={engine}
           onChange={handleEngineChange}
           style={{ width: 180, marginLeft: 8 }}
-          size="small"
         >
           {TRANSLATE_ENGINES.map(e => (
             <Select.Option key={e.value} value={e.value} disabled={e.disabled}>
@@ -251,45 +249,42 @@ const PopupQuickSettings: React.FC = () => {
           ))}
         </Select>
       </div>
-      <Divider style={{ margin: '8px 0' }} />
       <div style={{ marginBottom: 12 }}>
-        <b>{t('网站自动翻译')}：</b>
-        <Switch checked={siteAutoTranslateEnabled} onChange={handleSiteAutoTranslateChange} style={{ marginLeft: 8 }} size="small" />
-      </div>
-      <div style={{ marginBottom: 12 }}>
-        <b>{t('自动朗读翻译结果')}：</b>
-        <Switch checked={autoRead} onChange={handleAutoReadChange} style={{ marginLeft: 8 }} size="small" />
-      </div>
-      <div style={{ marginBottom: 12 }}>
-        <b>{t('是否启用缓存')}：</b>
-        <Switch checked={cacheEnabled} onChange={handleCacheToggle} style={{ marginLeft: 8 }} size="small" />
-      </div>
-      <Divider style={{ margin: '8px 0' }} />
-      <div style={{ marginBottom: 12 }}>
-        <b>{t('网页翻译目标语言')}：</b>
+        <b>{t('网页目标语言')}：</b>
         <Select
           value={pageTargetLang}
           onChange={handlePageLangChange}
           style={{ width: 180, marginLeft: 8 }}
-          size="small"
         >
           {langOptions.map(opt => (
             <Select.Option key={opt.value} value={opt.value}>{opt.label}</Select.Option>
           ))}
         </Select>
       </div>
-      <div style={{ marginBottom: 0 }}>
-        <b>{t('划词翻译目标语言')}：</b>
+      <div style={{ marginBottom: 12 }}>
+        <b>{t('划词目标语言')}：</b>
         <Select
           value={textTargetLang}
           onChange={handleTextLangChange}
           style={{ width: 180, marginLeft: 8 }}
-          size="small"
         >
           {langOptions.map(opt => (
             <Select.Option key={opt.value} value={opt.value}>{opt.label}</Select.Option>
           ))}
         </Select>
+      </div>
+      <Divider style={{ margin: '8px 0' }} />
+      <div style={{ marginBottom: 12 }}>
+        <b>{t('网站自动翻译')}：</b>
+        <Switch checked={siteAutoTranslateEnabled} onChange={handleSiteAutoTranslateChange} style={{ marginLeft: 8 }} />
+      </div>
+      <div style={{ marginBottom: 12 }}>
+        <b>{t('自动朗读翻译结果')}：</b>
+        <Switch checked={autoRead} onChange={handleAutoReadChange} style={{ marginLeft: 8 }} />
+      </div>
+      <div style={{ marginBottom: 12 }}>
+        <b>{t('是否启用缓存')}：</b>
+        <Switch checked={cacheEnabled} onChange={handleCacheToggle} style={{ marginLeft: 8 }} />
       </div>
       <Divider style={{ margin: '8px 0' }} />
       {/* 只有在开启网站自动翻译后才显示网站白名单按钮 */}
