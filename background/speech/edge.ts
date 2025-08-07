@@ -1,5 +1,7 @@
-import type { SpeechOptions, SpeechResult, SpeechService } from '../../lib/speech';
-import { LANGUAGES } from '../../lib/languages';
+/**
+ * edge朗读服务
+ */
+import type {SpeechOptions, SpeechResult, SpeechService} from '~lib/translate/speech';
 
 export class EdgeSpeechService {
   name: SpeechService = 'edge';
@@ -15,7 +17,7 @@ export class EdgeSpeechService {
 
   async speak(options: SpeechOptions): Promise<SpeechResult> {
     try {
-      const { text, lang, voice, speed = 1, pitch = 1, volume = 1 } = options;
+      const { text, lang, speed = 1, pitch = 1} = options;
 
       // 1. 获取 Bing 认证信息
       await this.findAuth();
@@ -23,7 +25,7 @@ export class EdgeSpeechService {
       // 2. 获取语音数据
       const languageData = this.getLanguageData(lang);
       if (!languageData) {
-        throw new Error(`不支持的语言: ${lang}`);
+        console.error(`不支持的语言: ${lang}`);
       }
 
       // 3. 构造 SSML
@@ -36,8 +38,6 @@ export class EdgeSpeechService {
           </voice>
         </speak>
       `;
-
-      console.log('Edge TTS 请求参数:', { text, lang, voiceName: languageData.voice, ssml });
 
       // 4. 构造请求参数
       const params = new URLSearchParams();
@@ -64,7 +64,6 @@ export class EdgeSpeechService {
       if (!response.ok) {
         const errorText = await response.text().catch(() => '');
         console.error('Edge TTS 请求失败:', response.status, errorText);
-        throw new Error(`Edge TTS 请求失败: ${response.status} ${errorText}`);
       }
 
       // 6. 返回音频数据
@@ -74,8 +73,6 @@ export class EdgeSpeechService {
       const arrayBuffer = await audioBlob.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
       const base64String = btoa(String.fromCharCode(...uint8Array));
-
-      console.log('Edge TTS 成功生成音频');
 
       return {
         success: true,
@@ -134,26 +131,26 @@ export class EdgeSpeechService {
           });
 
           if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
+            console.error(`HTTP ${response.status} - ${response.statusText}`);
           }
 
           const responseText = await response.text();
           
           if (!(responseText && responseText.length > 1)) {
-            throw new Error("Not found");
+            console.error('Bing 认证信息获取失败: 响应内容为空或无效');
           }
 
           const IG = responseText.match(/IG:"([^"]+)"/)?.[1];
-          const IID = responseText.match(/data\-iid\="([^"]+)"/)?.[1];
+          const IID = responseText.match(/data-iid="([^"]+)"/)?.[1];
 
           const abhStartText = "params_AbusePreventionHelper = [";
           const abhStartIndex = responseText.indexOf(abhStartText);
           if (abhStartIndex === -1) {
-            throw new Error("Not found 2");
+            console.error(abhStartText);
           }
           const abhEndIndex = responseText.indexOf("]", abhStartIndex);
           if (abhEndIndex === -1) {
-            throw new Error("Not found 3");
+            console.error(abhStartText);
           }
           const abhText = responseText.slice(
             abhStartIndex + abhStartText.length - 1,
@@ -168,8 +165,6 @@ export class EdgeSpeechService {
           EdgeSpeechService.key = key || null;
           EdgeSpeechService.token = token || null;
           EdgeSpeechService.notFound = false;
-          
-          console.log('Bing 认证信息获取成功:', { IG, IID, key: key ? '***' : null, token: token ? '***' : null });
         } catch (e) {
           console.error('Bing 认证信息获取失败:', e);
           EdgeSpeechService.notFound = true;
@@ -186,14 +181,11 @@ export class EdgeSpeechService {
 
   // 获取语言数据（参考 Traduzir-paginas-web）
   private getLanguageData(language: string) {
-    console.log('getLanguageData 输入语言:', language);
-    
     // 语言代码替换
     const replacements = [
       { search: "zh-CN", replace: "zh-Hans" },
       { search: "zh-TW", replace: "zh-Hant" },
     ];
-    
     replacements.forEach((r) => {
       if (language === r.search) {
         language = r.replace;
@@ -214,9 +206,7 @@ export class EdgeSpeechService {
       { language: 'pt', locale: 'pt-PT', gender: 'Female', voice: 'pt-PT-FernandaNeural' }
     ];
 
-    const result = languageData.find((data) => data.language === language);
-    console.log('getLanguageData 找到的语言数据:', result);
-    return result;
+    return languageData.find((data) => data.language === language);
   }
 
   // 转换速度到百分比
@@ -224,14 +214,4 @@ export class EdgeSpeechService {
     const percentage = Math.round((speed - 1) * 100);
     return percentage.toString();
   }
-
-  // 获取支持的语言列表
-  getSupportedLanguages(): string[] {
-    return LANGUAGES.map(lang => lang.code);
-  }
-
-  // 检查语言是否支持
-  isLanguageSupported(lang: string): boolean {
-    return this.getSupportedLanguages().includes(lang);
-  }
-} 
+}
