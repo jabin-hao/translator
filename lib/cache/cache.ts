@@ -1,6 +1,6 @@
-// 翻译缓存管理模块 - 参考 Traduzir-paginas-web 实现
+// 翻译缓存管理模块
 import { Storage } from "@plasmohq/storage"
-import { DEFAULT_CACHE_CONFIG } from './constants';
+import { DEFAULT_CACHE_CONFIG } from '../constants/settings';
 
 // 缓存条目接口
 export interface TranslationCache {
@@ -71,17 +71,13 @@ export class TranslationCacheManager {
   private async loadConfig(): Promise<void> {
     try {
       const config = await this.storage.get('translation_cache_config');
-      console.log('从storage加载的缓存配置:', config);
-      
+
       if (config && typeof config === 'object') {
+        // @ts-ignore
         this.config = { ...this.config, ...config };
-        console.log('合并后的缓存配置:', this.config);
-      } else {
-        console.log('使用默认缓存配置:', this.config);
       }
     } catch (error) {
       console.error('加载缓存配置失败:', error);
-      console.log('使用默认缓存配置:', this.config);
     }
   }
 
@@ -103,10 +99,8 @@ export class TranslationCacheManager {
         return translation.translatedText;
       }
 
-      return null;
     } catch (error) {
       console.error('获取翻译缓存失败:', error);
-      return null;
     }
   }
 
@@ -128,15 +122,12 @@ export class TranslationCacheManager {
 
       // 保存到 IndexedDB
       await this.addInDB(cacheEntry);
-      
-      console.log(`已添加缓存条目: ${hash}, 当前配置: maxSize=${this.config.maxSize}`);
-      
+
       // 检查缓存数量，如果超过限制则清理最旧的条目
       await this.cleanupIfNeeded();
       
     } catch (error) {
       console.error('设置翻译缓存失败:', error);
-      throw error;
     }
   }
 
@@ -281,25 +272,18 @@ export class TranslationCacheManager {
         resolve();
       };
 
-      request.onupgradeneeded = (event) => {
+      request.onupgradeneeded = () => {
         const db = request.result;
-        const oldVersion = event.oldVersion;
-        const newVersion = event.newVersion;
-        
-        console.log(`IndexedDB 版本升级: ${oldVersion} -> ${newVersion}`);
-        
         try {
           if (!db.objectStoreNames.contains('cache')) {
             const objectStore = db.createObjectStore('cache', { keyPath: 'key' });
             objectStore.createIndex('key', 'key', { unique: true });
             objectStore.createIndex('timestamp', 'timestamp', { unique: false });
-            console.log('创建了新的 cache 对象存储');
           } else {
             // 如果对象存储已存在，检查是否需要添加timestamp索引
             const objectStore = db.transaction(['cache'], 'readwrite').objectStore('cache');
             if (!objectStore.indexNames.contains('timestamp')) {
               objectStore.createIndex('timestamp', 'timestamp', { unique: false });
-              console.log('添加了 timestamp 索引');
             }
           }
         } catch (error) {
@@ -361,18 +345,11 @@ export class TranslationCacheManager {
   // 检查并清理缓存（如果超过限制）
   private async cleanupIfNeeded(): Promise<void> {
     try {
-      console.log('开始检查缓存清理需求...');
       const stats = await this.getStats();
-      console.log(`当前缓存统计: 数量=${stats.count}, 大小=${Utils.humanReadableSize(stats.size)}`);
-      console.log(`缓存配置: maxSize=${this.config.maxSize}, maxAge=${this.config.maxAge}ms`);
-      
       // 如果缓存数量超过限制，删除最旧的条目
       if (stats.count > this.config.maxSize) {
         const toDelete = stats.count - this.config.maxSize;
-        console.log(`缓存数量超过限制，需要删除 ${toDelete} 个条目`);
         await this.removeOldestEntries(toDelete);
-      } else {
-        console.log('缓存数量在限制范围内，无需清理');
       }
     } catch (error) {
       console.error('缓存清理检查失败:', error);
@@ -391,8 +368,6 @@ export class TranslationCacheManager {
         return;
       }
 
-      console.log(`开始清理缓存，需要删除 ${count} 个条目`);
-
       const objectStore = this.db.transaction(['cache'], 'readwrite').objectStore('cache');
       
       // 获取所有缓存条目
@@ -400,8 +375,7 @@ export class TranslationCacheManager {
       
       request.onsuccess = () => {
         const entries = request.result;
-        console.log(`当前缓存总数: ${entries.length}, 最大限制: ${this.config.maxSize}`);
-        
+
         // 按时间戳排序
         entries.sort((a, b) => {
           if (a.timestamp && b.timestamp) {
@@ -413,14 +387,12 @@ export class TranslationCacheManager {
         
         // 删除最旧的count个条目
         const toDelete = entries.slice(0, count);
-        console.log(`准备删除 ${toDelete.length} 个最旧的缓存条目`);
         
         let deletedCount = 0;
         toDelete.forEach(entry => {
           const deleteRequest = objectStore.delete(entry.key);
           deleteRequest.onsuccess = () => {
             deletedCount++;
-            console.log(`已删除缓存条目: ${entry.key}, 时间戳: ${new Date(entry.timestamp).toLocaleString()}`);
           };
           deleteRequest.onerror = () => {
             console.error('删除缓存条目失败:', deleteRequest.error, 'key:', entry.key);
@@ -431,8 +403,6 @@ export class TranslationCacheManager {
         toDelete.forEach(entry => {
           this.cache.delete(entry.key);
         });
-        
-        console.log(`缓存清理完成，删除了 ${deletedCount} 个条目，剩余缓存数量: ${entries.length - count}`);
       };
       
       request.onerror = () => {
@@ -445,4 +415,4 @@ export class TranslationCacheManager {
 }
 
 // 创建全局缓存管理器实例
-export const cacheManager = new TranslationCacheManager(); 
+export const cacheManager = new TranslationCacheManager();

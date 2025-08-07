@@ -1,12 +1,13 @@
-import { cacheManager } from '../../lib/cache';
-import { Storage } from '@plasmohq/storage';
-import { DEFAULT_CACHE_CONFIG } from '../../lib/constants';
+// 处理缓存清理和定时任务
+import { cacheManager } from '~lib/cache/cache';
+import {DEFAULT_CACHE_CONFIG, TRANSLATION_CACHE_CONFIG_KEY} from '~lib/constants/settings';
+import {getConfig} from "~lib/utils/storage";
 
-const storage = new Storage();
 let cleanupTimer: ReturnType<typeof setInterval> | null = null;
 
 async function getCleanupInterval() {
-  let raw = await storage.get('translation_cache_config');
+  // 从配置中获取清理间隔
+  let raw = await getConfig(TRANSLATION_CACHE_CONFIG_KEY, '');
   let config: any = raw;
   if (typeof raw === 'string') {
     try {
@@ -47,5 +48,5 @@ export async function handleCacheMessage(action: string, body: any) {
 }
 
 // 启动时立即清理并定时
-cleanCache();
-scheduleCacheCleanup(); 
+cleanCache().then(() => {});
+scheduleCacheCleanup().then(() => {});

@@ -1,28 +1,7 @@
 import { Storage } from '@plasmohq/storage';
-import { getBrowserLang } from '../../lib/languages';
-import { TEXT_LANG_KEY } from '../../lib/constants';
+import { isInputElement } from '../utils/domUtil';
 
 const storage = new Storage();
-
-// 检查元素是否为输入元素或可编辑元素
-function isInputElement(element: Element | null): boolean {
-  if (!element) return false;
-  
-  const tagName = element.tagName.toLowerCase();
-  
-  // 检查是否为输入元素
-  if (['input', 'textarea', 'select'].includes(tagName)) {
-    return true;
-  }
-  
-  // 检查是否为可编辑元素
-  if (element.hasAttribute('contenteditable')) {
-    const contentEditable = element.getAttribute('contenteditable');
-    return contentEditable === '' || contentEditable === 'true';
-  }
-  
-  return false;
-}
 
 // 快捷键处理逻辑
 export const setupShortcutHandler = (
@@ -135,16 +114,3 @@ export const setupShortcutHandler = (
     document.removeEventListener('keydown', handleKeyDown);
   };
 };
-
-// 获取翻译目标语言
-export const getTargetLanguage = async (): Promise<string> => {
-  const textTargetLang = await storage.get(TEXT_LANG_KEY);
-  if (textTargetLang) return textTargetLang;
-  
-  const favoriteLangs = await storage.get('favoriteLangs');
-  if (Array.isArray(favoriteLangs) && favoriteLangs.length > 0) {
-    return favoriteLangs[0];
-  }
-  
-  return getBrowserLang();
-}; 

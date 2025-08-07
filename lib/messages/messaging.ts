@@ -1,4 +1,4 @@
-import { lazyFullPageTranslate, getPageTranslationStatus, restoreOriginalPage } from '../../lib/fullPageTranslate';
+import { lazyFullPageTranslate, getPageTranslationStatus, restoreOriginalPage } from '~lib/translate/fullPageTranslate';
 
 // 消息处理逻辑
 export const setupMessageHandler = () => {
@@ -13,7 +13,7 @@ export const setupMessageHandler = () => {
           sendResponse({ success: true });
           // 翻译完成后通知前端隐藏 loading
           if (chrome?.runtime?.id) {
-            chrome.runtime.sendMessage({ type: 'FULL_PAGE_TRANSLATE_DONE' });
+            chrome.runtime.sendMessage({type: 'FULL_PAGE_TRANSLATE_DONE'}).then(() => {});
           }
         }).catch(err => {
           console.error('整页翻译失败:', err);
@@ -26,7 +26,7 @@ export const setupMessageHandler = () => {
         sendResponse({ success: true });
         // 还原完成后通知 popup 结束 loading
         if (chrome?.runtime?.id) {
-          chrome.runtime.sendMessage({ type: 'RESTORE_ORIGINAL_PAGE_DONE' });
+          chrome.runtime.sendMessage({type: 'RESTORE_ORIGINAL_PAGE_DONE'}).then(() => {});
         }
       } else if (msg.type === 'CHECK_PAGE_TRANSLATED') {
         const translated = getPageTranslationStatus();

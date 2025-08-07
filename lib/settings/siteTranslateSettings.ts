@@ -1,5 +1,5 @@
 import { Storage } from '@plasmohq/storage';
-import { SITE_TRANSLATE_SETTINGS_KEY, DICT_KEY } from './constants';
+import { SITE_TRANSLATE_SETTINGS_KEY, DICT_KEY } from '../constants/settings';
 
 const storage = new Storage();
 
@@ -52,38 +52,6 @@ export async function getDictConfig(): Promise<DictConfig> {
 
 export async function setDictConfig(dict: DictConfig) {
   await storage.set(DICT_KEY, dict);
-}
-
-export async function addAlwaysTranslateSite(host: string) {
-  const settings = await getSiteTranslateSettings();
-  if (!settings.alwaysTranslateSites.includes(host)) {
-    settings.alwaysTranslateSites.push(host);
-    // 移除 never 列表
-    settings.neverTranslateSites = settings.neverTranslateSites.filter(h => h !== host);
-    await setSiteTranslateSettings(settings);
-  }
-}
-
-export async function addNeverTranslateSite(host: string) {
-  const settings = await getSiteTranslateSettings();
-  if (!settings.neverTranslateSites.includes(host)) {
-    settings.neverTranslateSites.push(host);
-    // 移除 always 列表
-    settings.alwaysTranslateSites = settings.alwaysTranslateSites.filter(h => h !== host);
-    await setSiteTranslateSettings(settings);
-  }
-}
-
-export async function removeAlwaysTranslateSite(host: string) {
-  const settings = await getSiteTranslateSettings();
-  settings.alwaysTranslateSites = settings.alwaysTranslateSites.filter(h => h !== host);
-  await setSiteTranslateSettings(settings);
-}
-
-export async function removeNeverTranslateSite(host: string) {
-  const settings = await getSiteTranslateSettings();
-  settings.neverTranslateSites = settings.neverTranslateSites.filter(h => h !== host);
-  await setSiteTranslateSettings(settings);
 }
 
 export async function addAlwaysSite(host: string) {

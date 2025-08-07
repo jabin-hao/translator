@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Select, Switch, Divider, message, Input, Button, List, Modal, Checkbox, Tooltip, Radio } from 'antd';
 import { Storage } from '@plasmohq/storage';
-import { TRANSLATE_ENGINES, TTS_ENGINES } from '../../lib/engines';
+import { TRANSLATE_ENGINES, TTS_ENGINES } from '~lib/constants/engines';
 import { useTranslation } from 'react-i18next';
 import {
   setAutoTranslateEnabled,
@@ -14,9 +14,9 @@ import {
   removeAlwaysSite,
   removeNeverSite,
   removeCustomDict
-} from '../../lib/siteTranslateSettings';
+} from '~lib/settings/siteTranslateSettings';
 import { DeleteOutlined } from '@ant-design/icons';
-import { TRANSLATE_SETTINGS_KEY, SPEECH_KEY, DEEPL_API_KEY, SITE_TRANSLATE_SETTINGS_KEY, DICT_KEY } from '../../lib/constants';
+import { TRANSLATE_SETTINGS_KEY, SPEECH_KEY, DEEPL_API_KEY, SITE_TRANSLATE_SETTINGS_KEY, DICT_KEY } from '~lib/constants/settings';
 const { Option } = Select;
 
 const storage = new Storage();
@@ -58,6 +58,16 @@ const TranslateSettings: React.FC = () => {
   const [dictAddKey, setDictAddKey] = useState('');
   const [dictAddValue, setDictAddValue] = useState('');
 
+  // 更新朗读设置的通用函数
+  const updateSpeechSettings = (data: any) => {
+    if (data && typeof data === 'object') {
+      setSpeechEngine((data as any)?.engine || 'edge');
+      setSpeechSpeed((data as any)?.speed ?? 1);
+      setSpeechPitch((data as any)?.pitch ?? 1);
+      setSpeechVolume((data as any)?.volume ?? 1);
+    }
+  };
+
   useEffect(() => {
     // 读取翻译设置
     storage.get(TRANSLATE_SETTINGS_KEY).then((data) => {
@@ -70,12 +80,7 @@ const TranslateSettings: React.FC = () => {
     
     // 读取朗读设置
     storage.get(SPEECH_KEY).then((data) => {
-      if (data && typeof data === 'object') {
-        setSpeechEngine((data as any)?.engine || 'edge');
-        setSpeechSpeed((data as any)?.speed ?? 1);
-        setSpeechPitch((data as any)?.pitch ?? 1);
-        setSpeechVolume((data as any)?.volume ?? 1);
-      }
+      updateSpeechSettings(data);
     });
 
     // 读取 DeepL API key
@@ -109,12 +114,7 @@ const TranslateSettings: React.FC = () => {
       // 监听朗读设置变化
       if (changes[SPEECH_KEY]) {
         const data = changes[SPEECH_KEY].newValue;
-        if (data && typeof data === 'object') {
-          setSpeechEngine((data as any)?.engine || 'edge');
-          setSpeechSpeed((data as any)?.speed ?? 1);
-          setSpeechPitch((data as any)?.pitch ?? 1);
-          setSpeechVolume((data as any)?.volume ?? 1);
-        }
+        updateSpeechSettings(data);
       }
       
       // 监听DeepL API key变化
@@ -155,27 +155,27 @@ const TranslateSettings: React.FC = () => {
 
   useEffect(() => {
     // 保存翻译设置
-    storage.set(TRANSLATE_SETTINGS_KEY, { engine, autoRead, autoTranslate });
+    storage.set(TRANSLATE_SETTINGS_KEY, {engine, autoRead, autoTranslate}).then(() => {});
   }, [engine, autoRead, autoTranslate]);
 
   useEffect(() => {
     // 保存朗读设置
-    storage.set(SPEECH_KEY, { 
-      engine: speechEngine, 
-      speed: speechSpeed, 
-      pitch: speechPitch, 
-      volume: speechVolume 
-    });
-  }, [speechEngine, speechSpeed, speechPitch, speechVolume]);
+    storage.set(SPEECH_KEY, {
+      engine: speechEngine,
+      speed: speechSpeed,
+      pitch: speechPitch,
+      volume: speechVolume
+    }).then(() => {});
+   }, [speechEngine, speechSpeed, speechPitch, speechVolume]);
 
   const handleEngineChange = (val: string) => {
     setEngine(val);
-    message.success(t('翻译引擎已保存'));
+    message.success(t('翻译引擎已保存')).then(() => {});
   };
 
   const handleAutoReadChange = (checked: boolean) => {
     setAutoRead(checked);
-    message.success(t('自动朗读设置已保存'));
+    message.success(t('自动朗读设置已保存')).then(() => {});
   };
 
   const handleAutoTranslateChange = (checked: boolean) => {
@@ -184,28 +184,28 @@ const TranslateSettings: React.FC = () => {
       engine,
       autoRead,
       autoTranslate: checked
-    });
-    message.success(t('自动翻译设置已保存'));
+    }).then(() => {});
+    message.success(t('自动翻译设置已保存')).then(() => {});
   };
 
   const handleSpeechEngineChange = (val: string) => {
     setSpeechEngine(val);
-    message.success(t('朗读引擎已保存'));
+    message.success(t('朗读引擎已保存')).then(() => {});
   };
 
   const handleSpeechSpeedChange = (val: number) => {
     setSpeechSpeed(val);
-    message.success(t('朗读速度已保存'));
+    message.success(t('朗读速度已保存')).then(() => {});
   };
 
   const handleSpeechPitchChange = (val: number) => {
     setSpeechPitch(val);
-    message.success(t('朗读音调已保存'));
+    message.success(t('朗读音调已保存')).then(() => {});
   };
 
   const handleSpeechVolumeChange = (val: number) => {
     setSpeechVolume(val);
-    message.success(t('朗读音量已保存'));
+    message.success(t('朗读音量已保存')).then(() => {});
   };
 
   const handleDeeplApiKeyInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -214,12 +214,12 @@ const TranslateSettings: React.FC = () => {
 
   const handleSaveDeeplApiKey = () => {
     if (!deeplApiKeyInput.trim()) {
-      message.error(t('请输入 DeepL API Key'));
+      message.error(t('请输入 DeepL API Key')).then(() => {});
       return;
     }
     setDeeplApiKey(deeplApiKeyInput.trim());
-    storage.set(DEEPL_API_KEY, deeplApiKeyInput.trim());
-    message.success(t('DeepL API Key 已保存'));
+    storage.set(DEEPL_API_KEY, deeplApiKeyInput.trim()).then(() => {});
+    message.success(t('DeepL API Key 已保存')).then(() => {});
   };
 
   const handleSiteAutoChange = async (checked: boolean) => {
@@ -228,16 +228,13 @@ const TranslateSettings: React.FC = () => {
     message.success(checked ? t('已开启网站自动翻译') : t('已关闭网站自动翻译'));
   };
   const handleRemoveAlways = async (host: string) => {
-    console.log('remove always', host);
     await removeAlwaysSite(host);
     await removeCustomDict(host);
     const dict = await getDictConfig();
-    console.log('after remove', dict.siteAlwaysList);
     setAlwaysSites(dict.siteAlwaysList || []);
     message.success(t('已移除白名单并清除词库'));
   };
   const handleRemoveNever = async (host: string) => {
-    console.log('remove never', host);
     await removeNeverSite(host);
     const dict = await getDictConfig();
     setNeverSites(dict.siteNeverList || []);
@@ -260,7 +257,7 @@ const TranslateSettings: React.FC = () => {
     setAddHost('');
   };
 
-  const handlePageTranslateModeChange = async (e) => {
+  const handlePageTranslateModeChange = async (e: any) => {
     setPageTranslateMode(e.target.value);
     const dict = await getDictConfig();
     await setDictConfig({ ...dict, pageTranslateMode: e.target.value });
@@ -282,15 +279,106 @@ const TranslateSettings: React.FC = () => {
     }
   };
 
+  // 添加词条的通用函数
+  const handleAddDictEntry = () => {
+    const key = dictAddKey.trim();
+    const value = dictAddValue.trim();
+    if (!key || !value) return;
+    if (dictData[key]) {
+      message.warning('该原文已存在').then(() => {});
+      return;
+    }
+    setDictData({ ...dictData, [key]: value });
+    setDictAddKey('');
+    setDictAddValue('');
+  };
+
   // 只展示最新5个（倒序）
   const alwaysSitesToShow = (alwaysSites || []).slice(-5).reverse();
   const neverSitesToShow = (neverSites || []).slice(-5).reverse();
+
+
+  // 刷新站点列表的通用函数
+  const refreshSiteLists = async () => {
+    const dict = await getDictConfig();
+    setAlwaysSites(dict.siteAlwaysList || []);
+    setNeverSites(dict.siteNeverList || []);
+  };
+
+  // 批量操作的通用组件
+  const BatchSiteModal: React.FC<{
+    open: boolean;
+    title: string;
+    sites: string[];
+    selected: string[];
+    setSelected: (sites: string[]) => void;
+    onClose: () => void;
+    onBatchRemove: (hosts: string[]) => Promise<void>;
+    onBatchTransfer?: (hosts: string[]) => Promise<void>;
+    transferButtonText?: string;
+  }> = ({
+    open,
+    title,
+    sites,
+    selected,
+    setSelected,
+    onClose,
+    onBatchRemove,
+    onBatchTransfer,
+    transferButtonText
+  }) => (
+    <Modal
+      open={open}
+      title={title}
+      onCancel={() => {
+        onClose();
+        setSelected([]);
+      }}
+      footer={[
+        <Button key="selectAll" onClick={() => setSelected(selected.length === sites.length ? [] : sites)}>
+          {selected.length === sites.length ? t('取消全选') : t('全选')}
+        </Button>,
+        <Button key="remove" danger disabled={selected.length === 0} onClick={async () => {
+          await onBatchRemove(selected);
+          setSelected([]);
+          onClose();
+          await refreshSiteLists();
+        }}>{t('批量移除')}</Button>,
+        ...(onBatchTransfer && transferButtonText ? [
+          <Button key="transfer" disabled={selected.length === 0} onClick={async () => {
+            await onBatchTransfer(selected);
+            setSelected([]);
+            onClose();
+            await refreshSiteLists();
+          }}>{transferButtonText}</Button>
+        ] : [])
+      ]}
+    >
+      <Checkbox.Group
+        style={{ width: '100%' }}
+        value={selected}
+        onChange={v => setSelected(v as string[])}
+      >
+        <List
+          dataSource={sites}
+          style={{ maxHeight: 360, overflowY: 'auto', marginTop: 8, width: '100%' }}
+          renderItem={host => (
+            <List.Item>
+              <Checkbox value={host}>{host}</Checkbox>
+            </List.Item>
+          )}
+        />
+      </Checkbox.Group>
+    </Modal>
+  );
 
   return (
     <Card
       title={t('翻译设置')}
       style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
-      bodyStyle={{ padding: 0, flex: 1, display: 'flex', flexDirection: 'column' }}
+      styles={{
+        body:{ padding: 0, flex: 1, display: 'flex', flexDirection: 'column' }
+      }}
     >
       <div style={{ flex: 1, overflow: 'auto', padding: '24px' }}>
         {/* 翻译引擎设置 */}
@@ -533,92 +621,38 @@ const TranslateSettings: React.FC = () => {
         {t('大部分设置会自动保存，DeepL API Key 需要点击保存按钮。')}
       </div>
 
-      {/* 批量操作 Modal */}
-      <Modal
+      {/* 批量操作 Modal - 使用通用组件 */}
+      <BatchSiteModal
         open={showAllAlways}
         title={t('全部白名单')}
-        onCancel={() => { setShowAllAlways(false); setSelectedAlways([]); }}
-        footer={[
-          <Button key="selectAll" onClick={() => setSelectedAlways(selectedAlways.length === alwaysSites.length ? [] : alwaysSites)}>
-            {selectedAlways.length === alwaysSites.length ? t('取消全选') : t('全选')}
-          </Button>,
-          <Button key="remove" danger disabled={selectedAlways.length === 0} onClick={async () => {
-            for (const host of selectedAlways) await handleRemoveAlways(host);
-            setSelectedAlways([]);
-            setShowAllAlways(false);
-            const dict = await getDictConfig();
-            setAlwaysSites(dict.siteAlwaysList || []);
-            setNeverSites(dict.siteNeverList || []);
-          }}>{t('批量移除')}</Button>,
-          <Button key="toNever" disabled={selectedAlways.length === 0} onClick={async () => {
-            for (const host of selectedAlways) await addNeverSite(host);
-            setSelectedAlways([]);
-            setShowAllAlways(false);
-            const dict = await getDictConfig();
-            setAlwaysSites(dict.siteAlwaysList || []);
-            setNeverSites(dict.siteNeverList || []);
-          }}>{t('批量转移到黑名单')}</Button>
-        ]}
-      >
-        <Checkbox.Group
-          style={{ width: '100%' }}
-          value={selectedAlways}
-          onChange={v => setSelectedAlways(v as string[])}
-        >
-          <List
-            dataSource={alwaysSites}
-            style={{ maxHeight: 360, overflowY: 'auto', marginTop: 8, width: '100%' }}
-            renderItem={host => (
-              <List.Item>
-                <Checkbox value={host}>{host}</Checkbox>
-              </List.Item>
-            )}
-          />
-        </Checkbox.Group>
-      </Modal>
+        sites={alwaysSites}
+        selected={selectedAlways}
+        setSelected={setSelectedAlways}
+        onClose={() => setShowAllAlways(false)}
+        onBatchRemove={async (hosts) => {
+          for (const host of hosts) await handleRemoveAlways(host);
+        }}
+        onBatchTransfer={async (hosts) => {
+          for (const host of hosts) await addNeverSite(host);
+        }}
+        transferButtonText={t('批量转移到黑名单')}
+      />
 
-      <Modal
+      <BatchSiteModal
         open={showAllNever}
         title={t('全部黑名单')}
-        onCancel={() => { setShowAllNever(false); setSelectedNever([]); }}
-        footer={[
-          <Button key="selectAll" onClick={() => setSelectedNever(selectedNever.length === neverSites.length ? [] : neverSites)}>
-            {selectedNever.length === neverSites.length ? t('取消全选') : t('全选')}
-          </Button>,
-          <Button key="remove" danger disabled={selectedNever.length === 0} onClick={async () => {
-            for (const host of selectedNever) await handleRemoveNever(host);
-            setSelectedNever([]);
-            setShowAllNever(false);
-            const dict = await getDictConfig();
-            setAlwaysSites(dict.siteAlwaysList || []);
-            setNeverSites(dict.siteNeverList || []);
-          }}>{t('批量移除')}</Button>,
-          <Button key="toAlways" disabled={selectedNever.length === 0} onClick={async () => {
-            for (const host of selectedNever) await addAlwaysSite(host);
-            setSelectedNever([]);
-            setShowAllNever(false);
-            const dict = await getDictConfig();
-            setAlwaysSites(dict.siteAlwaysList || []);
-            setNeverSites(dict.siteNeverList || []);
-          }}>{t('批量转移到白名单')}</Button>
-        ]}
-      >
-        <Checkbox.Group
-          style={{ width: '100%' }}
-          value={selectedNever}
-          onChange={v => setSelectedNever(v as string[])}
-        >
-          <List
-            dataSource={neverSites}
-            style={{ maxHeight: 360, overflowY: 'auto', marginTop: 8, width: '100%' }}
-            renderItem={host => (
-              <List.Item>
-                <Checkbox value={host}>{host}</Checkbox>
-              </List.Item>
-            )}
-          />
-        </Checkbox.Group>
-      </Modal>
+        sites={neverSites}
+        selected={selectedNever}
+        setSelected={setSelectedNever}
+        onClose={() => setShowAllNever(false)}
+        onBatchRemove={async (hosts) => {
+          for (const host of hosts) await handleRemoveNever(host);
+        }}
+        onBatchTransfer={async (hosts) => {
+          for (const host of hosts) await addAlwaysSite(host);
+        }}
+        transferButtonText={t('批量转移到白名单')}
+      />
 
       <Modal
         open={dictModalOpen}
@@ -639,7 +673,7 @@ const TranslateSettings: React.FC = () => {
           dataSource={Object.entries(dictData)}
           locale={{ emptyText: '暂无词条' }}
           style={{ maxHeight: 320, minHeight: 40, overflowY: 'auto', marginBottom: 12 }}
-          renderItem={([k, v], idx) => (
+          renderItem={([k, v]) => (
             <List.Item
               style={{ padding: '4px 0', alignItems: 'center' }}
               actions={[
@@ -682,51 +716,16 @@ const TranslateSettings: React.FC = () => {
             style={{ width: 120 }}
             value={dictAddKey}
             onChange={e => setDictAddKey(e.target.value)}
-            onPressEnter={() => {
-              const key = dictAddKey.trim();
-              const value = dictAddValue.trim();
-              if (!key || !value) return;
-              if (dictData[key]) {
-                message.warning('该原文已存在');
-                return;
-              }
-              setDictData({ ...dictData, [key]: value });
-              setDictAddKey('');
-              setDictAddValue('');
-            }}
+            onPressEnter={handleAddDictEntry}
           />
           <Input
             placeholder="自定义译文"
             style={{ flex: 1 }}
             value={dictAddValue}
             onChange={e => setDictAddValue(e.target.value)}
-            onPressEnter={() => {
-              const key = dictAddKey.trim();
-              const value = dictAddValue.trim();
-              if (!key || !value) return;
-              if (dictData[key]) {
-                message.warning('该原文已存在');
-                return;
-              }
-              setDictData({ ...dictData, [key]: value });
-              setDictAddKey('');
-              setDictAddValue('');
-            }}
+            onPressEnter={handleAddDictEntry}
           />
-          <Button
-            onClick={() => {
-              const key = dictAddKey.trim();
-              const value = dictAddValue.trim();
-              if (!key || !value) return;
-              if (dictData[key]) {
-                message.warning('该原文已存在');
-                return;
-              }
-              setDictData({ ...dictData, [key]: value });
-              setDictAddKey('');
-              setDictAddValue('');
-            }}
-          >
+          <Button onClick={handleAddDictEntry}>
             添加
           </Button>
         </div>
@@ -735,4 +734,5 @@ const TranslateSettings: React.FC = () => {
   );
 };
 
-export default TranslateSettings; 
+export default TranslateSettings;
+

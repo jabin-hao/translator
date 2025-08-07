@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Select, Card, Radio, Divider, Button, message, Upload, Typography, Space, Modal } from 'antd';
 import { Storage } from '@plasmohq/storage';
-import { LANGUAGES, UI_LANGUAGES } from '../../lib/languages';
+import { UI_LANGUAGES } from '~lib/constants/languages';
 import { UploadOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import {POPUP_SETTINGS_KEY, PLUGIN_THEME_KEY, CONTENT_THEME_KEY, TRANSLATION_CACHE_CONFIG_KEY, UI_LANG_KEY, SHORTCUT_SETTINGS_KEY, PAGE_LANG_KEY, TEXT_LANG_KEY, FAVORITE_LANGS_KEY, TRANSLATE_SETTINGS_KEY, SITE_TRANSLATE_SETTINGS_KEY, DICT_KEY } from '../../lib/constants';
+import {POPUP_SETTINGS_KEY, PLUGIN_THEME_KEY, CONTENT_THEME_KEY, TRANSLATION_CACHE_CONFIG_KEY, UI_LANG_KEY, SHORTCUT_SETTINGS_KEY, PAGE_LANG_KEY, TEXT_LANG_KEY, FAVORITE_LANGS_KEY, TRANSLATE_SETTINGS_KEY, SITE_TRANSLATE_SETTINGS_KEY, DICT_KEY } from '~lib/constants/settings';
 
 const { Title, Paragraph } = Typography;
 
@@ -48,7 +48,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
       ]);
       setContentTheme(savedContentTheme);
     };
-    initData();
+    initData().then(()=> {});
   }, []);
 
   useEffect(() => {
@@ -58,12 +58,10 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
     const saveContentTheme = async () => {
       await storage.set(CONTENT_THEME_KEY, contentTheme);
     };
-    saveContentTheme();
+    saveContentTheme().then(() => {});
   }, [contentTheme]);
 
   // 初始化和storage监听
-  const validLangCodes = ['default', ...LANGUAGES.map(l => l.code)];
-
   useEffect(() => {
     const getUiLang = async () => {
       let val = await storage.get(UI_LANG_KEY);
@@ -72,7 +70,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
         const browserLang = navigator.language;
         
         // 使用 mapUiLangToI18nKey 函数来正确映射语言代码
-        const { mapUiLangToI18nKey } = await import('../../lib/languages');
+        const { mapUiLangToI18nKey } = await import('../../lib/constants/languages');
         val = mapUiLangToI18nKey(browserLang);
         
         // 保存检测到的语言到storage
@@ -84,21 +82,22 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
         await i18n.changeLanguage(val);
       }
     };
-    getUiLang();
+    getUiLang().then(() => {});
   }, [i18n.language]);
 
-  const saveUiLang = async (val) => {
+  const saveUiLang = async (val: React.SetStateAction<string>) => {
     setUiLang(val);
     await storage.set(UI_LANG_KEY, val);
     // 只有当语言真正改变时才调用changeLanguage
     if (i18n.language !== val) {
+      // @ts-ignore
       await i18n.changeLanguage(val);
     }
     message.success(t('界面语言已保存'));
   };
 
   // 主题切换时同步 localStorage，保证多标签页同步
-  const handleThemeChange = async (e) => {
+  const handleThemeChange = async (e: import('antd').RadioChangeEvent) => {
     setThemeMode(e.target.value);
     await storage.set(PLUGIN_THEME_KEY, e.target.value);
   };
@@ -107,7 +106,9 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
     <Card 
       title={t('通用设置')} 
       style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
-      bodyStyle={{ padding: 0, flex: 1, display: 'flex', flexDirection: 'column' }}
+      styles={{
+        body: { padding: 0, flex: 1, display: 'flex', flexDirection: 'column' }
+      }}
     >
       <div style={{ flex: 1, overflow: 'auto', padding: '24px' }}>
         {/* 界面语言设置 */}
@@ -304,4 +305,4 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
   );
 };
 
-export default GeneralSettings; 
+export default GeneralSettings;

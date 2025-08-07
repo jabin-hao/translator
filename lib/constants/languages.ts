@@ -9,6 +9,7 @@ export interface LanguageItem {
   tts?: string;       // TTS 语音代码（全部用简写）
 }
 
+// 将微软 Edge TTS 的语言代码映射到通用语言代码
 export const LANGUAGES: LanguageItem[] = [
   { code: 'zh-CN', label: '中文（简体）', abbr: '简', google: 'zh-CN', bing: 'zh-Hans', deepl: 'ZH', yandex: 'zh', tts: 'zh-Hans' },
   { code: 'zh-TW', label: '中文（繁体）', abbr: '繁', google: 'zh-TW', bing: 'zh-Hant', deepl: 'ZH', yandex: 'zh', tts: 'zh-Hant' },
@@ -23,6 +24,34 @@ export const LANGUAGES: LanguageItem[] = [
 ];
 
 export const UI_LANGUAGES = LANGUAGES.map(l => ({ code: l.code, label: l.label }));
+// 通用语言前缀到标准 code 的映射
+const LANG_PREFIX_MAP: Record<string, string> = {
+  'zh-TW': 'zh-TW',
+  'zh-HK': 'zh-TW',
+  'zh-MO': 'zh-TW',
+  'zh': 'zh-CN',
+  'en': 'en',
+  'ja': 'ja',
+  'ko': 'ko',
+  'fr': 'fr',
+  'de': 'de',
+  'es': 'es',
+  'ru': 'ru',
+  'pt': 'pt',
+};
+
+// 将浏览器语言或用户选择的语言映射到统一的标准语言代码
+function mapToStandardLangCode(lang: string | undefined): string {
+  if (!lang) return 'zh-CN';
+  // 先精确匹配 UI_LANGUAGES
+  const uiLang = UI_LANGUAGES.find(l => l.code === lang);
+  if (uiLang) return uiLang.code;
+  // 兼容常见前缀
+  for (const prefix in LANG_PREFIX_MAP) {
+    if (lang.startsWith(prefix)) return LANG_PREFIX_MAP[prefix];
+  }
+  return 'zh-CN';
+}
 
 // 获取指定引擎的API语言代码
 export function getEngineLangCode(code: string, engine: string): string {
@@ -39,45 +68,15 @@ export function getLangAbbr(code: string): string {
 
 // 获取浏览器语言的通用函数
 export function getBrowserLang() {
-  const lang = navigator.language || 'zh-CN';
-  if (lang.startsWith('zh')) return lang.includes('TW') ? 'zh-TW' : 'zh-CN';
-  if (lang.startsWith('en')) return 'en';
-  if (lang.startsWith('ja')) return 'ja';
-  if (lang.startsWith('ko')) return 'ko';
-  if (lang.startsWith('fr')) return 'fr';
-  if (lang.startsWith('de')) return 'de';
-  if (lang.startsWith('es')) return 'es';
-  if (lang.startsWith('ru')) return 'ru';
-  if (lang.startsWith('pt')) return 'pt';
-  return 'en';
-}
-
-// 新增：获取 TTS 语音代码
-export function getSpeechLang(code: string): string {
-  const lang = LANGUAGES.find(l => l.code === code);
-  return lang?.tts || code;
+  return mapToStandardLangCode(navigator.language || 'zh-CN');
 }
 
 // UI 语言 code 映射为 i18n 资源 key
 export function mapUiLangToI18nKey(lang: string | undefined): string {
-  if (!lang) return 'zh-CN';
-  // 先精确匹配 UI_LANGUAGES
-  const uiLang = UI_LANGUAGES.find(l => l.code === lang);
-  if (uiLang) return uiLang.code;
-  // 兼容常见前缀
-  if (lang.startsWith('zh-TW') || lang.startsWith('zh-HK') || lang.startsWith('zh-MO')) return 'zh-TW';
-  if (lang.startsWith('zh')) return 'zh-CN';
-  if (lang.startsWith('en')) return 'en';
-  if (lang.startsWith('ja')) return 'ja';
-  if (lang.startsWith('ko')) return 'ko';
-  if (lang.startsWith('fr')) return 'fr';
-  if (lang.startsWith('de')) return 'de';
-  if (lang.startsWith('es')) return 'es';
-  if (lang.startsWith('ru')) return 'ru';
-  if (lang.startsWith('pt')) return 'pt';
-  return 'zh-CN';
+  return mapToStandardLangCode(lang);
 }
 
+// 获取 TTS 语言代码
 export function getTTSLang(code: string): string {
   const lang = LANGUAGES.find(l => l.code === code);
   return lang?.tts || code;

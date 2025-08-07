@@ -1,28 +1,5 @@
-import { Storage } from '@plasmohq/storage';
-import { getBrowserLang } from '../../lib/languages';
-import { TRANSLATE_SETTINGS_KEY, TEXT_LANG_KEY } from '../../lib/constants';
+import { isInputElement } from '../utils/domUtil';
 
-const storage = new Storage();
-
-// 检查元素是否为输入元素或可编辑元素
-function isInputElement(element: Element | null): boolean {
-  if (!element) return false;
-  
-  const tagName = element.tagName.toLowerCase();
-  
-  // 检查是否为输入元素
-  if (['input', 'textarea', 'select'].includes(tagName)) {
-    return true;
-  }
-  
-  // 检查是否为可编辑元素
-  if (element.hasAttribute('contenteditable')) {
-    const contentEditable = element.getAttribute('contenteditable');
-    return contentEditable === '' || contentEditable === 'true';
-  }
-  
-  return false;
-}
 
 // 检查点击路径中是否包含输入元素
 function pathContainsInputElement(path: EventTarget[]): boolean {
@@ -56,8 +33,7 @@ function isClickOnTranslatorComponent(path: EventTarget[], shadowRoot: ShadowRoo
 export const setupSelectionHandler = (
   shadowRoot: ShadowRoot | null,
   showTranslationIcon: (text: string, rect: DOMRect) => void,
-  clearTranslationState: () => void,
-  setShowInputTranslator: (show: boolean) => void
+  clearTranslationState: () => void
 ) => {
   const handleMouseUp = (e: MouseEvent) => {
     const path = e.composedPath();
@@ -128,14 +104,3 @@ export const setupSelectionHandler = (
 };
 
 // 获取翻译目标语言
-export const getTargetLanguage = async (): Promise<string> => {
-  const textTargetLang = await storage.get(TEXT_LANG_KEY);
-  if (textTargetLang) return textTargetLang;
-  
-  const favoriteLangs = await storage.get('favoriteLangs');
-  if (Array.isArray(favoriteLangs) && favoriteLangs.length > 0) {
-    return favoriteLangs[0];
-  }
-  
-  return getBrowserLang();
-}; 

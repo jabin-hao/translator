@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Select, Switch, Divider, message, Button } from 'antd';
 import { Storage } from '@plasmohq/storage';
-import { TRANSLATE_ENGINES } from '../../lib/engines';
-import { LANGUAGES } from '../../lib/languages';
+import { TRANSLATE_ENGINES } from '~lib/constants/engines';
+import { LANGUAGES } from '~lib/constants/languages';
 import { useTranslation } from 'react-i18next';
 import { ReloadOutlined, TranslationOutlined } from '@ant-design/icons';
 
@@ -15,12 +15,12 @@ import {
   removeAlwaysSite,
   addNeverSite,
   removeNeverSite
-} from '../../lib/siteTranslateSettings';
-import { TRANSLATE_SETTINGS_KEY, CACHE_KEY, SITE_LANG_KEY, TEXT_LANG_KEY, SITE_TRANSLATE_SETTINGS_KEY } from '../../lib/constants';
+} from '~lib/settings/siteTranslateSettings';
+import { TRANSLATE_SETTINGS_KEY, CACHE_KEY, SITE_LANG_KEY, TEXT_LANG_KEY, SITE_TRANSLATE_SETTINGS_KEY } from '~lib/constants/settings';
 
 const storage = new Storage();
 
-const PopupQuickSettings: React.FC = () => {
+const PopupInner: React.FC = () => {
   const { t } = useTranslation();
   const [engine, setEngine] = useState('google');
   const [autoTranslate, setAutoTranslate] = useState(true);
@@ -169,12 +169,6 @@ const PopupQuickSettings: React.FC = () => {
     await storage.set(TRANSLATE_SETTINGS_KEY, { ...prev, engine: val });
     message.success(t('翻译引擎已保存'));
   };
-  const handleAutoTranslateChange = async (checked: boolean) => {
-    setAutoTranslate(checked);
-    const prev = (await storage.get(TRANSLATE_SETTINGS_KEY)) || {};
-    await storage.set(TRANSLATE_SETTINGS_KEY, { ...prev, autoTranslate: checked });
-    message.success(t('自动翻译设置已保存'));
-  };
   const handleAutoReadChange = async (checked: boolean) => {
     setAutoRead(checked);
     const prev = (await storage.get(TRANSLATE_SETTINGS_KEY)) || {};
@@ -264,7 +258,6 @@ const PopupQuickSettings: React.FC = () => {
   return (
     <Card
       title={t('快速设置')}
-      bodyStyle={{ padding: 16, width: '100%', height: '100%' }}
       style={{
         width: '100%',
         height: '100%',
@@ -277,7 +270,10 @@ const PopupQuickSettings: React.FC = () => {
         margin: 0,
         padding: 0,
       }}
-      headStyle={{ border: 'none', padding: '12px 16px 0 16px', borderRadius: 12 }}
+      styles={{
+        header: {border: 'none', padding: '12px 16px 0 16px', borderRadius: 12},
+        body: { padding: 16, width: '100%', height: '100%' }
+      }}
     >
       <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center' }}>
         <b style={{ width: 100, flexShrink: 0 }}>{t('翻译引擎')}：</b>
@@ -373,4 +369,4 @@ const PopupQuickSettings: React.FC = () => {
   );
 };
 
-export default PopupQuickSettings; 
+export default PopupInner;

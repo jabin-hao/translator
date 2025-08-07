@@ -24,7 +24,7 @@ const setTranslationState = (state: { isPageTranslated: boolean; stopTranslation
 // 保存原始文本映射
 const saveOriginalTextMap = () => {
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-  let node;
+  let node: Node;
   const originalMap = (window as any).__originalPageTextMap;
   while ((node = walker.nextNode())) {
     if (node.nodeValue && node.nodeValue.trim()) {
@@ -71,19 +71,18 @@ function isVisible(node: Node): boolean {
   
   // 检查元素是否真的隐藏
   const style = window.getComputedStyle(node);
-  if (style.display === 'none' || style.visibility === 'hidden') return false;
-  
-  return true;
+  return !(style.display === 'none' || style.visibility === 'hidden');
 }
 
 import { sendToBackground } from '@plasmohq/messaging';
-import { getCustomDict } from './siteTranslateSettings';
-import { PROGRAMMING_LANGUAGES, CODE_FILE_SUFFIXES, GITHUB_CODE_SELECTORS, GITHUB_CODE_CLASSES, EXCLUDE_TAGS } from './constants';
+import { getCustomDict } from '../settings/siteTranslateSettings';
+import { PROGRAMMING_LANGUAGES, CODE_FILE_SUFFIXES, GITHUB_CODE_SELECTORS, GITHUB_CODE_CLASSES, EXCLUDE_TAGS } from '../constants/constants';
 
 function getDomain() {
   return location.hostname.replace(/^www\./, '');
 }
 
+// 批量翻译文本
 async function batchTranslateTexts(texts: string[], from: string, to: string, engine: string): Promise<string[]> {
   const domain = getDomain();
   const dict = await getCustomDict(domain);
@@ -111,7 +110,7 @@ async function batchTranslateTexts(texts: string[], from: string, to: string, en
   let translatedArr: string[] = [];
   if (toTranslate.length > 0) {
     const resp = await sendToBackground({
-      name: 'handle',
+      name: 'handle' as never,
       body: {
         service: 'translate',
         action: 'translateBatch',
@@ -150,23 +149,30 @@ function hasCompareAncestor(node: Node): boolean {
   return false;
 }
 
+// 判断是否为代码文件名
+function isCodeFileName(text: string): boolean {
+  const trimmed = text.trim();
+  return CODE_FILE_SUFFIXES.some(suffix => trimmed.toLowerCase().endsWith(suffix));
+}
+// 判断是否为编程语言名称
 function isProgrammingLanguageName(text: string): boolean {
   const t = text.trim().toLowerCase();
   return PROGRAMMING_LANGUAGES.includes(t);
 }
-
+// 判断是否为纯数字、小数、百分数或科学计数法
 function isPureNumber(text: string): boolean {
   const t = text.trim();
   // 匹配纯数字、小数、百分数、科学计数法
   return /^([+-]?(\d+(\.\d+)?|\.\d+)(e[+-]?\d+)?%?)$/.test(t);
 }
-
+// 判断是否为版权信息
 function isCopyrightText(text: string): boolean {
   const t = text.trim().toLowerCase();
   // 以 © 或 (c) 开头，或包含 copyright
   return /^©|^\(c\)|copyright/.test(t);
 }
 
+// 收集所有文本节点
 function collectAllTextNodes(root: HTMLElement, translatedSet: Set<Text>, mode?: 'translated' | 'compare'): Text[] {
   const nodes: Text[] = [];
   const walker = document.createTreeWalker(
@@ -244,13 +250,12 @@ function collectAllTextNodes(root: HTMLElement, translatedSet: Set<Text>, mode?:
     }
     node = walker.nextNode() as Text;
   }
-  
-  console.log(`收集文本节点: 找到 ${totalFound}, 收集 ${totalCollected}`);
+
   return nodes;
 }
 
 let compareIdCounter = 1;
-
+// 判断是否有兄弟节点是 compare span
 function hasSiblingCompareSpan(node: Text): boolean {
   if (!node.parentNode) return false;
   const siblings = Array.from(node.parentNode.childNodes);
@@ -267,11 +272,6 @@ function hasSiblingCompareSpan(node: Text): boolean {
   return false;
 }
 
-function isCodeFileName(text: string): boolean {
-  const trimmed = text.trim();
-  return CODE_FILE_SUFFIXES.some(suffix => trimmed.toLowerCase().endsWith(suffix));
-}
-
 /**
  * 检查元素是否匹配特定选择器列表
  */
@@ -285,7 +285,6 @@ function matchesSelectors(element: HTMLElement, selectors: string[]): boolean {
   });
 }
 
-
 /**
  * 检查文本内容是否像代码
  */
@@ -295,15 +294,15 @@ function looksLikeCode(text: string): boolean {
   
   // 常见代码模式
   const codePatterns = [
-    /^[\s]*[\{\}\[\]();,][\s]*$/, // 只包含标点符号
-    /^[\s]*[a-zA-Z_$][a-zA-Z0-9_$]*[\s]*[=:(){\[\]]+/, // 变量赋值或函数调用
-    /^[\s]*(<\/?[a-zA-Z][^>]*>|<!--.*-->)/, // HTML标签
-    /^[\s]*(\/\/|\/\*|\*|#|<!--)/, // 注释
-    /^[\s]*(import|export|function|class|const|let|var|if|for|while|return)\s/, // 关键字
-    /^[\s]*\d+[\s]*[\|\-\+]/, // 行号或表格分隔符
+    /^\s*[{}\[\]();,]\s*$/, // 只包含标点符号
+    /^\s*[a-zA-Z_$][a-zA-Z0-9_$]*\s*[=:(){\[\]]+/, // 变量赋值或函数调用
+    /^\s*(<\/?[a-zA-Z][^>]*>|<!--.*-->)/, // HTML标签
+    /^\s*(\/\/|\/\*|\*|#|<!--)/, // 注释
+    /^\s*(import|export|function|class|const|let|var|if|for|while|return)\s/, // 关键字
+    /^\s*\d+\s*[|\-+]/, // 行号或表格分隔符
     /^\s*[+\-]\s*/, // Git diff标记
-    /^[\s]*[a-zA-Z0-9_]+\s*[:=]\s*['""]/, // 配置文件格式
-    /^[\s]*\$\s+/, // Shell命令提示符
+    /^\s*[a-zA-Z0-9_]+\s*[:=]\s*['"]/, // 配置文件格式
+    /^\s*\$\s+/, // Shell命令提示符
   ];
   
   return codePatterns.some(pattern => pattern.test(trimmed));
@@ -443,7 +442,6 @@ export async function lazyFullPageTranslate(targetLang: string, mode: 'translate
         }
       }
     }
-    console.log(`懒加载翻译完成: 批量翻译了 ${translatedCount} 个节点`);
   }
   
   // 初始翻译

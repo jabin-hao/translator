@@ -15,7 +15,7 @@ const getInitTheme = async () => {
 const ThemeSettings: React.FC = () => {
   const [theme, setTheme] = useState(getInitTheme());
 
-  const handleChange = async (e) => {
+  const handleChange = async (e :any) => {
     setTheme(e.target.value);
     await storage.set(THEME_KEY, e.target.value);
   };

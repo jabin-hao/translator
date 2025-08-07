@@ -1,4 +1,5 @@
-import type { SpeechOptions, SpeechResult } from '../../lib/speech';
+// 处理朗读相关的消息
+import type { SpeechOptions, SpeechResult } from '~lib/translate/speech';
 import { speechManager } from '../speech/manager';
 
 export interface SpeechMessageRequest {
@@ -14,7 +15,6 @@ export interface SpeechMessageResponse {
 
 export const handleSpeechMessage = async (req: SpeechMessageRequest): Promise<SpeechMessageResponse> => {
   try {
-    console.log('处理朗读消息:', req);
 
     switch (req.action) {
       case 'speak':

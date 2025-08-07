@@ -15,4 +15,4 @@ export interface SpeechResult {
   error?: string;
 }
 
-export type SpeechService = 'edge' | 'google' | 'browser'; 
+export type SpeechService = 'edge' | 'google' | 'browser' | 'local';

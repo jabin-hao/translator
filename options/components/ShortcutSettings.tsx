@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Switch, Divider, Typography, Space, message, Input, Button } from 'antd';
+import { Card, Switch, Divider, Typography, message, Input, Button } from 'antd';
 import { Storage } from '@plasmohq/storage';
 import { useTranslation } from 'react-i18next';
 
@@ -39,7 +39,7 @@ const ShortcutSettings: React.FC = () => {
       setEnabled(settings.enabled);
       setCustomShortcut(settings.customShortcut || '');
     };
-    initData();
+    initData().then(() => {});
   }, []);
 
   // 保存设置
@@ -113,8 +113,8 @@ const ShortcutSettings: React.FC = () => {
       if (recordedKeys.length > 0) {
         const newShortcut = recordedKeys[0];
         setCustomShortcut(newShortcut);
-        saveSettings('customShortcut', newShortcut);
-        message.success(t('快捷键已保存'));
+        saveSettings('customShortcut', newShortcut).then(() => {});
+        message.success(t('快捷键已保存')).then(() => {});
       }
       // 清空录制状态
       setRecordedKeys([]);

@@ -1,26 +1,18 @@
-// 存储相关常量统一管理
-export const SPEECH_KEY = 'speech_settings';
-export const DEEPL_API_KEY = 'deepl_api_key';
-export const PAGE_LANG_KEY = 'pageTargetLang';
-export const TEXT_LANG_KEY = 'textTargetLang';
-export const FAVORITE_LANGS_KEY = 'favoriteLangs';
-export const TRANSLATE_SETTINGS_KEY = 'translate_settings';
-export const SITE_TRANSLATE_SETTINGS_KEY = 'site_translate_settings';
-export const DICT_KEY = 'dict';
-export const CACHE_KEY = 'translation_cache_enabled';
-export const POPUP_SETTINGS_KEY = 'popup_settings';
-export const PLUGIN_THEME_KEY = 'plugin_theme_mode';
-export const CONTENT_THEME_KEY = 'content_theme_mode';
+// 网页自动翻译所需
 export const PROGRAMMING_LANGUAGES = [
   'javascript', 'typescript', 'python', 'java', 'c', 'c++', 'c#', 'go', 'rust', 'php', 'ruby', 'swift', 'kotlin',
   'scala', 'perl', 'lua', 'dart', 'objective-c', 'shell', 'bash', 'powershell', 'sql', 'html', 'css', 'json', 'yaml', 'xml',
   'r', 'matlab', 'groovy', 'elixir', 'clojure', 'haskell', 'fortran', 'assembly', 'erlang', 'f#', 'vb', 'visual basic', 'delphi'
 ];
 
+// 代码文件后缀名
+// 这里列出常见的代码文件后缀名，便于识别
 export const CODE_FILE_SUFFIXES = [
   '.js', '.ts', '.jsx', '.tsx', '.c', '.cpp', '.h', '.hpp', '.py', '.java', '.go', '.rb', '.php', '.cs', '.swift', '.kt', '.m', '.sh', '.bat', '.pl', '.rs', '.dart', '.scala', '.lua', '.json', '.yaml', '.yml', '.xml', '.ini', '.conf', '.md', '.txt', '.csv', '.tsv', '.log', '.html', '.htm', '.css', '.scss', '.less', '.vue', '.svelte', '.lock', '.toml', '.gradle', '.make', '.mk', '.dockerfile', '.gitignore', '.gitattributes', '.env', '.config', '.properties', '.asm', '.sql', '.db', '.db3', '.sqlite', '.ps1', '.psm1', '.jsp', '.asp', '.aspx', '.vb', '.vbs', '.f90', '.f95', '.f03', '.f08', '.r', '.jl', '.groovy', '.erl', '.ex', '.exs', '.clj', '.cljs', '.edn', '.coffee', '.mjs', '.cjs', '.eslintrc', '.babelrc', '.npmrc', '.prettierrc', '.editorconfig', '.plist', '.crt', '.pem', '.key', '.csr', '.pub'
 ];
 
+// 代码相关选择器和类名
+// 这些选择器和类名用于识别网页中的代码块，便于自动翻译和处理
 export const GITHUB_CODE_SELECTORS = [
   '.blob-wrapper',
   '.blob-code',
@@ -80,17 +72,7 @@ export const GITHUB_CODE_CLASSES = [
   'console', 'shell', 'command-line', 'output'
 ];
 
+// 排除某些标签内的内容不进行翻译
 export const EXCLUDE_TAGS = [
   'code', 'pre', 'samp', 'kbd', 'var', 'script', 'style', 'textarea', 'input'
 ];
-
-export const DEFAULT_CACHE_CONFIG = {
-  maxAge: 30 * 24 * 60 * 60 * 1000, // 30天（1个月）
-  maxSize: 2000
-};
-
-export const TRANSLATION_CACHE_CONFIG_KEY = 'translation_cache_config';
-
-export const UI_LANG_KEY = 'uiLang';
-export const SHORTCUT_SETTINGS_KEY = 'shortcut_settings';
-export const SITE_LANG_KEY = 'site_page_lang';

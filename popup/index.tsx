@@ -1,8 +1,8 @@
 import React from "react";
-import PopupQuickSettings from "./components/PopupQuickSettings";
+import PopupInner from "./components/PopupInner";
 
 function Popup() {
-  return <PopupQuickSettings />;
+  return <PopupInner />;
 }
 
 export default Popup; 

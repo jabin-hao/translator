@@ -8,7 +8,9 @@ const About: React.FC = () => {
     <Card 
       title={t('关于')} 
       style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
-      bodyStyle={{ padding: 0, flex: 1, display: 'flex', flexDirection: 'column' }}
+      styles={{
+        body:{ padding: 0, flex: 1, display: 'flex', flexDirection: 'column' }
+      }}
     >
       <div style={{ flex: 1, overflow: 'auto', padding: '24px' }}>
         <p>{t('本插件用于网页划词翻译，支持多语言切换和自动翻译。')}</p>

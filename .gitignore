@@ -32,3 +32,5 @@ dist/
 
 # typescript
 .tsbuildinfo
+
+.idea

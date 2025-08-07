@@ -1,6 +1,6 @@
 // 翻译消息处理服务
-import { translate, translateBatch } from '../../lib/translate';
-import type { TranslateOptions, TranslateResult } from '../../lib/translate';
+import { translate, translateBatch } from '~lib/translate/translate';
+import type { TranslateOptions, TranslateResult } from '~lib/translate/translate';
 
 export interface TranslateMessage {
   type: 'translate' | 'translateBatch';

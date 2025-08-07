@@ -1,10 +1,11 @@
+/**
+ * 通用消息处理器
+ * 处理来自内容脚本或其他扩展部分的消息请求
+ */
 import type { PlasmoMessaging } from "@plasmohq/messaging"
 import { handleTranslateMessage } from './translate';
 import { handleSpeechMessage } from './speech';
 import cacheHandler from './cache';
-
-// 添加初始化日志
-console.log('Handle script 已加载 - handle.ts');
 
 // 通用消息请求类型
 export interface HandlerRequest {
@@ -22,11 +23,6 @@ export interface HandlerResponse {
 
 // 通用消息处理器
 const handler: PlasmoMessaging.MessageHandler<HandlerRequest, HandlerResponse> = async (req, res) => {
-  // console.log('=== 收到消息请求 ===');
-  // console.log('收到消息请求:', req.body);
-  // console.log('请求类型:', typeof req.body);
-  // console.log('请求服务:', req.body?.service);
-  // console.log('请求操作:', req.body?.action);
   
   try {
     if (!req.body) {
@@ -56,7 +52,6 @@ const handler: PlasmoMessaging.MessageHandler<HandlerRequest, HandlerResponse> =
               useCache: data.options?.useCache ?? true,
             }
           });
-          console.log('翻译响应:', translateResponse);
           res.send(translateResponse);
         } catch (translateError) {
           console.error('翻译处理失败:', translateError);
@@ -75,7 +70,6 @@ const handler: PlasmoMessaging.MessageHandler<HandlerRequest, HandlerResponse> =
             action: action as 'speak' | 'stop' | 'checkAvailability',
             options: data.options
           });
-          console.log('朗读响应:', speechResponse);
           res.send(speechResponse);
         } catch (speechError) {
           console.error('朗读处理失败:', speechError);
@@ -88,7 +82,7 @@ const handler: PlasmoMessaging.MessageHandler<HandlerRequest, HandlerResponse> =
         
       case 'cache':
         try {
-          const cacheResponse = await cacheHandler(req.body, null);
+          const cacheResponse = await cacheHandler(req.body);
           res.send(cacheResponse);
         } catch (cacheError) {
           res.send({ success: false, error: `缓存处理失败: ${cacheError instanceof Error ? cacheError.message : String(cacheError)}` });
@@ -112,8 +106,6 @@ const handler: PlasmoMessaging.MessageHandler<HandlerRequest, HandlerResponse> =
       success: false,
       error: error instanceof Error ? error.message : String(error),
     };
-    
-    console.log('发送错误响应:', errorResponse);
     res.send(errorResponse);
   }
 }

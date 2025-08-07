@@ -35,17 +35,8 @@ const getActualTheme = (themeMode: string): 'light' | 'dark' => {
   if (themeMode === 'light' || themeMode === 'dark') return themeMode;
   return 'light';
 };
-
-async function getInitTheme() {
-  try {
-    const theme = await storage.get(THEME_KEY);
-    if (theme) return theme;
-  } catch {}
-  return 'auto';
-}
-
-const OptionsIndexInner = () => {
-  const { t, i18n } = useTranslation();
+const OptionsInner = () => {
+  const { t } = useTranslation();
   const getInitialThemeMode = async () => {
     try {
       const theme = await storage.get(THEME_KEY);
@@ -63,15 +54,17 @@ const OptionsIndexInner = () => {
       setThemeMode(mode);
       setActualTheme(getActualTheme(mode));
     });
-    // 监听 Plasmo Storage 变化
-    const handler = (val) => {
+    // 监听 Storage 变化
+    const handler = (val: React.SetStateAction<string>) => {
       if (val !== themeMode) {
         setThemeMode(val);
-        setActualTheme(getActualTheme(val));
+        setActualTheme(getActualTheme(typeof val === "string" ? val : 'auto'));
       }
     };
+    // @ts-ignore
     storage.watch({ [THEME_KEY]: handler });
-    return () => { storage.unwatch({ [THEME_KEY]: handler }); };
+    return () => { // @ts-ignore
+      storage.unwatch({ [THEME_KEY]: handler }); };
   }, [themeMode]);
 
   const handleThemeSwitch = async () => {
@@ -197,4 +190,4 @@ const OptionsIndexInner = () => {
   );
 };
 
-export default OptionsIndexInner; 
+export default OptionsInner;

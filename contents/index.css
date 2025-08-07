@@ -3,44 +3,6 @@
   box-sizing: border-box;
 }
 
-/* 主题变量 */
-:root {
-  --bg-primary: #ffffff;
-  --bg-secondary: #f9f9f9;
-  --text-primary: #333333;
-  --text-secondary: #666666;
-  --border-color: #d9d9d9;
-  --card-bg: #ffffff;
-  --card-border: #d9d9d9;
-  --input-bg: #ffffff;
-  --input-border: #d9d9d9;
-  --select-bg: #ffffff;
-  --select-border: #d9d9d9;
-  --button-bg: #ffffff;
-  --button-border: #d9d9d9;
-  --result-bg: #f5f5f5;
-  --shadow: 0 8px 24px rgba(0,0,0,0.15);
-}
-
-/* 夜间模式主题变量 */
-[data-theme="dark"] {
-  --bg-primary: #1a1a1a;
-  --bg-secondary: #2a2a2a;
-  --text-primary: #ffffff;
-  --text-secondary: #cccccc;
-  --border-color: #404040;
-  --card-bg: #2a2a2a;
-  --card-border: #404040;
-  --input-bg: #2a2a2a;
-  --input-border: #404040;
-  --select-bg: #2a2a2a;
-  --select-border: #404040;
-  --button-bg: #2a2a2a;
-  --button-border: #404040;
-  --result-bg: #1a1a1a;
-  --shadow: 0 8px 24px rgba(0,0,0,0.3);
-}
-
 /* 确保Ant Design组件在内容脚本中正确显示 */
 .ant-card {
   background: var(--card-bg) !important;
@@ -158,17 +120,6 @@
   white-space: pre-wrap;
   line-height: 1.4;
   color: var(--text-primary);
-}
-
-/* TranslatorResult Footer区域样式 */
-/* 已移除，全部用内联样式 */
-
-.translator-result-lang-abbr {
-  /* 已移除，全部用内联样式 */
-}
-
-.translator-result-action-buttons {
-  /* 已移除，全部用内联样式 */
 }
 
 /* InputTranslator 组件样式 */

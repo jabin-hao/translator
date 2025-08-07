@@ -14,8 +14,8 @@ import {
   SwapOutlined, 
   CloseOutlined 
 } from '@ant-design/icons';
-import { getBrowserLang, LANGUAGES } from '../../lib/languages';
-import { TRANSLATE_ENGINES } from '../../lib/engines';
+import { getBrowserLang, LANGUAGES } from '~lib/constants/languages';
+import { TRANSLATE_ENGINES } from '~lib/constants/engines';
 import { useTranslation } from 'react-i18next';
 
 // 自定义翻译SVG图标组件

@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Card, Button, Space, Divider } from 'antd';
+import { Card, Button, Divider } from 'antd';
 import { CopyOutlined, SoundOutlined } from '@ant-design/icons';
 import '../index.css';
 import { Storage } from '@plasmohq/storage';
-import { getEngineLangCode, getLangAbbr, getTTSLang, getBrowserLang } from '../../lib/languages';
+import { getEngineLangCode, getLangAbbr, getTTSLang, getBrowserLang } from '~lib/constants/languages';
 import { useTranslation } from 'react-i18next';
 
 // 扩展 Window 接口以支持全局音频元素
@@ -37,7 +37,6 @@ interface TranslatorResultProps {
 }
 
 const storage = new Storage();
-const DEFAULT_TARGET_LANG = 'zh-CN';
 
 // 获取友好的引擎名称
 const getEngineDisplayName = (engine: string) => {
