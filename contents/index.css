@@ -40,17 +40,19 @@
 .ant-select-dropdown {
   background: var(--card-bg) !important;
   border-color: var(--card-border) !important;
+  z-index: 2147483647 !important;
 }
 
-.ant-select-item {
+.ant-select-dropdown .ant-select-item {
   color: var(--text-primary) !important;
 }
 
-.ant-select-item-option-selected {
+.ant-select-dropdown .ant-select-item-option-selected {
   background: #177ddc !important;
+  color: #ffffff !important;
 }
 
-.ant-select-item-option-active {
+.ant-select-dropdown .ant-select-item-option-active {
   background: var(--bg-secondary) !important;
 }
 

@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import '../index.css';
 import { 
   Card, 
@@ -42,16 +41,10 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage,
   const [inputText, setInputText] = useState('');
   const [translatedText, setTranslatedText] = useState('');
   const [sourceLang, setSourceLang] = useState('auto');
-  const [targetLang, setTargetLang] = useState(defaultTargetLang || getBrowserLang());
+  const [targetLang, setTargetLang] = useState(() => defaultTargetLang || getBrowserLang());
   const [isTranslating, setIsTranslating] = useState(false);
-  const [engine, setEngine] = useState(defaultEngine);
-  const [usedEngine, setUsedEngine] = useState<string>(engine);
-  useEffect(() => {
-    setTargetLang(defaultTargetLang || getBrowserLang());
-  }, [defaultTargetLang]);
-  useEffect(() => {
-    setEngine(defaultEngine);
-  }, [defaultEngine]);
+  const [engine, setEngine] = useState(() => defaultEngine);
+  const [usedEngine, setUsedEngine] = useState(() => defaultEngine);
 
   // 按下Esc关闭悬浮窗
   useEffect(() => {
@@ -66,10 +59,16 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage,
     };
   }, [onClose]);
 
-  const sourceLanguages = [{ label: t('自动检测'), code: 'auto' }, ...LANGUAGES.map(l => ({ ...l, label: t('lang.' + l.code) }))];
-  const targetLanguages = LANGUAGES.map(l => ({ ...l, label: t('lang.' + l.code) }));
+  const sourceLanguages = useMemo(() => 
+    [{ label: t('自动检测'), code: 'auto' }, ...LANGUAGES.map(l => ({ ...l, label: t('lang.' + l.code) }))], 
+    [t]
+  );
+  const targetLanguages = useMemo(() => 
+    LANGUAGES.map(l => ({ ...l, label: t('lang.' + l.code) })), 
+    [t]
+  );
 
-  const handleTranslate = async () => {
+  const handleTranslate = useCallback(async () => {
     if (!inputText.trim()) {
       showMessage('warning', t('请输入要翻译的文字'));
       return;
@@ -87,22 +86,22 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage,
     } finally {
       setIsTranslating(false);
     }
-  };
+  }, [inputText, sourceLang, targetLang, engine, callTranslateAPI, showMessage, t]);
 
-  const handleSwapLanguages = () => {
+  const handleSwapLanguages = useCallback(() => {
     if (sourceLang !== 'auto') {
       setSourceLang(targetLang);
       setTargetLang(sourceLang);
       showMessage('success', t('已交换语言'));
     }
-  };
+  }, [sourceLang, targetLang, showMessage, t]);
 
-  const handleClear = () => {
+  const handleClear = useCallback(() => {
     setInputText('');
     setTranslatedText('');
-    setUsedEngine(engine);
+    setUsedEngine(defaultEngine);
     showMessage('success', t('已清空内容'));
-  };
+  }, [defaultEngine, showMessage, t]);
 
   return (
     <Card
@@ -141,9 +140,9 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage,
             onChange={setSourceLang}
             style={{ width: 120 }}
             placeholder={t('源语言')}
-            getPopupContainer={triggerNode => triggerNode.parentNode}
             size="small"
             className="custom-select"
+            getPopupContainer={(triggerNode) => triggerNode.parentNode as HTMLElement}
           >
             {sourceLanguages.map(lang => (
               <Option key={lang.code} value={lang.code}>{lang.label}</Option>
@@ -165,9 +164,9 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage,
             onChange={setTargetLang}
             style={{ width: 120 }}
             placeholder={t('目标语言')}
-            getPopupContainer={triggerNode => triggerNode.parentNode}
             size="small"
             className="custom-select"
+            getPopupContainer={(triggerNode) => triggerNode.parentNode as HTMLElement}
           >
             {targetLanguages.map(lang => (
               <Option key={lang.code} value={lang.code}>{lang.label}</Option>
@@ -182,7 +181,7 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage,
             placeholder={t('搜索引擎')}
             size="small"
             className="custom-select"
-            getPopupContainer={triggerNode => triggerNode.parentNode}
+            getPopupContainer={(triggerNode) => triggerNode.parentNode as HTMLElement}
           >
             {TRANSLATE_ENGINES.map(e => (
               <Option key={e.value} value={e.value} disabled={e.disabled}>

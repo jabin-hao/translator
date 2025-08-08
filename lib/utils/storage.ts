@@ -1,5 +1,5 @@
 import { Storage } from '@plasmohq/storage';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 const storage = new Storage();
 
@@ -50,13 +50,14 @@ export const storageApi = {
 // 自定义配置Hook
 export function useStorage<T = any>(key: string, defaultValue?: T) {
   const [value, setValue] = useState<T>(defaultValue as T);
+  const defaultValueRef = useRef(defaultValue);
 
   useEffect(() => {
     let mounted = true;
 
     // 初始化读取
     storageApi.get(key).then((val) => {
-      if (mounted) setValue(val === undefined ? defaultValue as T : (val as T));
+      if (mounted) setValue(val === undefined ? defaultValueRef.current as T : (val as T));
     });
 
     // 订阅变化
@@ -68,13 +69,13 @@ export function useStorage<T = any>(key: string, defaultValue?: T) {
       mounted = false;
       unwatch();
     };
-  }, [key, defaultValue]);
+  }, [key]); // 移除 defaultValue 依赖
 
   // 修改存储的值
-  const setStorageValue = (val: T) => {
+  const setStorageValue = useCallback((val: T) => {
     setValue(val);
     storageApi.set(key, val);
-  };
+  }, [key]);
 
   return [value, setStorageValue] as const;
 }

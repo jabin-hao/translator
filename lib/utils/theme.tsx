@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import { ConfigProvider, theme } from 'antd';
 import { useStorage } from './storage';
 
@@ -28,40 +28,89 @@ interface ThemeProviderProps {
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children, storageKey }) => {
   // 使用 useStorage hook 替换手动的存储操作
   const [themeMode, setThemeMode] = useStorage<ThemeMode>(storageKey, 'auto');
-  const [isDark, setIsDark] = useState(false);
-  const [forceUpdate, setForceUpdate] = useState(0); // 添加强制更新状态
-
-  // 检测系统主题
-  const getSystemTheme = (): boolean => {
-    if (typeof window !== 'undefined' && window.matchMedia) {
-      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const [isDark, setIsDark] = useState(() => {
+    // 初始化时计算一次
+    if (themeMode === 'auto') {
+      return typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
     }
-    return false;
-  };
+    return themeMode === 'dark';
+  });
 
-  // 计算实际的主题模式
-  const calculateActualTheme = (mode: ThemeMode): boolean => {
-    if (mode === 'auto') {
-      return getSystemTheme();
-    }
-    return mode === 'dark';
-  };
+  // 使用 useMemo 来避免重复计算主题配置
+  const themeConfig = React.useMemo(() => ({
+    algorithm: isDark ? theme.darkAlgorithm : theme.defaultAlgorithm,
+    token: {
+      colorPrimary: '#1890ff',
+      borderRadius: 8,
+      colorBgContainer: isDark ? '#1f1f1f' : '#ffffff',
+      colorBgLayout: isDark ? '#141414' : '#f5f5f5',
+      colorBgElevated: isDark ? '#262626' : '#ffffff',
+      colorBorder: isDark ? '#424242' : '#d9d9d9',
+      colorText: isDark ? '#ffffff' : '#000000',
+      colorTextSecondary: isDark ? '#a6a6a6' : '#666666',
+      fontSizeHeading1: 18,
+      fontSizeHeading2: 16,
+      fontSizeHeading3: 14,
+    },
+    cssVar: true, // 启用CSS变量支持
+    components: {
+      Button: {
+        colorPrimary: '#1890ff',
+      },
+      Input: {
+        colorBgContainer: isDark ? '#1f1f1f' : '#ffffff',
+        colorBorder: isDark ? '#424242' : '#d9d9d9',
+      },
+      Select: {
+        colorBgContainer: isDark ? '#1f1f1f' : '#ffffff',
+        colorBorder: isDark ? '#424242' : '#d9d9d9',
+        colorText: isDark ? '#ffffff' : '#000000',
+        colorTextPlaceholder: isDark ? '#a6a6a6' : '#999999',
+        optionSelectedBg: isDark ? '#1668dc' : '#e6f7ff',
+        optionActiveBg: isDark ? '#262626' : '#f5f5f5',
+      },
+      Card: {
+        colorBgContainer: isDark ? '#1f1f1f' : '#ffffff',
+        colorBorderSecondary: isDark ? '#424242' : '#f0f0f0',
+      },
+      Modal: {
+        contentBg: isDark ? '#1f1f1f' : '#ffffff',
+      },
+      Tooltip: {
+        colorBgSpotlight: isDark ? '#434343' : '#ffffff',
+        colorTextLightSolid: isDark ? '#ffffff' : '#000000',
+      },
+      Popover: {
+        colorBgElevated: isDark ? '#1f1f1f' : '#ffffff',
+      },
+      Dropdown: {
+        colorBgElevated: isDark ? '#1f1f1f' : '#ffffff',
+      },
+      Message: {
+        contentBg: isDark ? '#1f1f1f' : '#ffffff',
+      },
+      Notification: {
+        colorBgElevated: isDark ? '#1f1f1f' : '#ffffff',
+      },
+    },
+  }), [isDark]);
 
   // 当主题模式变化时更新 isDark
   useEffect(() => {
-    const newIsDark = calculateActualTheme(themeMode);
-    setIsDark(newIsDark);
-    setForceUpdate(prev => prev + 1); // 强制重新渲染
+    if (themeMode === 'auto') {
+      const systemIsDark = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      setIsDark(systemIsDark);
+    } else {
+      setIsDark(themeMode === 'dark');
+    }
   }, [themeMode]);
 
-  // 监听系统主题变化
+  // 监听系统主题变化，但只在 auto 模式下
   useEffect(() => {
     if (themeMode === 'auto') {
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      const handleChange = () => {
-        const newIsDark = mediaQuery.matches;
-        setIsDark(newIsDark);
-        setForceUpdate(prev => prev + 1); // 强制重新渲染
+      const handleChange = (e: MediaQueryListEvent) => {
+        setIsDark(e.matches);
       };
 
       mediaQuery.addEventListener('change', handleChange);
@@ -69,81 +118,20 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children, storageK
     }
   }, [themeMode]);
 
-  const value: ThemeContextType = {
+  const value: ThemeContextType = React.useMemo(() => ({
     themeMode,
     setThemeMode,
     isDark,
-  };
+  }), [themeMode, setThemeMode, isDark]);
 
   return (
     <ThemeContext.Provider value={value}>
-      <ConfigProvider
-        key={`theme-${themeMode}-${isDark}-${forceUpdate}`} // 使用key强制重新渲染
-        theme={{
-          algorithm: isDark ? theme.darkAlgorithm : theme.defaultAlgorithm,
-          token: {
-            colorPrimary: '#1890ff',
-            borderRadius: 8,
-            colorBgContainer: isDark ? '#1f1f1f' : '#ffffff',
-            colorBgLayout: isDark ? '#141414' : '#f5f5f5',
-            colorBgElevated: isDark ? '#262626' : '#ffffff',
-            colorBorder: isDark ? '#424242' : '#d9d9d9',
-            colorText: isDark ? '#ffffff' : '#000000',
-            colorTextSecondary: isDark ? '#a6a6a6' : '#666666',
-            fontSizeHeading1: 18,
-            fontSizeHeading2: 16,
-            fontSizeHeading3: 14,
-          },
-          cssVar: true, // 启用CSS变量支持
-          components: {
-            Button: {
-              colorPrimary: '#1890ff',
-            },
-            Input: {
-              colorBgContainer: isDark ? '#1f1f1f' : '#ffffff',
-              colorBorder: isDark ? '#424242' : '#d9d9d9',
-            },
-            Select: {
-              colorBgContainer: isDark ? '#1f1f1f' : '#ffffff',
-              colorBorder: isDark ? '#424242' : '#d9d9d9',
-              colorText: isDark ? '#ffffff' : '#000000',
-              colorTextPlaceholder: isDark ? '#a6a6a6' : '#999999',
-              optionSelectedBg: isDark ? '#1668dc' : '#e6f7ff',
-              optionActiveBg: isDark ? '#262626' : '#f5f5f5',
-            },
-            Card: {
-              colorBgContainer: isDark ? '#1f1f1f' : '#ffffff',
-              colorBorderSecondary: isDark ? '#424242' : '#f0f0f0',
-            },
-            Modal: {
-              contentBg: isDark ? '#1f1f1f' : '#ffffff',
-            },
-            Tooltip: {
-              colorBgSpotlight: isDark ? '#434343' : '#ffffff',
-              colorTextLightSolid: isDark ? '#ffffff' : '#000000',
-            },
-            Popover: {
-              colorBgElevated: isDark ? '#1f1f1f' : '#ffffff',
-            },
-            Dropdown: {
-              colorBgElevated: isDark ? '#1f1f1f' : '#ffffff',
-            },
-            Message: {
-              contentBg: isDark ? '#1f1f1f' : '#ffffff',
-            },
-            Notification: {
-              colorBgElevated: isDark ? '#1f1f1f' : '#ffffff',
-            },
-          },
-        }}
+      <ConfigProvider 
+        theme={themeConfig}
         getPopupContainer={(triggerNode) => {
-          // 尝试找到 Shadow DOM 容器
-          let container = triggerNode;
-          while (container && container.parentNode) {
-            if ((container.parentNode as any).host) {
-              return container.parentNode as HTMLElement;
-            }
-            container = container.parentNode as HTMLElement;
+          // 在Shadow DOM环境中，优先使用触发节点的父容器
+          if (triggerNode) {
+            return triggerNode.parentElement || document.body;
           }
           return document.body;
         }}

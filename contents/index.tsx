@@ -1,5 +1,5 @@
 import {StyleProvider} from "@ant-design/cssinjs"
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from "react"
 import {App} from 'antd';
 import {getBrowserLang, mapUiLangToI18nKey} from '~lib/constants/languages';
 import './index.css';
@@ -183,12 +183,15 @@ const ContentScript = () => {
     const shortcutEnabled = shortcutSettings?.enabled !== false;
     const customShortcut = shortcutSettings?.customShortcut || '';
 
+    // 使用常量避免每次渲染都调用函数
+    const defaultLang = useMemo(() => getBrowserLang(), []);
+
     // 划词翻译目标语言和偏好语言 - 使用 useStorage hook
-    const [textTargetLang, setTextTargetLang] = useStorage(TEXT_LANG_KEY, getBrowserLang());
+    const [textTargetLang, setTextTargetLang] = useStorage(TEXT_LANG_KEY, defaultLang);
     const [favoriteLangs, setFavoriteLangs] = useStorage(FAVORITE_LANGS_KEY, []);
 
     // UI语言设置 - 使用 useStorage hook
-    const [uiLang, setUILang] = useStorage(UI_LANG_KEY, getBrowserLang());
+    const [uiLang, setUILang] = useStorage(UI_LANG_KEY, defaultLang);
 
     // 读取网页翻译目标语言 - 使用 useStorage hook
     const [pageTargetLang, setPageTargetLang] = useStorage(PAGE_LANG_KEY, 'zh-CN');
@@ -234,23 +237,23 @@ const ContentScript = () => {
         setShouldTranslate(false);
     };
 
-    // 触发翻译
-    const triggerTranslation = () => {
+    // 触发翻译 - 支持快捷键传参 - 使用useCallback稳定引用
+    const triggerTranslation = useCallback((text?: string, rect?: DOMRect) => {
         const selection = window.getSelection();
         if (selection && selection.toString().trim()) {
-            const text = selection.toString().trim();
+            const selectionText = text || selection.toString().trim();
             const range = selection.getRangeAt(0);
-            const rect = range.getBoundingClientRect();
+            const selectionRect = rect || range.getBoundingClientRect();
 
             // 将翻译结果显示在选中文字的正下方
             setResult({
-                x: rect.left + window.scrollX, // 左对齐
-                y: rect.bottom + window.scrollY, // 正下方
-                originalText: text
+                x: selectionRect.left + window.scrollX, // 左对齐
+                y: selectionRect.bottom + window.scrollY, // 正下方
+                originalText: selectionText
             });
             setShouldTranslate(true);
         }
-    };
+    }, []);
 
     // 处理翻译
     const handleTranslation = () => {
@@ -301,11 +304,12 @@ const ContentScript = () => {
 
     // 设置快捷键处理器
     useEffect(() => {
+        console.log('注册快捷键处理器, shortcutEnabled:', shortcutEnabled, 'customShortcut:', customShortcut);
         return setupShortcutHandler(
             triggerTranslation,
             setShowInputTranslator
         );
-    }, [shortcutEnabled, customShortcut, textTargetLang, favoriteLangs, shouldTranslate, autoTranslate]);
+    }, [shortcutEnabled, customShortcut, triggerTranslation]); // 添加triggerTranslation依赖
 
     // 设置消息处理器，确保只注册一次
     useEffect(() => {
