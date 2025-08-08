@@ -1,15 +1,15 @@
 import {sendToBackground} from '@plasmohq/messaging';
 import {getEngineLangCode, getTTSLang} from '~lib/constants/languages';
 import {CACHE_KEY} from '~lib/constants/settings';
-import {getConfig, saveConfig} from "~lib/utils/storage";
+import {storageApi} from "~lib/utils/storage";
 
 // 初始化默认设置
 export async function initializeDefaultSettings() {
     try {
         // 检查并设置缓存默认值
-        const cacheEnabled = await getConfig(CACHE_KEY, '');
+        const cacheEnabled = await storageApi.get(CACHE_KEY);
         if (cacheEnabled === null || cacheEnabled === undefined) {
-            await saveConfig(CACHE_KEY, true);
+            await storageApi.set(CACHE_KEY, true);
         }
     } catch (error) {
         console.error('初始化默认设置失败:', error);

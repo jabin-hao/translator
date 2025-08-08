@@ -3,7 +3,7 @@ import {LocalSpeechService} from './local';
 import {EdgeSpeechService} from './edge';
 import {GoogleSpeechService} from './google';
 import {SPEECH_KEY} from '~lib/constants/settings';
-import {getConfig} from "~lib/utils/storage";
+import {storageApi} from "~lib/utils/storage";
 
 // 基础朗读服务接口
 interface BaseSpeechService {
@@ -32,7 +32,7 @@ export class SpeechManager {
     // 加载用户设置
     private async loadUserSettings() {
         try {
-            const settings = await getConfig(SPEECH_KEY, '');
+            const settings = await storageApi.get(SPEECH_KEY);
             if (settings && typeof settings === 'object') {
                 const {engine, speed, pitch, volume} = settings as any;
                 if (engine && this.services.has(engine)) {
@@ -67,7 +67,7 @@ export class SpeechManager {
 
         try {
             // 获取用户设置的朗读参数
-            const settings = await getConfig(SPEECH_KEY, '');
+            const settings = await storageApi.get(SPEECH_KEY);
             let userSettings = {speed: 1, pitch: 1, volume: 1};
             if (settings && typeof settings === 'object') {
                 const userSettingsData = settings as any;

@@ -1,7 +1,5 @@
-import { Storage } from '@plasmohq/storage';
+import { storageApi } from '~lib/utils/storage';
 import { SITE_TRANSLATE_SETTINGS_KEY, DICT_KEY } from '../constants/settings';
-
-const storage = new Storage();
 
 export interface SiteTranslateSettings {
   autoTranslateEnabled: boolean;
@@ -31,7 +29,7 @@ const defaultDict: DictConfig = {
 };
 
 export async function getSiteTranslateSettings(): Promise<SiteTranslateSettings> {
-  const data = await storage.get(SITE_TRANSLATE_SETTINGS_KEY);
+  const data = await storageApi.get(SITE_TRANSLATE_SETTINGS_KEY);
   if (data && typeof data === 'object') {
     return { ...defaultSettings, ...(data as SiteTranslateSettings) };
   }
@@ -39,11 +37,11 @@ export async function getSiteTranslateSettings(): Promise<SiteTranslateSettings>
 }
 
 export async function setSiteTranslateSettings(settings: SiteTranslateSettings) {
-  await storage.set(SITE_TRANSLATE_SETTINGS_KEY, settings);
+  await storageApi.set(SITE_TRANSLATE_SETTINGS_KEY, settings);
 }
 
 export async function getDictConfig(): Promise<DictConfig> {
-  const data = await storage.get(DICT_KEY);
+  const data = await storageApi.get(DICT_KEY);
   if (data && typeof data === 'object') {
     return { ...defaultDict, ...(data as DictConfig) };
   }
@@ -51,7 +49,7 @@ export async function getDictConfig(): Promise<DictConfig> {
 }
 
 export async function setDictConfig(dict: DictConfig) {
-  await storage.set(DICT_KEY, dict);
+  await storageApi.set(DICT_KEY, dict);
 }
 
 export async function addAlwaysSite(host: string) {

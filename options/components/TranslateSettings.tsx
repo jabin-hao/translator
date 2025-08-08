@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Select, Switch, Divider, message, Input, Button, List, Modal, Checkbox, Tooltip, Radio } from 'antd';
-import { Storage } from '@plasmohq/storage';
 import { TRANSLATE_ENGINES, TTS_ENGINES } from '~lib/constants/engines';
 import { useTranslation } from 'react-i18next';
+import { useStorage } from '~lib/utils/storage';
 import {
   setAutoTranslateEnabled,
   getDictConfig,
@@ -19,21 +19,29 @@ import { DeleteOutlined } from '@ant-design/icons';
 import { TRANSLATE_SETTINGS_KEY, SPEECH_KEY, DEEPL_API_KEY, SITE_TRANSLATE_SETTINGS_KEY, DICT_KEY } from '~lib/constants/settings';
 const { Option } = Select;
 
-const storage = new Storage();
-
 const TranslateSettings: React.FC = () => {
   const { t } = useTranslation();
-  const [engine, setEngine] = useState('google');
-  const [autoRead, setAutoRead] = useState(false);
-  const [autoTranslate, setAutoTranslate] = useState(false);
-  const [deeplApiKey, setDeeplApiKey] = useState('');
-  const [deeplApiKeyInput, setDeeplApiKeyInput] = useState('');
+
+  // 使用useStorage hooks管理设置
+  const [translateSettings, setTranslateSettings] = useStorage(TRANSLATE_SETTINGS_KEY, {
+    engine: 'google',
+    autoRead: false,
+    autoTranslate: false
+  });
+
+  const [speechSettings, setSpeechSettings] = useStorage(SPEECH_KEY, {
+    engine: 'edge',
+    speed: 1,
+    pitch: 1,
+    volume: 1
+  });
+
+  const [deeplApiKey, setDeeplApiKey] = useStorage(DEEPL_API_KEY, '');
+
+  // 本地UI状态（不需要持久化的状态）
+  const [deeplApiKeyInput, setDeeplApiKeyInput] = useState(deeplApiKey || '');
   
-  // 朗读引擎设置
-  const [speechEngine, setSpeechEngine] = useState('edge');
-  const [speechSpeed, setSpeechSpeed] = useState(1);
-  const [speechPitch, setSpeechPitch] = useState(1);
-  const [speechVolume, setSpeechVolume] = useState(1);
+  // 朗读引擎设置 - 现在从useStorage获取
 
   // 网站自动翻译相关 state
   const [siteAutoEnabled, setSiteAutoEnabled] = useState(false);
@@ -58,39 +66,13 @@ const TranslateSettings: React.FC = () => {
   const [dictAddKey, setDictAddKey] = useState('');
   const [dictAddValue, setDictAddValue] = useState('');
 
-  // 更新朗读设置的通用函数
-  const updateSpeechSettings = (data: any) => {
-    if (data && typeof data === 'object') {
-      setSpeechEngine((data as any)?.engine || 'edge');
-      setSpeechSpeed((data as any)?.speed ?? 1);
-      setSpeechPitch((data as any)?.pitch ?? 1);
-      setSpeechVolume((data as any)?.volume ?? 1);
-    }
-  };
-
+  // 同步DeepL输入框状态  
   useEffect(() => {
-    // 读取翻译设置
-    storage.get(TRANSLATE_SETTINGS_KEY).then((data) => {
-      if (data && typeof data === 'object') {
-        setEngine((data as any)?.engine || 'google');
-        setAutoRead(!!(data as any)?.autoRead);
-        setAutoTranslate((data as any)?.autoTranslate ?? false);
-      }
-    });
-    
-    // 读取朗读设置
-    storage.get(SPEECH_KEY).then((data) => {
-      updateSpeechSettings(data);
-    });
+    setDeeplApiKeyInput(deeplApiKey || '');
+  }, [deeplApiKey]);
 
-    // 读取 DeepL API key
-    storage.get(DEEPL_API_KEY).then((key) => {
-      if (key && typeof key === 'string') {
-        setDeeplApiKey(key);
-        setDeeplApiKeyInput(key);
-      }
-    });
-
+  // 网站翻译设置初始化
+  useEffect(() => {
     // 初始化读取网站翻译设置
     getDictConfig().then(dict => {
       setSiteAutoEnabled(dict.autoTranslateEnabled ?? false);
@@ -98,113 +80,40 @@ const TranslateSettings: React.FC = () => {
       setNeverSites(dict.siteNeverList || []);
       setPageTranslateMode(dict.pageTranslateMode === 'compare' ? 'compare' : 'translated');
     });
-
-    // 监听storage变化，实现与popup的同步
-    const handleStorageChange = (changes: { [key: string]: any }) => {
-      // 监听翻译设置变化
-      if (changes[TRANSLATE_SETTINGS_KEY]) {
-        const data = changes[TRANSLATE_SETTINGS_KEY].newValue;
-        if (data && typeof data === 'object') {
-          setEngine((data as any)?.engine || 'google');
-          setAutoRead(!!(data as any)?.autoRead);
-          setAutoTranslate((data as any)?.autoTranslate ?? false);
-        }
-      }
-      
-      // 监听朗读设置变化
-      if (changes[SPEECH_KEY]) {
-        const data = changes[SPEECH_KEY].newValue;
-        updateSpeechSettings(data);
-      }
-      
-      // 监听DeepL API key变化
-      if (changes[DEEPL_API_KEY]) {
-        const key = changes[DEEPL_API_KEY].newValue;
-        if (key && typeof key === 'string') {
-          setDeeplApiKey(key);
-          setDeeplApiKeyInput(key);
-        }
-      }
-      
-      // 监听网站自动翻译设置变化
-      if (changes[SITE_TRANSLATE_SETTINGS_KEY]) {
-        const settings = changes[SITE_TRANSLATE_SETTINGS_KEY].newValue;
-        if (settings && typeof settings === 'object') {
-          setSiteAutoEnabled(settings.autoTranslateEnabled);
-        }
-      }
-      
-      // 监听字典配置变化（白名单、黑名单等）
-      if (changes[DICT_KEY]) {
-        const dict = changes[DICT_KEY].newValue;
-        if (dict && typeof dict === 'object') {
-          setSiteAutoEnabled(dict.autoTranslateEnabled ?? false);
-          setAlwaysSites(dict.siteAlwaysList || []);
-          setNeverSites(dict.siteNeverList || []);
-          setPageTranslateMode(dict.pageTranslateMode === 'compare' ? 'compare' : 'translated');
-        }
-      }
-    };
-
-    // 添加storage监听器
-    if (chrome?.storage?.onChanged) {
-      chrome.storage.onChanged.addListener(handleStorageChange);
-      return () => chrome.storage.onChanged.removeListener(handleStorageChange);
-    }
   }, []);
 
-  useEffect(() => {
-    // 保存翻译设置
-    storage.set(TRANSLATE_SETTINGS_KEY, {engine, autoRead, autoTranslate}).then(() => {});
-  }, [engine, autoRead, autoTranslate]);
-
-  useEffect(() => {
-    // 保存朗读设置
-    storage.set(SPEECH_KEY, {
-      engine: speechEngine,
-      speed: speechSpeed,
-      pitch: speechPitch,
-      volume: speechVolume
-    }).then(() => {});
-   }, [speechEngine, speechSpeed, speechPitch, speechVolume]);
-
   const handleEngineChange = (val: string) => {
-    setEngine(val);
+    setTranslateSettings({ ...translateSettings, engine: val });
     message.success(t('翻译引擎已保存')).then(() => {});
   };
 
   const handleAutoReadChange = (checked: boolean) => {
-    setAutoRead(checked);
+    setTranslateSettings({ ...translateSettings, autoRead: checked });
     message.success(t('自动朗读设置已保存')).then(() => {});
   };
 
   const handleAutoTranslateChange = (checked: boolean) => {
-    setAutoTranslate(checked);
-    storage.set(TRANSLATE_SETTINGS_KEY, {
-      engine,
-      autoRead,
-      autoTranslate: checked
-    }).then(() => {});
+    setTranslateSettings({ ...translateSettings, autoTranslate: checked });
     message.success(t('自动翻译设置已保存')).then(() => {});
   };
 
   const handleSpeechEngineChange = (val: string) => {
-    setSpeechEngine(val);
+    setSpeechSettings({ ...speechSettings, engine: val });
     message.success(t('朗读引擎已保存')).then(() => {});
   };
 
   const handleSpeechSpeedChange = (val: number) => {
-    setSpeechSpeed(val);
+    setSpeechSettings({ ...speechSettings, speed: val });
     message.success(t('朗读速度已保存')).then(() => {});
   };
 
   const handleSpeechPitchChange = (val: number) => {
-    setSpeechPitch(val);
+    setSpeechSettings({ ...speechSettings, pitch: val });
     message.success(t('朗读音调已保存')).then(() => {});
   };
 
   const handleSpeechVolumeChange = (val: number) => {
-    setSpeechVolume(val);
+    setSpeechSettings({ ...speechSettings, volume: val });
     message.success(t('朗读音量已保存')).then(() => {});
   };
 
@@ -218,7 +127,6 @@ const TranslateSettings: React.FC = () => {
       return;
     }
     setDeeplApiKey(deeplApiKeyInput.trim());
-    storage.set(DEEPL_API_KEY, deeplApiKeyInput.trim()).then(() => {});
     message.success(t('DeepL API Key 已保存')).then(() => {});
   };
 
@@ -385,7 +293,7 @@ const TranslateSettings: React.FC = () => {
         <div style={{ marginBottom: 24 }}>
           <b>{t('翻译引擎')}：</b>
           <Select
-            value={engine}
+            value={translateSettings.engine}
             onChange={handleEngineChange}
             style={{ width: 200, marginLeft: 16 }}
             size="middle"
@@ -397,13 +305,13 @@ const TranslateSettings: React.FC = () => {
               </Option>
             ))}
           </Select>
-          <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
+          <div style={{ fontSize: 13, color: 'var(--ant-color-text-secondary)', marginTop: 8 }}>
             {t('选择用于翻译的默认引擎，支持多引擎兜底')}
           </div>
         </div>
 
         {/* DeepL API Key 设置 */}
-        {engine === 'deepl' && (
+        {translateSettings.engine === 'deepl' && (
           <div style={{ marginBottom: 24, marginLeft: 24 }}>
             <div style={{ marginBottom: 8 }}>
               <span style={{ fontSize: 13 }}>{t('DeepL API Key')}：</span>
@@ -424,7 +332,7 @@ const TranslateSettings: React.FC = () => {
                 {t('保存')}
               </Button>
             </div>
-            <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
+            <div style={{ fontSize: 12, color: 'var(--ant-color-text-secondary)', marginTop: 8 }}>
               {t('获取方式：访问 https://www.deepl.com/ 注册账号，在账户设置中找到 API 部分获取免费 API Key')}
             </div>
           </div>
@@ -434,9 +342,9 @@ const TranslateSettings: React.FC = () => {
         
         {/* 自动翻译设置 */}
         <div style={{ marginBottom: 24 }}>
-          <b>{t('划词自动翻译')}：</b>
-          <Switch checked={autoTranslate} onChange={handleAutoTranslateChange} style={{ marginLeft: 16 }} />
-          <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
+          <b style={{ display: 'inline-block', minWidth: '120px' }}>{t('划词自动翻译')}：</b>
+          <Switch checked={translateSettings.autoTranslate} onChange={handleAutoTranslateChange} style={{ marginLeft: 16 }} />
+          <div style={{ fontSize: 13, color: 'var(--ant-color-text-secondary)', marginTop: 8, marginLeft: 136 }}>
             {t('开启后划词将自动翻译，无需手动点击')}
           </div>
         </div>
@@ -444,18 +352,17 @@ const TranslateSettings: React.FC = () => {
         
         {/* 自动朗读设置 */}
         <div style={{ marginBottom: 24 }}>
-          <b>{t('自动朗读翻译结果')}：</b>
-          <Switch checked={autoRead} onChange={handleAutoReadChange} style={{ marginLeft: 16 }} />
-          <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
+          <b style={{ display: 'inline-block', minWidth: '120px' }}>{t('自动朗读翻译结果')}：</b>
+          <Switch checked={translateSettings.autoRead} onChange={handleAutoReadChange} style={{ marginLeft: 16 }} />
+          <div style={{ fontSize: 13, color: 'var(--ant-color-text-secondary)', marginTop: 8, marginLeft: 136 }}>
             {t('翻译完成后自动朗读结果（如支持）')}
           </div>
         </div>
 
-        {/* 朗读引擎设置 */}
         <div style={{ marginBottom: 24 }}>
-          <b>{t('朗读引擎')}：</b>
+          <b style={{ display: 'inline-block', minWidth: '120px' }}>{t('朗读引擎')}：</b>
           <Select
-            value={speechEngine}
+            value={speechSettings.engine}
             onChange={handleSpeechEngineChange}
             style={{ width: 200, marginLeft: 16 }}
             size="middle"
@@ -467,7 +374,7 @@ const TranslateSettings: React.FC = () => {
               </Option>
             ))}
           </Select>
-          <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
+          <div style={{ fontSize: 13, color: 'var(--ant-color-text-secondary)', marginTop: 8, marginLeft: 136 }}>
             {t('选择用于朗读的默认引擎，Edge TTS 音质最佳，Google TTS 稳定，浏览器 TTS 无需网络')}
           </div>
         </div>
@@ -477,7 +384,7 @@ const TranslateSettings: React.FC = () => {
           <div style={{ marginBottom: 12 }}>
             <span style={{ fontSize: 13 }}>{t('朗读速度')}：</span>
             <Select
-              value={speechSpeed}
+              value={speechSettings.speed}
               onChange={handleSpeechSpeedChange}
               style={{ width: 120, marginLeft: 8 }}
             >
@@ -492,7 +399,7 @@ const TranslateSettings: React.FC = () => {
           <div style={{ marginBottom: 12 }}>
             <span style={{ fontSize: 13 }}>{t('朗读音调')}：</span>
             <Select
-              value={speechPitch}
+              value={speechSettings.pitch}
               onChange={handleSpeechPitchChange}
               style={{ width: 120, marginLeft: 8 }}
             >
@@ -506,7 +413,7 @@ const TranslateSettings: React.FC = () => {
           <div style={{ marginBottom: 12 }}>
             <span style={{ fontSize: 13 }}>{t('朗读音量')}：</span>
             <Select
-              value={speechVolume}
+              value={speechSettings.volume}
               onChange={handleSpeechVolumeChange}
               style={{ width: 120, marginLeft: 8 }}
             >
@@ -522,18 +429,18 @@ const TranslateSettings: React.FC = () => {
 
         {/* 网站自动翻译 */}
         <div style={{ marginBottom: 24 }}>
-          <b>{t('网站自动翻译')}：</b>
+          <b style={{ display: 'inline-block', minWidth: '120px' }}>{t('网站自动翻译')}：</b>
           <Switch checked={siteAutoEnabled} onChange={handleSiteAutoChange} style={{ marginLeft: 16 }} />
-          <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>{t('开启后，命中列表的网站将自动整页翻译')}</div>
+          <div style={{ fontSize: 13, color: 'var(--ant-color-text-secondary)', marginTop: 8, marginLeft: 136 }}>{t('开启后，命中列表的网站将自动整页翻译')}</div>
         </div>
 
         <div style={{ marginBottom: 24 }}>
-          <b>{t('整页翻译模式')}：</b>
+          <b style={{ display: 'inline-block', minWidth: '120px' }}>{t('整页翻译模式')}：</b>
           <Radio.Group value={pageTranslateMode} onChange={handlePageTranslateModeChange} style={{ marginLeft: 16 }}>
             <Radio.Button value="translated">{t('全部译文')}</Radio.Button>
             <Radio.Button value="compare">{t('原文对照')}</Radio.Button>
           </Radio.Group>
-          <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>{t('选择整页翻译时的显示方式：仅显示译文或原文与译文对照')}</div>
+          <div style={{ fontSize: 13, color: 'var(--ant-color-text-secondary)', marginTop: 8, marginLeft: 136 }}>{t('选择整页翻译时的显示方式：仅显示译文或原文与译文对照')}</div>
         </div>
 
         <div style={{ marginBottom: 24, display: 'flex', gap: 8 }}>
@@ -580,7 +487,7 @@ const TranslateSettings: React.FC = () => {
           {alwaysSites.length > 5 && (
             <Button size="small" type="link" onClick={() => setShowAllAlways(true)}>{t('查看全部')}</Button>
           )}
-          <div style={{ fontSize: 13, color: '#888', marginTop: 8, marginBottom: 0 }}>{t('加入白名单的网站会自动整页翻译')}</div>
+          <div style={{ fontSize: 13, color: 'var(--ant-color-text-secondary)', marginTop: 8, marginBottom: 8 }}>{t('加入白名单的网站会自动整页翻译')}</div>
         </div>
         {/* 黑名单区域 */}
         <div style={{ marginBottom: 24 }}>
@@ -611,13 +518,13 @@ const TranslateSettings: React.FC = () => {
           {neverSites.length > 5 && (
             <Button size="small" type="link" onClick={() => setShowAllNever(true)}>{t('查看全部')}</Button>
           )}
-          <div style={{ fontSize: 13, color: '#888', marginTop: 8, marginBottom: 0 }}>{t('加入黑名单的网站不会被自动整页翻译')}</div>
+          <div style={{ fontSize: 13, color: 'var(--ant-color-text-secondary)', marginTop: 8, marginBottom: 8 }}>{t('加入黑名单的网站不会被自动整页翻译')}</div>
         </div>
 
         <Divider />
 
       </div>
-      <div style={{padding: '0 24px 16px 24px', color: '#888', fontSize: 13}}>
+      <div style={{padding: '0 24px 16px 24px', color: 'var(--ant-color-text-secondary)', fontSize: 13}}>
         {t('大部分设置会自动保存，DeepL API Key 需要点击保存按钮。')}
       </div>
 
@@ -664,7 +571,7 @@ const TranslateSettings: React.FC = () => {
         cancelText="取消"
         okText="保存"
       >
-        <div style={{ marginBottom: 8, color: '#888', fontSize: 13 }}>
+        <div style={{ marginBottom: 8, color: 'var(--ant-color-text-secondary)', fontSize: 13 }}>
           你可以为该网站设置专属词典，优先替换翻译结果。原文需精确匹配，建议区分大小写。
         </div>
         {/* 词条列表 */}

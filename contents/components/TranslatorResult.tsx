@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Card, Button, Divider } from 'antd';
 import { CopyOutlined, SoundOutlined } from '@ant-design/icons';
 import '../index.css';
@@ -136,6 +136,42 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
     }
   }, [props.targetLang, favoriteLangs, targetLang, shouldRender]);
 
+  // 创建稳定的翻译函数
+  const doTranslation = useCallback((srcText: string, targetLang: string) => {
+    console.log('TranslatorResult 开始翻译:', {
+      srcText,
+      targetLang,
+      engine: props.engine,
+      hasTranslated: hasTranslatedRef.current,
+      isLanguageSwitching: isLanguageSwitchingRef.current
+    });
+    
+    setLoading(true);
+    hasTranslatedRef.current = true;
+    isLanguageSwitchingRef.current = false; // 重置语言切换标志
+    
+    // 直接传递 targetLang，让 callTranslateAPI 处理语言映射
+    props.callTranslateAPI(srcText, 'auto', targetLang, props.engine)
+      .then(res => {
+        console.log('翻译成功:', res);
+        setTranslatedText(res.result ?? '');
+        setUsedEngine(res.engine || props.engine);
+        isLanguageSwitchingRef.current = false; // 翻译完成后重置语言切换标志
+        props.onTranslationComplete?.(); // 翻译成功时调用回调
+      })
+      .catch(err => {
+        console.error('翻译失败:', err);
+        setTranslatedText(t('翻译失败'));
+        setUsedEngine('');
+        isLanguageSwitchingRef.current = false; // 翻译失败后也重置语言切换标志
+        props.onTranslationComplete?.(); // 翻译失败时也调用回调
+      })
+      .finally(() => {
+        console.log('翻译完成，设置loading为false');
+        setLoading(false);
+      });
+  }, [props.callTranslateAPI, props.engine, props.onTranslationComplete, t]);
+
   // 4. 翻译逻辑
   useEffect(() => {
     if (!shouldRender || !targetLang || !props.callTranslateAPI) {
@@ -196,38 +232,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
     
     // 设置防抖定时器，延迟100ms执行翻译
     translationTimeoutRef.current = setTimeout(() => {
-      console.log('TranslatorResult 开始翻译:', {
-        srcText,
-        targetLang,
-        engine: props.engine,
-        hasTranslated: hasTranslatedRef.current,
-        isLanguageSwitching: isLanguageSwitchingRef.current
-      });
-      
-      setLoading(true);
-      hasTranslatedRef.current = true;
-      isLanguageSwitchingRef.current = false; // 重置语言切换标志
-      
-      // 直接传递 targetLang，让 callTranslateAPI 处理语言映射
-      props.callTranslateAPI(srcText, 'auto', targetLang, props.engine)
-        .then(res => {
-          console.log('翻译成功:', res);
-          setTranslatedText(res.result ?? '');
-          setUsedEngine(res.engine || props.engine);
-          isLanguageSwitchingRef.current = false; // 翻译完成后重置语言切换标志
-          props.onTranslationComplete?.(); // 翻译成功时调用回调
-        })
-        .catch(err => {
-          console.error('翻译失败:', err);
-          setTranslatedText(t('翻译失败'));
-          setUsedEngine('');
-          isLanguageSwitchingRef.current = false; // 翻译失败后也重置语言切换标志
-          props.onTranslationComplete?.(); // 翻译失败时也调用回调
-        })
-        .finally(() => {
-          console.log('翻译完成，设置loading为false');
-          setLoading(false);
-        });
+      doTranslation(srcText, targetLang);
     }, 100);
     
     // 清理定时器
@@ -236,7 +241,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
         clearTimeout(translationTimeoutRef.current);
       }
     };
-  }, [props.originalText, props.text, targetLang, props.engine, props.shouldTranslate, shouldRender, props.callTranslateAPI, props.onTranslationComplete, t]);
+  }, [props.originalText, props.text, targetLang, props.shouldTranslate, shouldRender, doTranslation]);
 
   // 5. 自动朗读
   useEffect(() => {

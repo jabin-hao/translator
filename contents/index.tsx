@@ -1,9 +1,10 @@
 import {StyleProvider} from "@ant-design/cssinjs"
-
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {App} from 'antd';
 import {getBrowserLang, mapUiLangToI18nKey} from '~lib/constants/languages';
 import './index.css';
+import antdResetCssText from "data-text:antd/dist/reset.css"
+import type { PlasmoGetShadowHostId } from "plasmo"
 import TranslatorIcon from './components/TranslatorIcon';
 import TranslatorResult from './components/TranslatorResult';
 import InputTranslator from './components/InputTranslator';
@@ -25,7 +26,17 @@ import {
     UI_LANG_KEY
 } from '~lib/constants/settings';
 import {initializeDefaultSettings, callTranslateAPI, callTTSAPI, stopTTSAPI} from './content';
-import {getAndWatchConfig} from "~lib/utils/storage";
+import {useStorage} from "~lib/utils/storage";
+
+const HOST_ID = "translator-csui"
+
+export const getShadowHostId: PlasmoGetShadowHostId = () => HOST_ID
+
+export const getStyle = () => {
+  const style = document.createElement("style")
+  style.textContent = antdResetCssText
+  return style
+}
 
 let shadowRoot: ShadowRoot | null = null
 
@@ -44,18 +55,17 @@ const AppContent = ({
                         callTranslateAPI,
                         callTTSAPI,
                         stopTTSAPI,
-                        onCloseResult, // 新增
+                        onCloseResult,
+                        onTranslationComplete,
                     }: {
     icon: { x: number; y: number; text: string } | null;
     result: { x: number; y: number; originalText: string } | null;
     showInputTranslator: boolean;
     handleTranslation: () => void;
     setShowInputTranslator: (show: boolean) => void;
-    setIcon: (icon: any) => void; // 新增
     autoRead: boolean;
     engine: string;
     textTargetLang: string;
-    favoriteLangs: string[];
     shouldTranslate: boolean;
     setShouldTranslate: (should: boolean) => void;
     callTranslateAPI: (text: string, from: string, to: string, engine: string) => Promise<{
@@ -64,7 +74,8 @@ const AppContent = ({
     }>;
     callTTSAPI: (text: string, lang: string) => Promise<{ success: boolean; audioData?: ArrayBuffer; error?: string }>;
     stopTTSAPI: () => Promise<void>;
-    onCloseResult: () => void; // 新增
+    onCloseResult: () => void;
+    onTranslationComplete: () => void;
 }) => {
     // 在 App 组件内部使用 App.useApp() 获取 messages 实例
     const {message} = App.useApp();
@@ -72,20 +83,16 @@ const AppContent = ({
     const showMessage = (type: 'success' | 'error' | 'warning' | 'info', content: string) => {
         switch (type) {
             case 'success':
-                message.success(content).then(() => {
-                });
+                message.success(content).then();
                 break;
             case 'error':
-                message.error(content).then(() => {
-                });
+                message.error(content).then();
                 break;
             case 'warning':
-                message.warning(content).then(() => {
-                });
+                message.warning(content).then();
                 break;
             case 'info':
-                message.info(content).then(() => {
-                });
+                message.info(content).then();
                 break;
         }
     };
@@ -114,7 +121,7 @@ const AppContent = ({
                     onClose={onCloseResult}
                     targetLang={textTargetLang}
                     shouldTranslate={shouldTranslate}
-                    onTranslationComplete={() => {}}
+                    onTranslationComplete={onTranslationComplete}
                     callTranslateAPI={callTranslateAPI}
                     callTTSAPI={callTTSAPI}
                     stopTTSAPI={stopTTSAPI}
@@ -148,36 +155,43 @@ const ContentScript = () => {
     const [showInputTranslator, setShowInputTranslator] = useState(false);
     const resultPosRef = useRef<{ x: number; y: number; text: string } | null>(null);
     const lastCtrlPressRef = useRef<number>(0);
-    // 新增：划词翻译目标语言
-    const [textTargetLang, setTextTargetLang] = useState(getBrowserLang()); // 使用浏览器语言作为默认值
-    // 新增：偏好语言
-    const [favoriteLangs, setFavoriteLangs] = useState<string[]>([]);
+
     // 新增：控制翻译时机
     const [shouldTranslate, setShouldTranslate] = useState(false);
-    // 新增：控制自动翻译
-    const [autoTranslate, setAutoTranslate] = useState(true);
 
-    // 新增：用 ref 保证 handleTranslation 始终用到最新的 textTargetLang
-    const textTargetLangRef = useRef(textTargetLang);
-    useEffect(() => {
-        textTargetLangRef.current = textTargetLang
-    }, [textTargetLang]);
+    // 翻译设置相关 state - 使用 useStorage hook
+    const [translateSettings, setTranslateSettings] = useStorage(TRANSLATE_SETTINGS_KEY, {
+        engine: 'google',
+        autoTranslate: true,
+        autoRead: false
+    });
 
-    // 初始化默认设置
-    useEffect(() => {
-        initializeDefaultSettings().then(() => {
-        });
-    }, []);
+    // 从 translateSettings 对象中提取值
+    const engine = translateSettings?.engine || 'google';
+    const autoRead = translateSettings?.autoRead ?? false;
+    const autoTranslate = translateSettings?.autoTranslate ?? true;
 
-    // 翻译设置相关 state
-    const [engine, setEngine] = useState('google');
-    const [autoRead, setAutoRead] = useState(false);
     const engineRef = useRef(engine);
     const autoReadRef = useRef(autoRead);
 
-    // 新增：快捷键设置状态
-    const [shortcutEnabled, setShortcutEnabled] = useState(true);
-    const [customShortcut, setCustomShortcut] = useState('');
+    // 快捷键设置状态 - 使用 useStorage hook
+    const [shortcutSettings, setShortcutSettings] = useStorage(SHORTCUT_SETTINGS_KEY, {
+        enabled: true,
+        customShortcut: ''
+    });
+
+    const shortcutEnabled = shortcutSettings?.enabled !== false;
+    const customShortcut = shortcutSettings?.customShortcut || '';
+
+    // 划词翻译目标语言和偏好语言 - 使用 useStorage hook
+    const [textTargetLang, setTextTargetLang] = useStorage(TEXT_LANG_KEY, getBrowserLang());
+    const [favoriteLangs, setFavoriteLangs] = useStorage(FAVORITE_LANGS_KEY, []);
+
+    // UI语言设置 - 使用 useStorage hook
+    const [uiLang, setUILang] = useStorage(UI_LANG_KEY, getBrowserLang());
+
+    // 读取网页翻译目标语言 - 使用 useStorage hook
+    const [pageTargetLang, setPageTargetLang] = useStorage(PAGE_LANG_KEY, 'zh-CN');
 
     // 保持 ref 与 state 同步
     useEffect(() => {
@@ -187,150 +201,96 @@ const ContentScript = () => {
         autoReadRef.current = autoRead;
     }, [autoRead]);
 
-    // 初始化时读取设置 - 使用 getAndWatchConfig 重构
+    // 监听UI语言变化
     useEffect(() => {
-        let unwatchTranslateSettings: (() => void) | undefined;
+        if (uiLang) {
+            i18n.changeLanguage(mapUiLangToI18nKey(uiLang));
+        }
+    }, [uiLang]);
 
-        getAndWatchConfig<any>(
-            TRANSLATE_SETTINGS_KEY,
-            (data) => {
-                if (data && typeof data === 'object') {
-                    setEngine(data?.engine || 'google');
-                    setAutoRead(!!data?.autoRead);
-                    setAutoTranslate(data?.autoTranslate ?? true);
-                }
-            },
-            {}
-        ).then(unwatch => {
-            unwatchTranslateSettings = unwatch;
-        });
-
-        return () => {
-            unwatchTranslateSettings?.();
-        };
-    }, []);
-
-    // 新增：快捷键设置 - 使用 getAndWatchConfig 重构
+    // 用 ref 保证 handleTranslation 始终用到最新的 textTargetLang
+    const textTargetLangRef = useRef(textTargetLang);
     useEffect(() => {
-        let unwatchShortcutSettings: (() => void) | undefined;
+        textTargetLangRef.current = textTargetLang
+    }, [textTargetLang]);
 
-        getAndWatchConfig<any>(
-            SHORTCUT_SETTINGS_KEY,
-            (data) => {
-                if (data && typeof data === 'object') {
-                    const enabled = data?.enabled !== false;
-                    const shortcut = data?.customShortcut || '';
-                    setShortcutEnabled(enabled);
-                    setCustomShortcut(shortcut);
-                    // 重置状态
-                    lastCtrlPressRef.current = 0;
-                }
-            },
-            {enabled: true, customShortcut: ''}
-        ).then(unwatch => {
-            unwatchShortcutSettings = unwatch;
-        });
-
-        return () => {
-            unwatchShortcutSettings?.();
-        };
-    }, []);
-
-    // 新增：初始化textTargetLang和favoriteLangs - 使用 getAndWatchConfig 重构
-    useEffect(() => {
-        let unwatchTextLang: (() => void) | undefined;
-        let unwatchFavoriteLangs: (() => void) | undefined;
-
-        getAndWatchConfig<string>(
-            TEXT_LANG_KEY,
-            setTextTargetLang,
-            getBrowserLang()
-        ).then(unwatch => {
-            unwatchTextLang = unwatch;
-        });
-
-        getAndWatchConfig<string[]>(
-            FAVORITE_LANGS_KEY,
-            setFavoriteLangs,
-            []
-        ).then(unwatch => {
-            unwatchFavoriteLangs = unwatch;
-        });
-
-        return () => {
-            unwatchTextLang?.();
-            unwatchFavoriteLangs?.();
-        };
-    }, []);
-
-    // 新增：语言同步 - 使用 getAndWatchConfig 重构
-    useEffect(() => {
-        let unwatchUILang: (() => void) | undefined;
-
-        getAndWatchConfig<string>(
-            UI_LANG_KEY,
-            (lang) => {
-                if (lang) {
-                    i18n.changeLanguage(mapUiLangToI18nKey(lang)).then(() => {
-                    });
-                }
-            },
-            getBrowserLang()
-        ).then(unwatch => {
-            unwatchUILang = unwatch;
-        });
-
-        return () => {
-            unwatchUILang?.();
-        };
-    }, []);
-
+    // 显示翻译图标
     const showTranslationIcon = (text: string, rect: DOMRect) => {
-        // 验证rect的值，确保它们是有效的数字
-        if (isNaN(rect.left) || isNaN(rect.bottom) || isNaN(rect.right) || isNaN(rect.top)) {
-            return; // 如果坐标无效，不显示图标
-        }
-
-        const x = rect.left;
-        const y = rect.bottom;
-        const iconData = {x: rect.right, y: rect.top, text};
-        resultPosRef.current = {x, y, text};
-        if (autoTranslate) {
-            // 自动翻译：直接弹出翻译结果
-            handleTranslation().then(() => {
+        if (!showInputTranslator && !result) {
+            // 将图标位置设置为选中文字的右上方
+            // x: 右边位置，y: 上边位置并稍微向上偏移
+            setIcon({ 
+                x: rect.right + window.scrollX, 
+                y: rect.top + window.scrollY - 5, // 向上偏移5px
+                text 
             });
-        } else {
-            // 只显示icon
-            setIcon(iconData);
         }
     };
 
-    const handleTranslation = async () => {
-        const {x, y, text} = resultPosRef.current || {x: icon?.x || 0, y: (icon?.y || 0) + 40, text: icon?.text || ""};
-        setIcon(null);
-        setResult({x, y, originalText: text}); // 只存原文
-        setShouldTranslate(true); // 设置开始翻译
-    };
-
-    // 清空翻译状态的函数
+    // 清除翻译状态
     const clearTranslationState = () => {
-        resultPosRef.current = null;
+        setIcon(null);
         setResult(null);
-        setIcon(null);
-        setShowInputTranslator(false);
+        setShouldTranslate(false);
     };
 
-    // 触发翻译的函数（用于快捷键）
-    const triggerTranslation = (text: string, rect: DOMRect) => {
-        const x = rect.left;
-        const y = rect.bottom;
-        resultPosRef.current = {x, y, text};
-        setIcon(null);
-        setResult({x, y, originalText: text});
-        setShouldTranslate(true);
+    // 触发翻译
+    const triggerTranslation = () => {
+        const selection = window.getSelection();
+        if (selection && selection.toString().trim()) {
+            const text = selection.toString().trim();
+            const range = selection.getRangeAt(0);
+            const rect = range.getBoundingClientRect();
+
+            // 将翻译结果显示在选中文字的正下方
+            setResult({
+                x: rect.left + window.scrollX, // 左对齐
+                y: rect.bottom + window.scrollY, // 正下方
+                originalText: text
+            });
+            setShouldTranslate(true);
+        }
     };
 
-    // 设置文本选择处���器
+    // 处理翻译
+    const handleTranslation = () => {
+        if (icon) {
+            // 重新获取当前选中文字的位置，确保翻译结果显示在选中文字的正下方
+            const selection = window.getSelection();
+            if (selection && selection.toString().trim()) {
+                const range = selection.getRangeAt(0);
+                const rect = range.getBoundingClientRect();
+                
+                setResult({
+                    x: rect.left + window.scrollX, // 选中文字的左边位置
+                    y: rect.bottom + window.scrollY, // 选中文字的正下方
+                    originalText: icon.text
+                });
+            } else {
+                // 如果没有选中文字，则使用图标位置作为备选
+                setResult({
+                    x: icon.x,
+                    y: icon.y + 30, // 在图标下方偏移30px
+                    originalText: icon.text
+                });
+            }
+            setShouldTranslate(true);
+        }
+    };
+
+    // 初始化默认设置
+    useEffect(() => {
+        initializeDefaultSettings().then(() => {
+        });
+        
+        // 获取Shadow Root
+        const hostElement = document.getElementById(HOST_ID);
+        if (hostElement?.shadowRoot) {
+            shadowRoot = hostElement.shadowRoot;
+        }
+    }, []);
+
+    // 设置文本选择处理器
     useEffect(() => {
         return setupSelectionHandler(
             shadowRoot,
@@ -347,52 +307,50 @@ const ContentScript = () => {
         );
     }, [shortcutEnabled, customShortcut, textTargetLang, favoriteLangs, shouldTranslate, autoTranslate]);
 
-    // 设置消息处理器���确保只注册一次
+    // 设置消息处理器，确保只注册一次
     useEffect(() => {
         setupMessageHandler();
     }, []);
 
-    // 2. 监听 result 状态变化，result 出现后再 setIcon(null)
+    // 监听 result 状态变化，result 出现后再 setIcon(null)
     useEffect(() => {
         if (result) {
             setIcon(null);
         }
     }, [result]);
 
-    // 读取网页翻译目标语言 - 使用 getAndWatchConfig 重构
-    const [pageTargetLang, setPageTargetLang] = useState('zh-CN');
-    useEffect(() => {
-        let unwatchPageLang: (() => void) | undefined;
-
-        getAndWatchConfig<string>(
-            PAGE_LANG_KEY,
-            setPageTargetLang,
-            'zh-CN'
-        ).then(unwatch => {
-            unwatchPageLang = unwatch;
-        });
-
-        return () => {
-            unwatchPageLang?.();
-        };
+    // 使用useCallback包装函数，避免每次渲染都创建新的函数引用
+    const callTranslateAPICallback = useCallback(callTranslateAPI, []);
+    const callTTSAPICallback = useCallback(callTTSAPI, []);
+    const stopTTSAPICallback = useCallback(stopTTSAPI, []);
+    
+    // 包装onCloseResult函数
+    const onCloseResultCallback = useCallback(() => {
+        setResult(null);
+        setShouldTranslate(false);
+    }, []);
+    
+    // 包装onTranslationComplete函数
+    const onTranslationCompleteCallback = useCallback(() => {
+        // 翻译完成后的处理逻辑
     }, []);
 
     // 设置自动翻译
     useEffect(() => {
-        return setupAutoTranslate(pageTargetLang, engine, stopTTSAPI);
-    }, [pageTargetLang, engine, stopTTSAPI]);
+        return setupAutoTranslate(pageTargetLang, engine, stopTTSAPICallback);
+    }, [pageTargetLang, engine, stopTTSAPICallback]);
 
-    (window as any).callTranslateAPI = callTranslateAPI;
+    (window as any).callTranslateAPI = callTranslateAPICallback;
 
     return (
         <ThemeProvider storageKey="content_theme_mode">
-            <StyleProvider hashPriority="high" container={shadowRoot}>
+            <StyleProvider hashPriority="high" container={document.getElementById(HOST_ID)?.shadowRoot}>
                 <App
                     message={{
                         top: 20,
                         duration: 2.5,
                         maxCount: 3,
-                        getContainer: () => (shadowRoot?.host || document.body) as HTMLElement,
+                        getContainer: () => document.getElementById(HOST_ID)?.shadowRoot?.host as HTMLElement || document.body,
                     }}
                 >
                     <AppContent
@@ -401,20 +359,16 @@ const ContentScript = () => {
                         showInputTranslator={showInputTranslator}
                         handleTranslation={handleTranslation}
                         setShowInputTranslator={setShowInputTranslator}
-                        setIcon={setIcon}
                         autoRead={autoRead}
                         engine={engine}
                         textTargetLang={textTargetLang}
-                        favoriteLangs={favoriteLangs}
                         shouldTranslate={shouldTranslate}
                         setShouldTranslate={setShouldTranslate}
-                        callTranslateAPI={callTranslateAPI}
-                        callTTSAPI={callTTSAPI}
-                        stopTTSAPI={stopTTSAPI}
-                        onCloseResult={() => {
-                            setResult(null);
-                            setShouldTranslate(false);
-                        }}
+                        callTranslateAPI={callTranslateAPICallback}
+                        callTTSAPI={callTTSAPICallback}
+                        stopTTSAPI={stopTTSAPICallback}
+                        onCloseResult={onCloseResultCallback}
+                        onTranslationComplete={onTranslationCompleteCallback}
                     />
                 </App>
             </StyleProvider>

@@ -1,8 +1,8 @@
 import 'antd/dist/reset.css';
-import React, { useState, useEffect } from 'react';
-import { Menu, Button, Tooltip, Space, Avatar, Typography, ConfigProvider, theme, App } from 'antd';
+import React, { useState } from 'react';
+import { Menu, Button, Tooltip, Space, Avatar, Typography, App, Layout } from 'antd';
 import { Icon } from '@iconify/react';
-import { Storage } from '@plasmohq/storage';
+import { useTheme } from '~lib/utils/theme';
 import GeneralSettings from './components/GeneralSettings';
 import About from './components/About';
 import LanguageSettings from './components/LanguageSettings';
@@ -12,15 +12,13 @@ import ShortcutSettings from './components/ShortcutSettings';
 import CacheSettings from './components/CacheSettings';
 import { useTranslation } from 'react-i18next';
 
-const { Text } = Typography;
+const { Title } = Typography;
+const { Sider, Content, Header } = Layout;
 
-const storage = new Storage();
-
-const THEME_KEY = 'plugin_theme_mode';
 const themeIconMap = {
-  auto: <Icon icon="material-symbols:brightness-auto-outline" width={24} height={24} />,
-  light: <Icon icon="material-symbols:light-mode-outline" width={24} height={24} />,
-  dark: <Icon icon="material-symbols:dark-mode-outline" width={24} height={24} />,
+  auto: <Icon icon="material-symbols:brightness-auto-outline" width={20} height={20} />,
+  light: <Icon icon="material-symbols:light-mode-outline" width={20} height={20} />,
+  dark: <Icon icon="material-symbols:dark-mode-outline" width={20} height={20} />,
 };
 const themeTextMap = {
   auto: '自动',
@@ -28,51 +26,18 @@ const themeTextMap = {
   dark: '夜间',
 };
 const themeOrder = ['auto', 'light', 'dark'];
-const getActualTheme = (themeMode: string): 'light' | 'dark' => {
-  if (themeMode === 'auto') {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  }
-  if (themeMode === 'light' || themeMode === 'dark') return themeMode;
-  return 'light';
-};
+
 const OptionsInner = () => {
   const { t } = useTranslation();
-  const getInitialThemeMode = async () => {
-    try {
-      const theme = await storage.get(THEME_KEY);
-      if (theme) return theme;
-    } catch {}
-    return 'auto';
-  };
-  const [themeMode, setThemeMode] = useState('auto');
-  const [actualTheme, setActualTheme] = useState('light');
+  
+  // 使用 ThemeProvider 的 useTheme hook
+  const { themeMode, setThemeMode, isDark } = useTheme();
   const [selectedKey, setSelectedKey] = useState('general');
 
-  useEffect(() => {
-    // 初始化
-    getInitialThemeMode().then(mode => {
-      setThemeMode(mode);
-      setActualTheme(getActualTheme(mode));
-    });
-    // 监听 Storage 变化
-    const handler = (val: React.SetStateAction<string>) => {
-      if (val !== themeMode) {
-        setThemeMode(val);
-        setActualTheme(getActualTheme(typeof val === "string" ? val : 'auto'));
-      }
-    };
-    // @ts-ignore
-    storage.watch({ [THEME_KEY]: handler });
-    return () => { // @ts-ignore
-      storage.unwatch({ [THEME_KEY]: handler }); };
-  }, [themeMode]);
-
-  const handleThemeSwitch = async () => {
+  const handleThemeSwitch = () => {
     const idx = themeOrder.indexOf(themeMode);
     const next = themeOrder[(idx + 1) % themeOrder.length];
-    setThemeMode(next);
-    setActualTheme(getActualTheme(next));
-    await storage.set(THEME_KEY, next);
+    setThemeMode(next as 'light' | 'dark' | 'auto');
   };
 
   const menuItems = [
@@ -100,94 +65,130 @@ const OptionsInner = () => {
   }
 
   return (
-    <ConfigProvider
-      theme={{
-        algorithm: actualTheme === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm,
-        token: {
-          colorBgContainer: actualTheme === 'dark' ? '#1a1a1a' : '#ffffff',
-          colorBgLayout: actualTheme === 'dark' ? '#141414' : '#f5f5f5',
-          colorBgElevated: actualTheme === 'dark' ? '#2a2a2a' : '#ffffff',
-          colorBorder: actualTheme === 'dark' ? '#404040' : '#d9d9d9',
-          colorText: actualTheme === 'dark' ? '#ffffff' : '#333333',
-          colorTextSecondary: actualTheme === 'dark' ? '#cccccc' : '#666666',
-        }
-      }}
-    >
-      <App>
-        <div style={{ 
-          minHeight: '100vh', 
-          display: 'flex', 
-          flexDirection: 'column',
-          margin: 0,
-          padding: 0
-        }}>
-          {/* 顶部栏 */}
-          <div style={{
-            height: 56,
-            background: actualTheme === 'dark' 
-              ? 'linear-gradient(90deg, #2a2a2a 0%, #1a1a1a 100%)'
-              : 'linear-gradient(90deg, #f5faff 0%, #e3f0ff 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            padding: '0 32px',
-            borderBottom: `1px solid ${actualTheme === 'dark' ? '#404040' : '#e3f0ff'}`,
-            position: 'sticky',
-            top: 0,
-            zIndex: 100,
-          }}>
-            <Space style={{ fontWeight: 700, fontSize: 18, color: actualTheme === 'dark' ? '#ffffff' : '#333333', letterSpacing: 2 }}>
+    <App>
+      <Layout style={{ minHeight: '100vh' }}>
+        {/* 顶部导航栏 */}
+        <Header 
+          style={{ 
+              background: isDark 
+                ? 'linear-gradient(135deg, #1f1f1f 0%, #2d2d2d 100%)'
+                : 'linear-gradient(135deg, #ffffff 0%, #f8faff 100%)',
+              borderBottom: `1px solid ${isDark ? '#424242' : '#e8e8e8'}`,
+              padding: '0 24px',
+              display: 'flex',
+              alignItems: 'center',
+              boxShadow: isDark 
+                ? '0 2px 8px rgba(0, 0, 0, 0.3)'
+                : '0 2px 8px rgba(0, 0, 0, 0.06)',
+              position: 'sticky',
+              top: 0,
+              zIndex: 1000,
+            }}
+          >
+            <Space align="center" size={12}>
               <Avatar
-                size={32}
-                style={{ background: 'transparent', verticalAlign: 'middle' }}
-                icon={<PluginIcon size={28} />}
+                size={36}
+                style={{ 
+                  background: 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                icon={<PluginIcon size={32} />}
               />
-              <Text style={{ fontFamily: 'Segoe UI, HarmonyOS Sans, Arial', marginLeft: 2, color: actualTheme === 'dark' ? '#ffffff' : '#333333' }}>{t('翻译助手')}</Text>
+              <Title 
+                level={3} 
+                style={{ 
+                  margin: 0, 
+                  color: isDark ? '#ffffff' : '#1f1f1f',
+                  fontWeight: 600,
+                  letterSpacing: '0.5px'
+                }}
+              >
+                {t('翻译助手')}
+              </Title>
             </Space>
+            
             <div style={{ flex: 1 }} />
-            <Space size={18} style={{ marginLeft: 'auto' }}>
-              <Tooltip title={t('前往 GitHub 项目')}>
+            
+            <Space size={8}>
+              <Tooltip title={t('前往 GitHub 项目')} placement="bottom">
                 <Button
                   type="text"
+                  shape="circle"
+                  size="large"
                   icon={<Icon icon="mdi:github" width={20} height={20} />}
                   onClick={() => window.open('https://github.com/Bugbyebyebye/translator', '_blank')}
-                  style={{ color: actualTheme === 'dark' ? '#ffffff' : '#333333' }}
+                  style={{ 
+                    color: isDark ? '#a6a6a6' : '#666666',
+                    border: 'none'
+                  }}
                 />
               </Tooltip>
-              <Tooltip title={`${t('当前主题')}：${themeTextMap[themeMode]}`}>
+              
+              <Tooltip title={`${t('当前主题')}：${themeTextMap[themeMode]}`} placement="bottom">
                 <Button
                   type="text"
+                  shape="circle"
+                  size="large"
                   icon={themeIconMap[themeMode]}
                   onClick={handleThemeSwitch}
-                  style={{ color: actualTheme === 'dark' ? '#ffffff' : '#333333' }}
+                  style={{ 
+                    color: isDark ? '#a6a6a6' : '#666666',
+                    border: 'none'
+                  }}
                 />
               </Tooltip>
             </Space>
-          </div>
+          </Header>
 
-          <div style={{ display: 'flex', flex: 1 }}>
+          <Layout>
             {/* 侧边栏 */}
-            <div style={{
-              width: 200,
-              background: actualTheme === 'dark' ? '#1a1a1a' : '#ffffff',
-              borderRight: `1px solid ${actualTheme === 'dark' ? '#404040' : '#e3f0ff'}`,
-            }}>
+            <Sider 
+              width={240}
+              style={{
+                background: isDark ? '#1f1f1f' : '#ffffff',
+                borderRight: `1px solid ${isDark ? '#424242' : '#e8e8e8'}`,
+                overflow: 'auto',
+                height: 'calc(100vh - 64px)',
+                position: 'fixed',
+                left: 0,
+                top: 64,
+                bottom: 0,
+              }}
+            >
               <Menu
                 mode="inline"
                 selectedKeys={[selectedKey]}
                 items={menuItems}
                 onClick={e => setSelectedKey(e.key)}
-                style={{ border: 'none', fontSize: 15, fontWeight: 500, height: '100%' }}
+                style={{ 
+                  border: 'none', 
+                  fontSize: 14,
+                  fontWeight: 500,
+                  height: '100%',
+                  background: 'transparent'
+                }}
               />
-            </div>
+            </Sider>
+            
             {/* 主内容区 */}
-            <div style={{ flex: 1, minWidth: 0, background: actualTheme === 'dark' ? '#181818' : '#f8faff', padding: 0 }}>
-              {content}
-            </div>
-          </div>
-        </div>
+            <Layout style={{ marginLeft: 240 }}>
+              <Content
+                style={{
+                  padding: 0,
+                  background: isDark ? '#141414' : '#f5f5f5',
+                  minHeight: 'calc(100vh - 64px)',
+                  overflow: 'auto'
+                }}
+              >
+                {content}
+              </Content>
+            </Layout>
+          </Layout>
+        </Layout>
       </App>
-    </ConfigProvider>
-  );
-};
+    );
+  };
 
 export default OptionsInner;

@@ -1,12 +1,12 @@
 import {getEngineLangCode} from '~lib/constants/languages';
 import {DEEPL_API_KEY} from '~lib/constants/settings';
-import {getConfig} from "~lib/utils/storage";
+import {storageApi} from "~lib/utils/storage";
 
 // DeepL 免费 API 接口
 export async function deeplTranslate(text: string, from: string, to: string): Promise<string> {
   try {
     // 从存储中获取 API key
-    const apiKey = await getConfig(DEEPL_API_KEY, '');
+    const apiKey = await storageApi.get(DEEPL_API_KEY);
     if (!apiKey || typeof apiKey !== 'string') {
       console.warn('请先在设置中配置 DeepL API Key');
     }

@@ -7,9 +7,21 @@ const About: React.FC = () => {
   return (
     <Card 
       title={t('关于')} 
-      style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
+      style={{ 
+        height: '100%', 
+        display: 'flex', 
+        flexDirection: 'column',
+        backgroundColor: 'transparent',
+        border: 'none'
+      }}
       styles={{
-        body:{ padding: 0, flex: 1, display: 'flex', flexDirection: 'column' }
+        body: { 
+          padding: 0, 
+          flex: 1, 
+          display: 'flex', 
+          flexDirection: 'column',
+          backgroundColor: 'transparent'
+        }
       }}
     >
       <div style={{ flex: 1, overflow: 'auto', padding: '24px' }}>

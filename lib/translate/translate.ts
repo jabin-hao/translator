@@ -1,9 +1,10 @@
 // 统一翻译服务
 import {cacheManager} from "../cache/cache"
-import {Storage} from "@plasmohq/storage"
+import {storageApi} from "~lib/utils/storage"
 import {googleTranslate, googleTranslateBatch} from "~background/translate/google"
 import {bingTranslate, bingTranslateBatch} from "~background/translate/bing"
 import {deeplTranslate, deeplTranslateBatch} from "~background/translate/deepl"
+import { TRANSLATION_CACHE_CONFIG_KEY } from "~lib/constants/settings"
 
 export interface TranslateOptions {
   from: string;
@@ -31,12 +32,11 @@ const TRANSLATE_ENGINES = {
 // 检查缓存是否启用
 async function isCacheEnabled(): Promise<boolean> {
   try {
-    const storage = new Storage();
-    const enabled = await storage.get('translation_cache_enabled');
+    const enabled = await storageApi.get(TRANSLATION_CACHE_CONFIG_KEY);
     
     // 如果值为 null 或 undefined，设置默认值为 true 并返回
     if (enabled === null || enabled === undefined) {
-      await storage.set('translation_cache_enabled', true);
+      await storageApi.set(TRANSLATION_CACHE_CONFIG_KEY, true);
       return true;
     }
 

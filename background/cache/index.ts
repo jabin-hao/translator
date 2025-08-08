@@ -1,13 +1,13 @@
 // 处理缓存清理和定时任务
 import { cacheManager } from '~lib/cache/cache';
 import {DEFAULT_CACHE_CONFIG, TRANSLATION_CACHE_CONFIG_KEY} from '~lib/constants/settings';
-import {getConfig} from "~lib/utils/storage";
+import {storageApi} from "~lib/utils/storage";
 
 let cleanupTimer: ReturnType<typeof setInterval> | null = null;
 
 async function getCleanupInterval() {
   // 从配置中获取清理间隔
-  let raw = await getConfig(TRANSLATION_CACHE_CONFIG_KEY, '');
+  let raw = await storageApi.get(TRANSLATION_CACHE_CONFIG_KEY);
   let config: any = raw;
   if (typeof raw === 'string') {
     try {

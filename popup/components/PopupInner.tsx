@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Select, Switch, Divider, message, Button } from 'antd';
-import { Storage } from '@plasmohq/storage';
+import { Select, Switch, Divider, message, Button, Tooltip, Space, Typography } from 'antd';
 import { TRANSLATE_ENGINES } from '~lib/constants/engines';
 import { LANGUAGES } from '~lib/constants/languages';
 import { useTranslation } from 'react-i18next';
 import { ReloadOutlined, TranslationOutlined } from '@ant-design/icons';
+import { Icon } from '@iconify/react';
 
-// 1. 引入 storage 工具
+// 使用重构的 storage hook
+import { useStorage } from '~lib/utils/storage';
+import { useTheme } from '~lib/utils/theme';
 import {
   getDictConfig,
   getSiteTranslateSettings,
@@ -16,93 +18,54 @@ import {
   addNeverSite,
   removeNeverSite
 } from '~lib/settings/siteTranslateSettings';
-import { TRANSLATE_SETTINGS_KEY, CACHE_KEY, SITE_LANG_KEY, TEXT_LANG_KEY, SITE_TRANSLATE_SETTINGS_KEY } from '~lib/constants/settings';
+import { TRANSLATE_SETTINGS_KEY, CACHE_KEY, PAGE_LANG_KEY, TEXT_LANG_KEY, SITE_TRANSLATE_SETTINGS_KEY } from '~lib/constants/settings';
 
-const storage = new Storage();
+const { Text, Title } = Typography;
+
+const themeIconMap = {
+  auto: <Icon icon="material-symbols:brightness-auto-outline" width={16} height={16} />,
+  light: <Icon icon="material-symbols:light-mode-outline" width={16} height={16} />,
+  dark: <Icon icon="material-symbols:dark-mode-outline" width={16} height={16} />,
+};
+const themeTextMap = {
+  auto: '自动',
+  light: '日间',
+  dark: '夜间',
+};
+const themeOrder = ['auto', 'light', 'dark'];
 
 const PopupInner: React.FC = () => {
   const { t } = useTranslation();
-  const [engine, setEngine] = useState('google');
-  const [autoTranslate, setAutoTranslate] = useState(true);
-  const [autoRead, setAutoRead] = useState(false);
-  const [cacheEnabled, setCacheEnabled] = useState(true);
-  const [pageTargetLang, setPageTargetLang] = useState('zh-CN');
-  const [textTargetLang, setTextTargetLang] = useState('zh-CN');
-  const [isPageTranslated, setIsPageTranslated] = useState(false); // 新增：页面翻译状态
-  const [isPageTranslating, setIsPageTranslating] = useState(false); // 新增：按钮 loading 状态
+  const { themeMode, setThemeMode, isDark } = useTheme();
+  
+  // 使用 useStorage hook 替换手动的 storage 操作
+  const [translateSettings, setTranslateSettings] = useStorage(TRANSLATE_SETTINGS_KEY, {
+    engine: 'google',
+    autoTranslate: true,
+    autoRead: false
+  });
+  const [cacheEnabled, setCacheEnabled] = useStorage(CACHE_KEY, true);
+  const [pageTargetLang, setPageTargetLang] = useStorage(PAGE_LANG_KEY, 'zh-CN');
+  const [textTargetLang, setTextTargetLang] = useStorage(TEXT_LANG_KEY, 'zh-CN');
+  
+  // 从 translateSettings 对象中提取值
+  const engine = translateSettings?.engine || 'google';
+  const autoTranslate = translateSettings?.autoTranslate ?? true;
+  const autoRead = translateSettings?.autoRead ?? false;
+  
+  const [isPageTranslated, setIsPageTranslated] = useState(false);
+  const [isPageTranslating, setIsPageTranslating] = useState(false);
 
-  // 新增：网站自动翻译相关状态
+  // 网站自动翻译相关状态
   const [siteAutoTranslateEnabled, setSiteAutoTranslateEnabled] = useState(false);
   const [siteKey, setSiteKey] = useState('');
   const [siteSettings, setSiteSettings] = useState({ always: false, never: false });
 
+    // 读取网站自动翻译设置
   useEffect(() => {
-    storage.get(TRANSLATE_SETTINGS_KEY).then((data) => {
-      if (data && typeof data === 'object') {
-        setEngine((data as any)?.engine || 'google');
-        setAutoTranslate((data as any)?.autoTranslate ?? true);
-        setAutoRead((data as any)?.autoRead ?? false);
-      }
-    });
-    storage.get(CACHE_KEY).then((enabled) => {
-      if (enabled !== null && enabled !== undefined) setCacheEnabled(Boolean(enabled));
-    });
-    storage.get(SITE_LANG_KEY).then((val) => {
-      if (val) setPageTargetLang(val);
-    });
-    storage.get(TEXT_LANG_KEY).then((val) => {
-      if (val) setTextTargetLang(val);
-    });
-    
-    // 新增：读取网站自动翻译设置
     getSiteTranslateSettings().then((settings) => {
       setSiteAutoTranslateEnabled(settings.autoTranslateEnabled);
     });
-
-    // 监听storage变化，实现与options页面的同步
-    const handleStorageChange = (changes: { [key: string]: any }) => {
-      // 监听翻译设置变化
-      if (changes[TRANSLATE_SETTINGS_KEY]) {
-        const data = changes[TRANSLATE_SETTINGS_KEY].newValue;
-        if (data && typeof data === 'object') {
-          setEngine((data as any)?.engine || 'google');
-          setAutoTranslate((data as any)?.autoTranslate ?? true);
-          setAutoRead((data as any)?.autoRead ?? false);
-        }
-      }
-      
-      // 监听缓存设置变化
-      if (changes[CACHE_KEY]) {
-        const enabled = changes[CACHE_KEY].newValue;
-        if (enabled !== null && enabled !== undefined) {
-          setCacheEnabled(Boolean(enabled));
-        }
-      }
-      
-      // 监听语言设置变化
-      if (changes[SITE_LANG_KEY]) {
-        const val = changes[SITE_LANG_KEY].newValue;
-        if (val) setPageTargetLang(val);
-      }
-      if (changes[TEXT_LANG_KEY]) {
-        const val = changes[TEXT_LANG_KEY].newValue;
-        if (val) setTextTargetLang(val);
-      }
-      
-      // 监听网站自动翻译设置变化
-      if (changes[SITE_TRANSLATE_SETTINGS_KEY]) {
-        const settings = changes[SITE_TRANSLATE_SETTINGS_KEY].newValue;
-        if (settings && typeof settings === 'object') {
-          setSiteAutoTranslateEnabled(settings.autoTranslateEnabled);
-        }
-      }
-    };
-
-    // 添加storage监听器
-    if (chrome?.storage?.onChanged) {
-      chrome.storage.onChanged.addListener(handleStorageChange);
-      return () => chrome.storage.onChanged.removeListener(handleStorageChange);
-    }
   }, []);
 
   // 获取当前 tab 的 host+path
@@ -164,31 +127,31 @@ const PopupInner: React.FC = () => {
   }, []);
 
   const handleEngineChange = async (val: string) => {
-    setEngine(val);
-    const prev = (await storage.get(TRANSLATE_SETTINGS_KEY)) || {};
-    await storage.set(TRANSLATE_SETTINGS_KEY, { ...prev, engine: val });
+    setTranslateSettings({ ...translateSettings, engine: val });
     message.success(t('翻译引擎已保存'));
   };
   const handleAutoReadChange = async (checked: boolean) => {
-    setAutoRead(checked);
-    const prev = (await storage.get(TRANSLATE_SETTINGS_KEY)) || {};
-    await storage.set(TRANSLATE_SETTINGS_KEY, { ...prev, autoRead: checked });
+    setTranslateSettings({ ...translateSettings, autoRead: checked });
     message.success(t('自动朗读设置已保存'));
   };
   const handleCacheToggle = (checked: boolean) => {
     setCacheEnabled(checked);
-    storage.set(CACHE_KEY, checked);
     message.success(checked ? t('已启用翻译缓存') : t('已禁用翻译缓存'));
   };
   const handlePageLangChange = (val: string) => {
     setPageTargetLang(val);
-    storage.set(SITE_LANG_KEY, val);
     message.success(t('网页翻译目标语言已保存'));
   };
   const handleTextLangChange = (val: string) => {
     setTextTargetLang(val);
-    storage.set(TEXT_LANG_KEY, val);
     message.success(t('划词翻译目标语言已保存'));
+  };
+
+  // 主题切换处理
+  const handleThemeSwitch = () => {
+    const idx = themeOrder.indexOf(themeMode);
+    const next = themeOrder[(idx + 1) % themeOrder.length] as 'auto' | 'light' | 'dark';
+    setThemeMode(next);
   };
 
   // 新增：网站自动翻译开关处理
@@ -256,117 +219,187 @@ const PopupInner: React.FC = () => {
   }));
 
   return (
-    <Card
-      title={t('快速设置')}
-      style={{
-        width: '100%',
-        height: '100%',
-        minWidth: 320,
-        minHeight: 360,
-        boxSizing: 'border-box',
-        borderRadius: 12,
-        border: 'none',
-        boxShadow: 'none',
-        margin: 0,
-        padding: 0,
-      }}
-      styles={{
-        header: {border: 'none', padding: '12px 16px 0 16px', borderRadius: 12},
-        body: { padding: 16, width: '100%', height: '100%' }
-      }}
-    >
-      <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center' }}>
-        <b style={{ width: 100, flexShrink: 0 }}>{t('翻译引擎')}：</b>
-        <Select
-          value={engine}
-          onChange={handleEngineChange}
-          style={{ width: 180, marginLeft: 8 }}
+    <div style={{
+      width: '100%',
+      height: 'auto', // 改为自动高度
+      maxHeight: '600px',
+      maxWidth: '400px', 
+      minWidth: 380,
+      minHeight: 'auto', // 改为自动最小高度
+      boxSizing: 'border-box',
+      background: isDark ? '#1f1f1f' : '#ffffff',
+      overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'column',
+    }}>
+      {/* 自定义标题栏 */}
+      <div style={{
+        padding: '12px 16px 8px',
+        borderBottom: 'none',
+        background: isDark ? '#1f1f1f' : '#ffffff',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexShrink: 0,
+      }}>
+        <Title level={5} style={{ margin: 0, fontWeight: 600, color: isDark ? '#ffffff' : '#000000' }}>
+          {t('快速设置')}
+        </Title>
+        <Tooltip 
+          title={`${t('当前主题')}：${themeTextMap[themeMode]}`} 
+          placement="bottom"
+          getPopupContainer={(triggerNode) => triggerNode.parentElement || document.body}
         >
-          {TRANSLATE_ENGINES.map(e => (
-            <Select.Option key={e.value} value={e.value} disabled={e.disabled}>
-              {e.icon && <img src={e.icon} alt={e.label} style={{ width: 16, height: 16, verticalAlign: 'middle', marginRight: 6 }} />}
-              {e.label}
-            </Select.Option>
-          ))}
-        </Select>
+          <Button
+            type="text"
+            shape="circle"
+            icon={themeIconMap[themeMode]}
+            onClick={handleThemeSwitch}
+            style={{ border: 'none' }}
+          />
+        </Tooltip>
       </div>
-      <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center' }}>
-        <b style={{ width: 100, flexShrink: 0 }}>{t('网页目标语言')}：</b>
-        <Select
-          value={pageTargetLang}
-          onChange={handlePageLangChange}
-          style={{ width: 180, marginLeft: 8 }}
-        >
-          {langOptions.map(opt => (
-            <Select.Option key={opt.value} value={opt.value}>{opt.label}</Select.Option>
-          ))}
-        </Select>
-      </div>
-      <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center' }}>
-        <b style={{ width: 100, flexShrink: 0 }}>{t('划词目标语言')}：</b>
-        <Select
-          value={textTargetLang}
-          onChange={handleTextLangChange}
-          style={{ width: 180, marginLeft: 8 }}
-        >
-          {langOptions.map(opt => (
-            <Select.Option key={opt.value} value={opt.value}>{opt.label}</Select.Option>
-          ))}
-        </Select>
-      </div>
-      <Divider style={{ margin: '8px 0' }} />
-      <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center' }}>
-        <b style={{ width: 100, flexShrink: 0 }}>{t('网站自动翻译')}：</b>
-        <Switch checked={siteAutoTranslateEnabled} onChange={handleSiteAutoTranslateChange} style={{ marginLeft: 8 }} />
-      </div>
-      <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center' }}>
-        <b style={{ width: 100, flexShrink: 0 }}>{t('自动朗读翻译结果')}：</b>
-        <Switch checked={autoRead} onChange={handleAutoReadChange} style={{ marginLeft: 8 }} />
-      </div>
-      <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center' }}>
-        <b style={{ width: 100, flexShrink: 0 }}>{t('是否启用缓存')}：</b>
-        <Switch checked={cacheEnabled} onChange={handleCacheToggle} style={{ marginLeft: 8 }} />
-      </div>
-      <Divider style={{ margin: '8px 0' }} />
-      {/* 只有在开启网站自动翻译后才显示网站白名单按钮 */}
-      {siteAutoTranslateEnabled && (
-        <>
-          <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
-            <Button
-              type={siteSettings.always ? 'primary' : 'default'}
-              block
-              onClick={handleAlways}
-              style={{ borderRadius: 6 }}
+      
+      {/* 内容区域 */}
+      <div style={{
+        padding: '0 16px 12px',
+        background: isDark ? '#1f1f1f' : '#ffffff',
+        overflow: 'visible', // 改为visible让内容完全显示
+        display: 'flex',
+        flexDirection: 'column',
+      }}>
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          {/* 翻译引擎选择 */}
+          <div>
+            <Text strong style={{ display: 'block', marginBottom: 6 }}>
+              {t('翻译引擎')}
+            </Text>
+            <Select
+              value={engine}
+              onChange={handleEngineChange}
+              style={{ width: '100%' }}
+              placeholder={t('选择翻译引擎')}
             >
-              {siteSettings.always ? t('已设为总是翻译该网站') : t('总是翻译该网站')}
-            </Button>
+              {TRANSLATE_ENGINES.map(e => (
+                <Select.Option key={e.value} value={e.value} disabled={e.disabled}>
+                  {e.icon && <img src={e.icon} alt={e.label} style={{ width: 16, height: 16, verticalAlign: 'middle', marginRight: 8 }} />}
+                  {e.label}
+                </Select.Option>
+              ))}
+            </Select>
+          </div>
+
+          {/* 语言设置 */}
+          <div>
+            <Text strong style={{ display: 'block', marginBottom: 6 }}>
+              {t('目标语言设置')}
+            </Text>
+            <Space direction="vertical" size={6} style={{ width: '100%' }}>
+              <div>
+                <Text type="secondary" style={{ fontSize: '12px', marginBottom: 3, display: 'block' }}>
+                  {t('网页翻译语言')}
+                </Text>
+                <Select
+                  value={pageTargetLang}
+                  onChange={handlePageLangChange}
+                  style={{ width: '100%' }}
+                  placeholder={t('选择网页目标语言')}
+                >
+                  {langOptions.map(opt => (
+                    <Select.Option key={opt.value} value={opt.value}>{opt.label}</Select.Option>
+                  ))}
+                </Select>
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: '13px', marginBottom: 4, display: 'block' }}>
+                  {t('划词翻译语言')}
+                </Text>
+                <Select
+                  value={textTargetLang}
+                  onChange={handleTextLangChange}
+                  style={{ width: '100%' }}
+                  placeholder={t('选择划词目标语言')}
+                >
+                  {langOptions.map(opt => (
+                    <Select.Option key={opt.value} value={opt.value}>{opt.label}</Select.Option>
+                  ))}
+                </Select>
+              </div>
+            </Space>
+          </div>
+
+          <Divider style={{ margin: 0 }} />
+
+          {/* 功能开关 */}
+          <div>
+            <Text strong style={{ display: 'block', marginBottom: 8 }}>
+              {t('功能设置')}
+            </Text>
+            <Space direction="vertical" size={8} style={{ width: '100%' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text>{t('网站自动翻译')}</Text>
+                <Switch checked={siteAutoTranslateEnabled} onChange={handleSiteAutoTranslateChange} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text>{t('自动朗读翻译结果')}</Text>
+                <Switch checked={autoRead} onChange={handleAutoReadChange} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text>{t('启用翻译缓存')}</Text>
+                <Switch checked={cacheEnabled} onChange={handleCacheToggle} />
+              </div>
+            </Space>
+          </div>
+
+          {/* 网站管理按钮 */}
+          {siteAutoTranslateEnabled && (
+            <>
+              <Divider style={{ margin: 0 }} />
+              <div>
+                <Text strong style={{ display: 'block', marginBottom: 8 }}>
+                  {t('网站管理')}
+                </Text>
+                <Space direction="vertical" size={6} style={{ width: '100%' }}>
+                  <Button
+                    type={siteSettings.always ? 'primary' : 'default'}
+                    block
+                    onClick={handleAlways}
+                    style={{ borderRadius: 8 }}
+                  >
+                    {siteSettings.always ? t('已设为总是翻译该网站') : t('总是翻译该网站')}
+                  </Button>
+                  <Button
+                    type={siteSettings.never ? 'primary' : 'default'}
+                    danger={siteSettings.never}
+                    block
+                    onClick={handleNever}
+                    style={{ borderRadius: 8 }}
+                  >
+                    {siteSettings.never ? t('已设为永不翻译该网站') : t('永不翻译该网站')}
+                  </Button>
+                </Space>
+              </div>
+            </>
+          )}
+
+          {/* 主要操作按钮 */}
+          <div style={{ paddingTop: 8 }}>
             <Button
-              type={siteSettings.never ? 'primary' : 'default'}
-              danger={siteSettings.never}
+              type={isPageTranslated ? 'default' : 'primary'}
+              icon={isPageTranslated ? <ReloadOutlined /> : <TranslationOutlined />}
+              loading={isPageTranslating}
+              onClick={isPageTranslated ? handleRestorePage : handleFullPageTranslate}
               block
-              onClick={handleNever}
-              style={{ borderRadius: 6 }}
+              style={{ borderRadius: 8, height: 40, fontWeight: 500 }}
             >
-              {siteSettings.never ? t('已设为永不翻译该网站') : t('永不翻译该网站')}
+              {isPageTranslated ? t('显示原网页') : t('翻译当前网站')}
             </Button>
           </div>
-          <Divider style={{ margin: '8px 0' }} />
-        </>
-      )}
-      <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-        <Button
-          type={isPageTranslated ? 'default' : 'primary'}
-          icon={isPageTranslated ? <ReloadOutlined /> : <TranslationOutlined />}
-          loading={isPageTranslating}
-          onClick={isPageTranslated ? handleRestorePage : handleFullPageTranslate}
-          block
-          style={{ borderRadius: 6 }}
-        >
-          {isPageTranslated ? t('显示原网页') : t('翻译当前网站')}
-        </Button>
+        </Space>
       </div>
-    </Card>
-  );
-};
+    </div>
+    );
+  };
 
 export default PopupInner;
+

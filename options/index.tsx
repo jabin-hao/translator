@@ -6,8 +6,6 @@ import i18n from '../i18n';
 import { ThemeProvider } from '~lib/utils/theme';
 import OptionsInner from './OptionsInner';
 
-import "antd/dist/reset.css";
-
 const OptionsRoot = () => {
   const [i18nReady, setI18nReady] = useState(false);
   

@@ -1,23 +1,15 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, Radio, Divider } from 'antd';
-import { Storage } from '@plasmohq/storage';
+import { useStorage } from '~lib/utils/storage';
 
-const storage = new Storage();
 const THEME_KEY = 'plugin_theme_mode';
-const getInitTheme = async () => {
-  try {
-    const raw = await storage.get(THEME_KEY);
-    if (raw) return raw;
-  } catch {}
-  return 'auto';
-};
 
 const ThemeSettings: React.FC = () => {
-  const [theme, setTheme] = useState(getInitTheme());
+  // 使用 useStorage hook 管理主题设置
+  const [theme, setTheme] = useStorage<string>(THEME_KEY, 'auto');
 
-  const handleChange = async (e :any) => {
+  const handleChange = (e: any) => {
     setTheme(e.target.value);
-    await storage.set(THEME_KEY, e.target.value);
   };
 
   return (

@@ -1,6 +1,6 @@
 // 翻译缓存管理模块
-import { Storage } from "@plasmohq/storage"
-import { DEFAULT_CACHE_CONFIG } from '../constants/settings';
+import { storageApi } from '~lib/utils/storage';
+import { DEFAULT_CACHE_CONFIG, TRANSLATION_CACHE_CONFIG_KEY } from '../constants/settings';
 
 // 缓存条目接口
 export interface TranslationCache {
@@ -52,14 +52,12 @@ class Utils {
 // 缓存管理类
 export class TranslationCacheManager {
   private config: CacheConfig;
-  private storage: Storage;
   private db: IDBDatabase | null = null;
   private cache = new Map<string, TranslationCache>();
   private initPromise: Promise<void> | null = null; // 添加初始化锁
 
   constructor(config: Partial<CacheConfig> = {}) {
     this.config = { ...DEFAULT_CACHE_CONFIG, ...config };
-    this.storage = new Storage();
     
     // 从storage中读取用户配置
     this.loadConfig().catch(error => {
@@ -70,7 +68,7 @@ export class TranslationCacheManager {
   // 从storage加载配置
   private async loadConfig(): Promise<void> {
     try {
-      const config = await this.storage.get('translation_cache_config');
+      const config = await storageApi.get(TRANSLATION_CACHE_CONFIG_KEY);
 
       if (config && typeof config === 'object') {
         // @ts-ignore
@@ -336,7 +334,7 @@ export class TranslationCacheManager {
   // 更新配置
   async updateConfig(newConfig: Partial<CacheConfig>): Promise<void> {
     this.config = { ...this.config, ...newConfig };
-    await this.storage.set('translation_cache_config', this.config);
+    await storageApi.set(TRANSLATION_CACHE_CONFIG_KEY, this.config);
     
     // 配置更新后立即检查是否需要清理缓存
     await this.cleanupIfNeeded();

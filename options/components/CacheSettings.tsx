@@ -2,22 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { Card, Button, Typography, Modal, Switch, InputNumber, Divider, App } from 'antd';
 import { Icon } from '@iconify/react';
 import { useTranslation } from 'react-i18next';
-import { Storage } from '@plasmohq/storage';
+import { useStorage } from '~lib/utils/storage';
 import { cacheManager } from '~lib/cache/cache';
 import { DEFAULT_CACHE_CONFIG } from '~lib/constants/settings';
 import { sendToBackground } from '@plasmohq/messaging';
 
 const { Text } = Typography;
 
-const storage = new Storage();
-
 const CacheSettings: React.FC = () => {
   const { t } = useTranslation();
   const { message } = App.useApp(); // 使用App组件的message实例
+  
+  // 使用 useStorage hook 替换手动的 storage 操作
+  const [cacheEnabled, setCacheEnabled] = useStorage('translation_cache_enabled', true);
+  const [config, setConfig] = useStorage('translation_cache_config', DEFAULT_CACHE_CONFIG);
+  
   const [stats, setStats] = useState<{ count: number; size: number }>({ count: 0, size: 0 });
   const [loading, setLoading] = useState(false);
-  const [config, setConfig] = useState(DEFAULT_CACHE_CONFIG);
-  const [cacheEnabled, setCacheEnabled] = useState(true);
   // 新增本地 state 保存输入值
   const [pendingConfig, setPendingConfig] = useState(DEFAULT_CACHE_CONFIG);
 
@@ -58,38 +59,12 @@ const CacheSettings: React.FC = () => {
   // 切换缓存开关
   const handleCacheToggle = async (enabled: boolean) => {
     setCacheEnabled(enabled);
-    await storage.set('translation_cache_enabled', enabled);
     message.success(enabled ? t('已启用翻译缓存') : t('已禁用翻译缓存'));
   };
 
   useEffect(() => {
-    async function loadConfig() {
-      let raw = await storage.get('translation_cache_config');
-      let config: any = raw;
-      if (typeof raw === 'string') {
-        try {
-          config = JSON.parse(raw);
-        } catch {
-          config = DEFAULT_CACHE_CONFIG;
-        }
-      }
-      if (!config || typeof config.maxAge !== 'number') {
-        config = DEFAULT_CACHE_CONFIG;
-      }
-      setConfig(config);
-    }
-    loadConfig().then(() => {});
+    // 只需要加载统计信息，配置由 useStorage hook 自动处理
     loadStats().then(() => {});
-    // 加载缓存开关状态，如果未设置则默认为 true
-    storage.get('translation_cache_enabled').then((enabled) => {
-      if (enabled === null || enabled === undefined) {
-        // 如果未设置，设置默认值为 true
-        storage.set('translation_cache_enabled', true).then(() => {});
-        setCacheEnabled(true);
-      } else {
-        setCacheEnabled(Boolean(enabled));
-      }
-    });
   }, []);
 
   // 加载配置时同步到 pendingConfig
@@ -106,8 +81,22 @@ const CacheSettings: React.FC = () => {
   return (
     <Card 
       title={t('缓存管理')} 
-      style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
-      styles={{ body: { padding: 0, flex: 1, display: 'flex', flexDirection: 'column' } }}
+      style={{ 
+        height: '100%', 
+        display: 'flex', 
+        flexDirection: 'column',
+        backgroundColor: 'transparent',
+        border: 'none'
+      }}
+      styles={{ 
+        body: { 
+          padding: 0, 
+          flex: 1, 
+          display: 'flex', 
+          flexDirection: 'column',
+          backgroundColor: 'transparent'
+        } 
+      }}
     >
       <div style={{ flex: 1, overflow: 'auto', padding: '24px' }}>
         {/* 缓存开关 */}
@@ -116,7 +105,7 @@ const CacheSettings: React.FC = () => {
             <b>{t('是否启用缓存')}：</b>
             <Switch checked={cacheEnabled} onChange={handleCacheToggle} style={{ marginLeft: 16 }} />
           </div>
-          <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
+          <div style={{ fontSize: 13, color: 'var(--ant-color-text-secondary)', marginTop: 8 }}>
             {t('启用缓存可以加快重复翻译的速度')}
           </div>
         </div>
@@ -135,7 +124,7 @@ const CacheSettings: React.FC = () => {
               {t('刷新统计')}
             </Button>
           </div>
-          <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
+          <div style={{ fontSize: 13, color: 'var(--ant-color-text-secondary)', marginTop: 8 }}>
             {t('显示当前缓存的条目数和占用空间大小')}
           </div>
           <div style={{ marginTop: 8, display: 'flex', alignItems: 'center' }}>
@@ -157,7 +146,7 @@ const CacheSettings: React.FC = () => {
           <div style={{ marginTop: 4 }}>
             <div style={{ marginBottom: 16 }}>
               <Text strong>{t('缓存有效期')}</Text>
-              <div style={{ fontSize: 13, color: '#888', marginTop: 2 }}>
+              <div style={{ fontSize: 13, color: 'var(--ant-color-text-secondary)', marginTop: 8 }}>
                 {t('超过此时间的缓存将被自动删除')}
               </div>
               <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -227,7 +216,7 @@ const CacheSettings: React.FC = () => {
             </div>
             <div style={{ marginBottom: 0 }}>
               <Text strong>{t('最大缓存条目数')}</Text>
-              <div style={{ fontSize: 13, color: '#888', marginTop: 2 }}>
+              <div style={{ fontSize: 13, color: 'var(--ant-color-text-secondary)', marginTop: 8 }}>
                 {t('达到此数量时将删除最旧的缓存')}
               </div>
               <div style={{ marginTop: 4 }}>
@@ -274,7 +263,7 @@ const CacheSettings: React.FC = () => {
         {/* 缓存说明 */}
         <div style={{ marginBottom: 0 }}>
           <b>{t('缓存说明')}：</b>
-          <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
+          <div style={{ fontSize: 13, color: 'var(--ant-color-text-secondary)', marginTop: 8 }}>
             <div style={{ marginBottom: 4 }}>{t('• 翻译缓存可以显著提高重复翻译的速度')}</div>
             <div style={{ marginBottom: 4 }}>{t('• 缓存会自动过期，确保翻译结果的时效性')}</div>
             <div style={{ marginBottom: 4 }}>{t('• 缓存数据仅存储在本地，不会上传到服务器')}</div>
@@ -282,7 +271,7 @@ const CacheSettings: React.FC = () => {
           </div>
         </div>
       </div>
-      <div style={{padding: '0 24px 16px 24px', color: '#888', fontSize: 13}}>
+      <div style={{padding: '0 24px 16px 24px', color: 'var(--ant-color-text-secondary)', fontSize: 13}}>
         {t('所有设置均会自动保存，无需手动操作。')}
       </div>
     </Card>
