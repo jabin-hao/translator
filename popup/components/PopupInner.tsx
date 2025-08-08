@@ -11,8 +11,6 @@ import { useStorage } from '~lib/utils/storage';
 import { useTheme } from '~lib/utils/theme';
 import {
   getDictConfig,
-  getSiteTranslateSettings,
-  setAutoTranslateEnabled,
   addAlwaysSite,
   removeAlwaysSite,
   addNeverSite,
@@ -48,6 +46,13 @@ const PopupInner: React.FC = () => {
   const [pageTargetLang, setPageTargetLang] = useStorage(PAGE_LANG_KEY, 'zh-CN');
   const [textTargetLang, setTextTargetLang] = useStorage(TEXT_LANG_KEY, 'zh-CN');
   
+  // 网站自动翻译设置 - 使用 useStorage hook
+  const [siteTranslateSettings, setSiteTranslateSettings] = useStorage(SITE_TRANSLATE_SETTINGS_KEY, {
+    autoTranslateEnabled: false,
+    alwaysTranslateSites: [],
+    neverTranslateSites: []
+  });
+  
   // 从 translateSettings 对象中提取值
   const engine = translateSettings?.engine || 'google';
   const autoTranslate = translateSettings?.autoTranslate ?? true;
@@ -56,17 +61,10 @@ const PopupInner: React.FC = () => {
   const [isPageTranslated, setIsPageTranslated] = useState(false);
   const [isPageTranslating, setIsPageTranslating] = useState(false);
 
-  // 网站自动翻译相关状态
-  const [siteAutoTranslateEnabled, setSiteAutoTranslateEnabled] = useState(false);
+  // 网站自动翻译相关状态 - 直接从 useStorage 获取
+  const siteAutoTranslateEnabled = siteTranslateSettings?.autoTranslateEnabled ?? false;
   const [siteKey, setSiteKey] = useState('');
   const [siteSettings, setSiteSettings] = useState({ always: false, never: false });
-
-    // 读取网站自动翻译设置
-  useEffect(() => {
-    getSiteTranslateSettings().then((settings) => {
-      setSiteAutoTranslateEnabled(settings.autoTranslateEnabled);
-    });
-  }, []);
 
   // 获取当前 tab 的 host+path
   useEffect(() => {
@@ -156,8 +154,12 @@ const PopupInner: React.FC = () => {
 
   // 新增：网站自动翻译开关处理
   const handleSiteAutoTranslateChange = async (checked: boolean) => {
-    setSiteAutoTranslateEnabled(checked);
-    await setAutoTranslateEnabled(checked);
+    // 更新 siteTranslateSettings 对象
+    const newSettings = {
+      ...siteTranslateSettings,
+      autoTranslateEnabled: checked
+    };
+    setSiteTranslateSettings(newSettings);
     message.success(checked ? t('已开启网站自动翻译') : t('已关闭网站自动翻译'));
   };
 

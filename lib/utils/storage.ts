@@ -3,51 +3,21 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 
 const storage = new Storage();
 
-type Listener = (val: any) => void;
-const listenerMap: Map<string, Set<Listener>> = new Map();
-
-// 内部回调，转发给外部注册的监听器
-storage.watch({
-  // 监听所有key的变化，自动分发给对应的监听器
-  '*': (change) => {
-    for (const [key, val] of Object.entries(change)) {
-      const listeners = listenerMap.get(key);
-      if (listeners) {
-        listeners.forEach((fn) => fn(val));
-      }
-    }
-  }
-});
-
-// 读取
+// 简化的存储API
 export const storageApi = {
   // 读取配置
   async get(key: string) {
     return await storage.get(key);
   },
+  
   // 保存配置
   async set(key: string, value: any) {
+    // console.log(`StorageApi setting ${key}:`, value);
     return await storage.set(key, value);
-  },
-  // 监听配置
-  watch(key: string, listener: Listener) {
-    let listeners = listenerMap.get(key);
-    if (!listeners) {
-      listeners = new Set<Listener>();
-      listenerMap.set(key, listeners);
-    }
-    listeners.add(listener);
-    // 返回一个取消监听的函数
-    return () => {
-      listeners.delete(listener);
-      if (listeners.size === 0) {
-        listenerMap.delete(key);
-      }
-    };
   }
 };
 
-// 自定义配置Hook
+// 简化的useStorage Hook - 直接使用Plasmo Storage的watch
 export function useStorage<T = any>(key: string, defaultValue?: T) {
   const [value, setValue] = useState<T>(defaultValue as T);
   const defaultValueRef = useRef(defaultValue);
@@ -57,24 +27,37 @@ export function useStorage<T = any>(key: string, defaultValue?: T) {
 
     // 初始化读取
     storageApi.get(key).then((val) => {
-      if (mounted) setValue(val === undefined ? defaultValueRef.current as T : (val as T));
+      if (mounted) {
+        console.log(`useStorage ${key} initial value:`, val);
+        setValue(val === undefined ? defaultValueRef.current as T : (val as T));
+      }
     });
 
-    // 订阅变化
-    const unwatch = storageApi.watch(key, (val) => {
-      if (mounted) setValue(val);
+    // 使用Plasmo Storage的原生watch功能
+    storage.watch({
+      [key]: (change) => {
+        if (mounted) {
+          // console.log(`useStorage ${key} received change:`, change);
+          const newValue = change.newValue !== undefined ? change.newValue : change;
+          setValue(newValue);
+        }
+      }
     });
 
     return () => {
       mounted = false;
-      unwatch();
     };
-  }, [key]); // 移除 defaultValue 依赖
+  }, [key]);
 
   // 修改存储的值
-  const setStorageValue = useCallback((val: T) => {
-    setValue(val);
-    storageApi.set(key, val);
+  const setStorageValue = useCallback(async (val: T) => {
+    try {
+      // console.log(`useStorage setting value for key: ${key}`, val);
+      // 直接保存到存储，让watch机制处理更新
+      await storageApi.set(key, val);
+    } catch (error) {
+      console.error('Error setting storage value:', error);
+    }
   }, [key]);
 
   return [value, setStorageValue] as const;

@@ -4,7 +4,6 @@ import { TRANSLATE_ENGINES, TTS_ENGINES } from '~lib/constants/engines';
 import { useTranslation } from 'react-i18next';
 import { useStorage } from '~lib/utils/storage';
 import {
-  setAutoTranslateEnabled,
   getDictConfig,
   setDictConfig,
   getCustomDict,
@@ -16,7 +15,7 @@ import {
   removeCustomDict
 } from '~lib/settings/siteTranslateSettings';
 import { DeleteOutlined } from '@ant-design/icons';
-import { TRANSLATE_SETTINGS_KEY, SPEECH_KEY, DEEPL_API_KEY, SITE_TRANSLATE_SETTINGS_KEY, DICT_KEY } from '~lib/constants/settings';
+import { TRANSLATE_SETTINGS_KEY, SPEECH_KEY, DEEPL_API_KEY, SITE_TRANSLATE_SETTINGS_KEY } from '~lib/constants/settings';
 const { Option } = Select;
 
 const TranslateSettings: React.FC = () => {
@@ -38,15 +37,22 @@ const TranslateSettings: React.FC = () => {
 
   const [deeplApiKey, setDeeplApiKey] = useStorage(DEEPL_API_KEY, '');
 
+  // 网站自动翻译设置 - 使用 useStorage hook
+  const [siteTranslateSettings, setSiteTranslateSettings] = useStorage(SITE_TRANSLATE_SETTINGS_KEY, {
+    autoTranslateEnabled: false,
+    alwaysTranslateSites: [],
+    neverTranslateSites: []
+  });
+
   // 本地UI状态（不需要持久化的状态）
   const [deeplApiKeyInput, setDeeplApiKeyInput] = useState(deeplApiKey || '');
   
   // 朗读引擎设置 - 现在从useStorage获取
 
-  // 网站自动翻译相关 state
-  const [siteAutoEnabled, setSiteAutoEnabled] = useState(false);
-  const [alwaysSites, setAlwaysSites] = useState<string[]>([]);
-  const [neverSites, setNeverSites] = useState<string[]>([]);
+  // 从 siteTranslateSettings 提取值
+  const siteAutoEnabled = siteTranslateSettings?.autoTranslateEnabled ?? false;
+  const alwaysSites = siteTranslateSettings?.alwaysTranslateSites ?? [];
+  const neverSites = siteTranslateSettings?.neverTranslateSites ?? [];
   const [addHost, setAddHost] = useState('');
   const [addType, setAddType] = useState<'always'|'never'>('always');
 
@@ -70,17 +76,6 @@ const TranslateSettings: React.FC = () => {
   useEffect(() => {
     setDeeplApiKeyInput(deeplApiKey || '');
   }, [deeplApiKey]);
-
-  // 网站翻译设置初始化
-  useEffect(() => {
-    // 初始化读取网站翻译设置
-    getDictConfig().then(dict => {
-      setSiteAutoEnabled(dict.autoTranslateEnabled ?? false);
-      setAlwaysSites(dict.siteAlwaysList || []);
-      setNeverSites(dict.siteNeverList || []);
-      setPageTranslateMode(dict.pageTranslateMode === 'compare' ? 'compare' : 'translated');
-    });
-  }, []);
 
   const handleEngineChange = (val: string) => {
     setTranslateSettings({ ...translateSettings, engine: val });
@@ -131,21 +126,37 @@ const TranslateSettings: React.FC = () => {
   };
 
   const handleSiteAutoChange = async (checked: boolean) => {
-    setSiteAutoEnabled(checked);
-    await setAutoTranslateEnabled(checked);
+    // 更新 siteTranslateSettings 对象
+    const newSettings = {
+      ...siteTranslateSettings,
+      autoTranslateEnabled: checked
+    };
+    setSiteTranslateSettings(newSettings);
     message.success(checked ? t('已开启网站自动翻译') : t('已关闭网站自动翻译'));
   };
+  
   const handleRemoveAlways = async (host: string) => {
     await removeAlwaysSite(host);
     await removeCustomDict(host);
+    // 重新读取最新的设置
     const dict = await getDictConfig();
-    setAlwaysSites(dict.siteAlwaysList || []);
+    const newSettings = {
+      ...siteTranslateSettings,
+      alwaysTranslateSites: dict.siteAlwaysList || []
+    };
+    setSiteTranslateSettings(newSettings);
     message.success(t('已移除白名单并清除词库'));
   };
+  
   const handleRemoveNever = async (host: string) => {
     await removeNeverSite(host);
+    // 重新读取最新的设置
     const dict = await getDictConfig();
-    setNeverSites(dict.siteNeverList || []);
+    const newSettings = {
+      ...siteTranslateSettings,
+      neverTranslateSites: dict.siteNeverList || []
+    };
+    setSiteTranslateSettings(newSettings);
     message.success(t('已移除黑名单'));
   };
   const handleAddHost = async () => {
@@ -154,12 +165,20 @@ const TranslateSettings: React.FC = () => {
     if (addType === 'always') {
       await addAlwaysSite(host);
       const dict = await getDictConfig();
-      setAlwaysSites(dict.siteAlwaysList || []);
+      const newSettings = {
+        ...siteTranslateSettings,
+        alwaysTranslateSites: dict.siteAlwaysList || []
+      };
+      setSiteTranslateSettings(newSettings);
       message.success(t('已加入白名单'));
     } else {
       await addNeverSite(host);
       const dict = await getDictConfig();
-      setNeverSites(dict.siteNeverList || []);
+      const newSettings = {
+        ...siteTranslateSettings,
+        neverTranslateSites: dict.siteNeverList || []
+      };
+      setSiteTranslateSettings(newSettings);
       message.success(t('已加入黑名单'));
     }
     setAddHost('');
@@ -209,8 +228,12 @@ const TranslateSettings: React.FC = () => {
   // 刷新站点列表的通用函数
   const refreshSiteLists = async () => {
     const dict = await getDictConfig();
-    setAlwaysSites(dict.siteAlwaysList || []);
-    setNeverSites(dict.siteNeverList || []);
+    const newSettings = {
+      ...siteTranslateSettings,
+      alwaysTranslateSites: dict.siteAlwaysList || [],
+      neverTranslateSites: dict.siteNeverList || []
+    };
+    setSiteTranslateSettings(newSettings);
   };
 
   // 批量操作的通用组件
@@ -434,92 +457,98 @@ const TranslateSettings: React.FC = () => {
           <div style={{ fontSize: 13, color: 'var(--ant-color-text-secondary)', marginTop: 8, marginLeft: 136 }}>{t('开启后，命中列表的网站将自动整页翻译')}</div>
         </div>
 
-        <div style={{ marginBottom: 24 }}>
-          <b style={{ display: 'inline-block', minWidth: '120px' }}>{t('整页翻译模式')}：</b>
-          <Radio.Group value={pageTranslateMode} onChange={handlePageTranslateModeChange} style={{ marginLeft: 16 }}>
-            <Radio.Button value="translated">{t('全部译文')}</Radio.Button>
-            <Radio.Button value="compare">{t('原文对照')}</Radio.Button>
-          </Radio.Group>
-          <div style={{ fontSize: 13, color: 'var(--ant-color-text-secondary)', marginTop: 8, marginLeft: 136 }}>{t('选择整页翻译时的显示方式：仅显示译文或原文与译文对照')}</div>
-        </div>
+        {/* 条件渲染：只有开启网站自动翻译时才显示下面的设置 */}
+        {siteAutoEnabled && (
+          <>
+            <div style={{ marginBottom: 24 }}>
+              <b style={{ display: 'inline-block', minWidth: '120px' }}>{t('整页翻译模式')}：</b>
+              <Radio.Group value={pageTranslateMode} onChange={handlePageTranslateModeChange} style={{ marginLeft: 16 }}>
+                <Radio.Button value="translated">{t('全部译文')}</Radio.Button>
+                <Radio.Button value="compare">{t('原文对照')}</Radio.Button>
+              </Radio.Group>
+              <div style={{ fontSize: 13, color: 'var(--ant-color-text-secondary)', marginTop: 8, marginLeft: 136 }}>{t('选择整页翻译时的显示方式：仅显示译文或原文与译文对照')}</div>
+            </div>
 
-        <div style={{ marginBottom: 24, display: 'flex', gap: 8 }}>
-          <Input
-            value={addHost}
-            onChange={e => setAddHost(e.target.value)}
-            placeholder={t('输入域名，如 github.com')}
-            style={{ width: 220 }}
-          />
-          <Select value={addType} onChange={v => setAddType(v)} style={{ width: 100 }}>
-            <Option value="always">{t('白名单')}</Option>
-            <Option value="never">{t('黑名单')}</Option>
-          </Select>
-          <Button onClick={handleAddHost}>{t('添加')}</Button>
-        </div>
+            <div style={{ marginBottom: 24, display: 'flex', gap: 8 }}>
+              <Input
+                value={addHost}
+                onChange={e => setAddHost(e.target.value)}
+                placeholder={t('输入域名，如 github.com')}
+                style={{ width: 220 }}
+              />
+              <Select value={addType} onChange={v => setAddType(v)} style={{ width: 100 }}>
+                <Option value="always">{t('白名单')}</Option>
+                <Option value="never">{t('黑名单')}</Option>
+              </Select>
+              <Button onClick={handleAddHost}>{t('添加')}</Button>
+            </div>
 
-        {/* 白名单区域 */}
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ fontWeight: 'bold', marginBottom: 4 }}>{t('网站翻译白名单')}：</div>
-          <List
-            size="small"
-            bordered
-            dataSource={alwaysSitesToShow}
-            renderItem={host => (
-              <List.Item
-                actions={[
-                  <Button size="small" type="link" onClick={() => handleEditDict(host)}>{t('自定义词库')}</Button>,
-                  <Button size="small" type="link" danger onClick={() => handleRemoveAlways(host)}>{t('移除')}</Button>
-                ]}
-                style={{ alignItems: 'center' }}
-              >
-                <Tooltip title={host} placement="topLeft">
-                  <div style={{
-                    maxWidth: 120,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                  }}>{host}</div>
-                </Tooltip>
-              </List.Item>
-            )}
-            style={{ width: '25%', minWidth: 180, margin: '0 0 8px 0', borderRadius: 6 }}
-          />
-          {alwaysSites.length > 5 && (
-            <Button size="small" type="link" onClick={() => setShowAllAlways(true)}>{t('查看全部')}</Button>
-          )}
-          <div style={{ fontSize: 13, color: 'var(--ant-color-text-secondary)', marginTop: 8, marginBottom: 8 }}>{t('加入白名单的网站会自动整页翻译')}</div>
-        </div>
-        {/* 黑名单区域 */}
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ fontWeight: 'bold', marginBottom: 4 }}>{t('网站翻译黑名单')}：</div>
-          <List
-            size="small"
-            bordered
-            dataSource={neverSitesToShow}
-            renderItem={host => (
-              <List.Item
-                actions={[
-                  <Button size="small" type="link" danger onClick={() => handleRemoveNever(host)}>{t('移除')}</Button>
-                ]}
-                style={{ alignItems: 'center' }}
-              >
-                <Tooltip title={host} placement="topLeft">
-                  <div style={{
-                    maxWidth: 120,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                  }}>{host}</div>
-                </Tooltip>
-              </List.Item>
-            )}
-            style={{ width: '25%', minWidth: 180, margin: '0 0 8px 0', borderRadius: 6 }}
-          />
-          {neverSites.length > 5 && (
-            <Button size="small" type="link" onClick={() => setShowAllNever(true)}>{t('查看全部')}</Button>
-          )}
-          <div style={{ fontSize: 13, color: 'var(--ant-color-text-secondary)', marginTop: 8, marginBottom: 8 }}>{t('加入黑名单的网站不会被自动整页翻译')}</div>
-        </div>
+            {/* 白名单区域 */}
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ fontWeight: 'bold', marginBottom: 4 }}>{t('网站翻译白名单')}：</div>
+              <List
+                size="small"
+                bordered
+                dataSource={alwaysSitesToShow}
+                renderItem={host => (
+                  <List.Item
+                    actions={[
+                      <Button size="small" type="link" onClick={() => handleEditDict(host)}>{t('自定义词库')}</Button>,
+                      <Button size="small" type="link" danger onClick={() => handleRemoveAlways(host)}>{t('移除')}</Button>
+                    ]}
+                    style={{ alignItems: 'center' }}
+                  >
+                    <Tooltip title={host} placement="topLeft">
+                      <div style={{
+                        maxWidth: 120,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>{host}</div>
+                    </Tooltip>
+                  </List.Item>
+                )}
+                style={{ width: '25%', minWidth: 180, margin: '0 0 8px 0', borderRadius: 6 }}
+              />
+              {alwaysSites.length > 5 && (
+                <Button size="small" type="link" onClick={() => setShowAllAlways(true)}>{t('查看全部')}</Button>
+              )}
+              <div style={{ fontSize: 13, color: 'var(--ant-color-text-secondary)', marginTop: 8, marginBottom: 8 }}>{t('加入白名单的网站会自动整页翻译')}</div>
+            </div>
+            
+            {/* 黑名单区域 */}
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ fontWeight: 'bold', marginBottom: 4 }}>{t('网站翻译黑名单')}：</div>
+              <List
+                size="small"
+                bordered
+                dataSource={neverSitesToShow}
+                renderItem={host => (
+                  <List.Item
+                    actions={[
+                      <Button size="small" type="link" danger onClick={() => handleRemoveNever(host)}>{t('移除')}</Button>
+                    ]}
+                    style={{ alignItems: 'center' }}
+                  >
+                    <Tooltip title={host} placement="topLeft">
+                      <div style={{
+                        maxWidth: 120,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>{host}</div>
+                    </Tooltip>
+                  </List.Item>
+                )}
+                style={{ width: '25%', minWidth: 180, margin: '0 0 8px 0', borderRadius: 6 }}
+              />
+              {neverSites.length > 5 && (
+                <Button size="small" type="link" onClick={() => setShowAllNever(true)}>{t('查看全部')}</Button>
+              )}
+              <div style={{ fontSize: 13, color: 'var(--ant-color-text-secondary)', marginTop: 8, marginBottom: 8 }}>{t('加入黑名单的网站不会被自动整页翻译')}</div>
+            </div>
+          </>
+        )}
 
         <Divider />
 
