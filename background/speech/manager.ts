@@ -87,12 +87,10 @@ export class SpeechManager {
             };
 
             // 首先尝试用户选择的服务
-            console.log(`尝试使用 ${this.currentService} TTS 服务`);
             const result = await service.speak(finalOptions);
 
             // 如果首选服务失败，尝试其他服务作为fallback
             if (!result.success && this.currentService !== 'browser') {
-                console.log(`${this.currentService} TTS 失败，尝试其他服务`);
 
                 // 按优先级尝试其他服务：edge -> google -> browser
                 const fallbackOrder = ['edge', 'google', 'browser'];
@@ -105,11 +103,9 @@ export class SpeechManager {
                     const fallbackInstance = this.services.get(fallbackService as SpeechService);
 
                     if (fallbackInstance) {
-                        console.log(`尝试 fallback 到 ${fallbackService} TTS 服务`);
                         const fallbackResult = await fallbackInstance.speak(finalOptions);
 
                         if (fallbackResult.success) {
-                            console.log(`${fallbackService} TTS fallback 成功`);
                             return fallbackResult;
                         }
                     }

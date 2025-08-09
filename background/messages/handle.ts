@@ -64,7 +64,6 @@ const handler: PlasmoMessaging.MessageHandler<HandlerRequest, HandlerResponse> =
         
       case 'speech':
         try {
-          console.log('处理朗读请求:', { action, data });
           // 直接调用 handleSpeechMessage，它会根据设置自动选择引擎
           const speechResponse = await handleSpeechMessage({
             action: action as 'speak' | 'stop' | 'checkAvailability',
@@ -91,7 +90,6 @@ const handler: PlasmoMessaging.MessageHandler<HandlerRequest, HandlerResponse> =
         
       default:
         // 处理其他类型的消息
-        console.log('未知服务:', service, action, data);
         res.send({
           success: false,
           error: `未知的服务类型: ${service}`

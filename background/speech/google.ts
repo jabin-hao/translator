@@ -35,12 +35,10 @@ export class GoogleSpeechService {
       }
       
       const arrayBuffer = await audioBlob.arrayBuffer();
-      const uint8Array = new Uint8Array(arrayBuffer);
-      const base64String = btoa(String.fromCharCode(...uint8Array));
 
       return {
         success: true,
-        audioData: base64String,
+        audioData: arrayBuffer,
         audioType: audioBlob.type || 'audio/mpeg'
       };
     } catch (error) {

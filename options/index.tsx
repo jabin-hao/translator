@@ -13,7 +13,7 @@ const OptionsRoot = () => {
     initI18n().then(() => {
       setI18nReady(true);
     }).catch(err => {
-      console.log(err);
+      console.error(err);
       setI18nReady(true); // 即使失败也要显示页面
     });
   }, []);

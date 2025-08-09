@@ -10,7 +10,7 @@ export interface SpeechOptions {
 export interface SpeechResult {
   success: boolean;
   audioUrl?: string;
-  audioData?: string; // base64 编码的音频数据
+  audioData?: ArrayBuffer | Uint8Array; // 支持 ArrayBuffer 和 Uint8Array
   audioType?: string; // 音频 MIME 类型
   error?: string;
 }

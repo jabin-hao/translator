@@ -27,6 +27,21 @@ export const handleSpeechMessage = async (req: SpeechMessageRequest): Promise<Sp
         
         // 直接使用speechManager，它会根据设置自动选择引擎
         const result = await speechManager.speak(req.options);
+        
+        // 如果有 audioData 且为 ArrayBuffer，需要转换为可传递的格式
+        if (result.success && result.audioData && result.audioData instanceof ArrayBuffer) {
+          // 将 ArrayBuffer 转换为 Uint8Array，这样可以通过消息传递
+          const uint8Array = new Uint8Array(result.audioData);
+          return {
+            success: result.success,
+            data: {
+              ...result,
+              audioData: uint8Array
+            },
+            error: result.error
+          };
+        }
+        
         return {
           success: result.success,
           data: result,

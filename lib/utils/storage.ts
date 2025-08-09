@@ -12,7 +12,6 @@ export const storageApi = {
   
   // 保存配置
   async set(key: string, value: any) {
-    // console.log(`StorageApi setting ${key}:`, value);
     return await storage.set(key, value);
   }
 };
@@ -28,7 +27,6 @@ export function useStorage<T = any>(key: string, defaultValue?: T) {
     // 初始化读取
     storageApi.get(key).then((val) => {
       if (mounted) {
-        // console.log(`useStorage ${key} initial value:`, val);
         setValue(val === undefined ? defaultValueRef.current as T : (val as T));
       }
     });
@@ -37,7 +35,6 @@ export function useStorage<T = any>(key: string, defaultValue?: T) {
     storage.watch({
       [key]: (change) => {
         if (mounted) {
-          // console.log(`useStorage ${key} received change:`, change);
           const newValue = change.newValue !== undefined ? change.newValue : change;
           setValue(newValue);
         }
@@ -52,7 +49,6 @@ export function useStorage<T = any>(key: string, defaultValue?: T) {
   // 修改存储的值
   const setStorageValue = useCallback(async (val: T) => {
     try {
-      // console.log(`useStorage setting value for key: ${key}`, val);
       // 直接保存到存储，让watch机制处理更新
       await storageApi.set(key, val);
     } catch (error) {

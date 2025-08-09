@@ -304,7 +304,6 @@ const ContentScript = () => {
 
     // 设置快捷键处理器
     useEffect(() => {
-        console.log('注册快捷键处理器, shortcutEnabled:', shortcutEnabled, 'customShortcut:', customShortcut);
         return setupShortcutHandler(
             triggerTranslation,
             setShowInputTranslator

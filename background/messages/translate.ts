@@ -18,20 +18,15 @@ export interface TranslateResponse {
 // 处理翻译消息
 export async function handleTranslateMessage(message: TranslateMessage): Promise<TranslateResponse> {
   try {
-    console.log('处理翻译消息:', message);
     
     if (message.type === 'translate' && message.text) {
-      console.log('开始单次翻译:', message.text);
       const result = await translate(message.text, message.options);
-      console.log('单次翻译完成:', result);
       return {
         success: true,
         data: result,
       };
     } else if (message.type === 'translateBatch' && message.texts) {
-      console.log('开始批量翻译:', message.texts);
       const results = await translateBatch(message.texts, message.options);
-      console.log('批量翻译完成:', results);
       return {
         success: true,
         data: results,

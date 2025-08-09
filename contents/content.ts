@@ -61,6 +61,7 @@ export async function callTranslateAPI(
 // TTS API调用
 export async function callTTSAPI(text: string, lang: string): Promise<{ success: boolean; audioData?: ArrayBuffer; error?: string }> {
     try {
+
         const ttsLang = getTTSLang(lang);
 
         const response = await sendToBackground({
@@ -68,17 +69,23 @@ export async function callTTSAPI(text: string, lang: string): Promise<{ success:
             body: {
                 service: 'speech',
                 action: 'speak',
-                text,
                 options: {
+                    text,
                     lang: ttsLang,
                 },
             },
         });
 
         if (response.success && response.data) {
+            // 如果 audioData 是 Uint8Array，转换为 ArrayBuffer
+            let audioData = response.data.audioData;
+            if (audioData && audioData.constructor === Uint8Array) {
+                audioData = audioData.buffer.slice(audioData.byteOffset, audioData.byteOffset + audioData.byteLength);
+            }
+            
             return {
                 success: true,
-                audioData: response.data.audioData
+                audioData: audioData
             };
         } else {
             return {

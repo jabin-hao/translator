@@ -380,7 +380,6 @@ export async function lazyFullPageTranslate(targetLang: string, mode: 'translate
     
     // 收集所有可见的文本节点
     const nodes = collectAllTextNodes(document.body, translatedSet, mode);
-    console.log(`懒加载翻译: 收集到 ${nodes.length} 个节点`);
     
     // 只处理在视窗内的节点
     const visibleNodes = nodes.filter(node => isInViewport(node));
