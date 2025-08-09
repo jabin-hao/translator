@@ -1,10 +1,19 @@
 import { lazyFullPageTranslate, getPageTranslationStatus, restoreOriginalPage } from '~lib/translate/fullPageTranslate';
 
 // 消息处理逻辑
-export const setupMessageHandler = () => {
+export const setupMessageHandler = (setShowInputTranslator?: (show: boolean) => void) => {
   if (typeof window !== 'undefined' && chrome?.runtime?.onMessage) {
     chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-      if (msg.type === 'FULL_PAGE_TRANSLATE') {
+      if (msg.type === 'SHOW_INPUT_TRANSLATOR') {
+        // 显示输入翻译器
+        if (setShowInputTranslator) {
+          setShowInputTranslator(true);
+          sendResponse({ success: true });
+        } else {
+          sendResponse({ success: false, error: 'setShowInputTranslator function not available' });
+        }
+        return true; // 异步响应
+      } else if (msg.type === 'FULL_PAGE_TRANSLATE') {
         // 调用整页翻译
         lazyFullPageTranslate(msg.lang, 'translated', msg.engine).then((result) => {
           const state = (window as any).__translationState;

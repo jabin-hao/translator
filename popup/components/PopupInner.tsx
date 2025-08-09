@@ -271,6 +271,26 @@ const PopupInner: React.FC = () => {
         </Title>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <Tooltip 
+            title={t('打开输入翻译器')} 
+            placement="bottom"
+            getPopupContainer={(triggerNode) => triggerNode.parentElement || document.body}
+          >
+            <Button
+              type="text"
+              shape="circle"
+              icon={<Icon icon="material-symbols:translate" width={16} height={16} />}
+              onClick={() => {
+                chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                  const tabId = tabs[0]?.id;
+                  if (tabId) {
+                    chrome.tabs.sendMessage(tabId, { type: 'SHOW_INPUT_TRANSLATOR' });
+                  }
+                });
+              }}
+              style={{ border: 'none' }}
+            />
+          </Tooltip>
+          <Tooltip 
             title={t('打开设置页面')} 
             placement="bottom"
             getPopupContainer={(triggerNode) => triggerNode.parentElement || document.body}

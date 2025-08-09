@@ -29,9 +29,34 @@ export async function scheduleCacheCleanup() {
   cleanupTimer = setInterval(cleanCache, interval);
 }
 
-// 立即清理一次
+// 立即清理一次过期缓存
 export async function cleanCache() {
-  await cacheManager.clear();
+  try {
+    console.log('[缓存清理] 开始清理过期缓存...');
+    await cacheManager.initDB(); // 确保数据库已初始化
+    
+    // 获取清理前的统计信息
+    const beforeStats = await cacheManager.getStats();
+    console.log(`[缓存清理] 清理前: ${beforeStats.count} 个缓存条目, 大小: ${beforeStats.size} 字节`);
+    
+    // 调用正确的清理过期缓存方法
+    const result = await cacheManager.cleanupExpired();
+    
+    console.log(`[缓存清理] ${result.message}`);
+    
+    // 获取清理后的统计信息
+    const afterStats = await cacheManager.getStats();
+    console.log(`[缓存清理] 清理后: ${afterStats.count} 个缓存条目, 大小: ${afterStats.size} 字节`);
+    
+    if (result.removed > 0) {
+      console.log(`[缓存清理] 成功清理了 ${result.removed} 个过期缓存条目`);
+    } else {
+      console.log('[缓存清理] 没有发现过期的缓存条目');
+    }
+    
+  } catch (error) {
+    console.error('[缓存清理] 清理过期缓存失败:', error);
+  }
 }
 
 // 消息处理（可供 background/messages/cache.ts 调用）

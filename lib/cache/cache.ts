@@ -334,6 +334,34 @@ export class TranslationCacheManager {
     }
   }
 
+  // 清理过期缓存（公共方法）
+  async cleanupExpired(): Promise<{ removed: number; message: string }> {
+    try {
+      if (this.isCleanupRunning) {
+        return { removed: 0, message: '清理过程已在运行中' };
+      }
+
+      const beforeCount = await this.getStats().then(stats => stats.count);
+      
+      // 调用私有的清理方法
+      await this.cleanupExpiredCache();
+      
+      const afterCount = await this.getStats().then(stats => stats.count);
+      const removed = beforeCount - afterCount;
+
+      return { 
+        removed, 
+        message: `成功清理 ${removed} 个过期缓存条目` 
+      };
+    } catch (error) {
+      console.error('清理过期缓存失败:', error);
+      return { 
+        removed: 0, 
+        message: `清理失败: ${error instanceof Error ? error.message : '未知错误'}` 
+      };
+    }
+  }
+
   // 从 IndexedDB 查询
   private async queryInDB(hash: string): Promise<TranslationCache | null> {
     await this.initDB();
