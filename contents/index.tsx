@@ -1,21 +1,21 @@
-import {StyleProvider} from "@ant-design/cssinjs"
+import { StyleProvider } from "@ant-design/cssinjs"
 import { useEffect, useState, useCallback, useMemo, useRef } from "react"
-import {App} from 'antd';
-import {getBrowserLang, mapUiLangToI18nKey} from '~lib/constants/languages';
+import { App } from 'antd';
+import { getBrowserLang, mapUiLangToI18nKey } from '~lib/constants/languages';
 import './index.css';
 import antdResetCssText from "data-text:antd/dist/reset.css"
 import type { PlasmoGetShadowHostId } from "plasmo"
 import TranslatorIcon from './components/TranslatorIcon';
 import TranslatorResult from './components/TranslatorResult';
 import InputTranslator from './components/InputTranslator';
-import i18n, {initI18n} from '../i18n';
-import {ThemeProvider} from '~lib/utils/theme';
+import i18n, { initI18n } from '../i18n';
+import { ThemeProvider } from '~lib/utils/theme';
 
 // 引入拆分后的模块
-import {setupSelectionHandler} from '~lib/translate/selection';
-import {setupShortcutHandler} from '~lib/translate/shortcuts';
-import {setupMessageHandler} from '~lib/messages/messaging';
-import {setupAutoTranslate} from '~lib/translate/autoTranslate';
+import { setupSelectionHandler } from '~lib/translate/selection';
+import { setupShortcutHandler } from '~lib/translate/shortcuts';
+import { setupMessageHandler } from '~lib/messages/messaging';
+import { setupAutoTranslate } from '~lib/translate/autoTranslate';
 
 import {
     FAVORITE_LANGS_KEY,
@@ -25,39 +25,39 @@ import {
     TRANSLATE_SETTINGS_KEY,
     UI_LANG_KEY
 } from '~lib/constants/settings';
-import {initializeDefaultSettings, callTranslateAPI, callTTSAPI, stopTTSAPI} from './content';
-import {useStorage} from "~lib/utils/storage";
+import { initializeDefaultSettings, callTranslateAPI, callTTSAPI, stopTTSAPI } from './content';
+import { useStorage } from "~lib/utils/storage";
 
 const HOST_ID = "translator-csui"
 
 export const getShadowHostId: PlasmoGetShadowHostId = () => HOST_ID
 
 export const getStyle = () => {
-  const style = document.createElement("style")
-  style.textContent = antdResetCssText
-  return style
+    const style = document.createElement("style")
+    style.textContent = antdResetCssText
+    return style
 }
 
 let shadowRoot: ShadowRoot | null = null
 
 // 在App组件内部使用message的组件
 const AppContent = ({
-                        icon,
-                        result,
-                        showInputTranslator,
-                        handleTranslation,
-                        setShowInputTranslator,
-                        autoRead,
-                        engine,
-                        textTargetLang,
-                        shouldTranslate,
-                        setShouldTranslate,
-                        callTranslateAPI,
-                        callTTSAPI,
-                        stopTTSAPI,
-                        onCloseResult,
-                        onTranslationComplete,
-                    }: {
+    icon,
+    result,
+    showInputTranslator,
+    handleTranslation,
+    setShowInputTranslator,
+    autoRead,
+    engine,
+    textTargetLang,
+    shouldTranslate,
+    setShouldTranslate,
+    callTranslateAPI,
+    callTTSAPI,
+    stopTTSAPI,
+    onCloseResult,
+    onTranslationComplete,
+}: {
     icon: { x: number; y: number; text: string } | null;
     result: { x: number; y: number; originalText: string } | null;
     showInputTranslator: boolean;
@@ -78,7 +78,7 @@ const AppContent = ({
     onTranslationComplete: () => void;
 }) => {
     // 在 App 组件内部使用 App.useApp() 获取 messages 实例
-    const {message} = App.useApp();
+    const { message } = App.useApp();
     // 创建message适配器函数
     const showMessage = (type: 'success' | 'error' | 'warning' | 'info', content: string) => {
         switch (type) {
@@ -98,7 +98,7 @@ const AppContent = ({
     };
 
     return (
-        <>          
+        <>
             {icon && (
                 <TranslatorIcon
                     x={icon.x}
@@ -231,41 +231,41 @@ const ContentScript = () => {
                 setShouldTranslate(true);
                 return;
             }
-            
+
             // 更精确的位置计算 - 使用视窗相对坐标，因为图标使用fixed定位
             const iconWidth = 32;
             const iconHeight = 32;
             const margin = 10;
-            
+
             // 图标使用fixed定位，所以直接使用rect的坐标即可
             let iconX = rect.right;
             let iconY = rect.top - 15; // 调整为-15，让图标更偏上
-            
+
             // 边界检查 - 使用视窗坐标系
             // 检查右边界 - 如果图标会超出右边界，移到文字左侧
             if (iconX + iconWidth + margin > window.innerWidth) {
                 iconX = rect.left - iconWidth - margin;
             }
-            
+
             // 检查左边界
             if (iconX < margin) {
                 iconX = margin;
             }
-            
+
             // 检查上边界 - 如果图标会超出上边界，移到文字下方
             if (iconY < margin) {
                 iconY = rect.bottom + margin;
             }
-            
+
             // 检查下边界
             if (iconY + iconHeight + margin > window.innerHeight) {
                 iconY = window.innerHeight - iconHeight - margin;
             }
-            
-            setIcon({ 
-                x: iconX, 
+
+            setIcon({
+                x: iconX,
                 y: iconY,
-                text 
+                text
             });
         }
     };
@@ -303,7 +303,7 @@ const ContentScript = () => {
             if (selection && selection.toString().trim()) {
                 const range = selection.getRangeAt(0);
                 const rect = range.getBoundingClientRect();
-                
+
                 setResult({
                     x: rect.left, // 使用视窗相对坐标，因为结果组件也使用fixed定位
                     y: rect.bottom + 5, // 选中文字的正下方
@@ -325,7 +325,7 @@ const ContentScript = () => {
     useEffect(() => {
         initializeDefaultSettings().then(() => {
         });
-        
+
         // 获取Shadow Root
         const hostElement = document.getElementById(HOST_ID);
         if (hostElement?.shadowRoot) {
@@ -366,13 +366,13 @@ const ContentScript = () => {
     const callTranslateAPICallback = useCallback(callTranslateAPI, []);
     const callTTSAPICallback = useCallback(callTTSAPI, []);
     const stopTTSAPICallback = useCallback(stopTTSAPI, []);
-    
+
     // 包装onCloseResult函数
     const onCloseResultCallback = useCallback(() => {
         setResult(null);
         setShouldTranslate(false);
     }, []);
-    
+
     // 包装onTranslationComplete函数
     const onTranslationCompleteCallback = useCallback(() => {
         // 翻译完成后的处理逻辑
@@ -457,7 +457,7 @@ const ContentRoot = () => {
         initI18n().then(() => setReady(true));
     }, []);
     if (!ready) return null;
-    return <ContentScript/>;
+    return <ContentScript />;
 };
 
 export default ContentRoot;

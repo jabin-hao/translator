@@ -1,6 +1,5 @@
 import type {SpeechOptions, SpeechResult, SpeechService} from '~lib/translate/speech';
 import {LocalSpeechService} from './local';
-import {EdgeSpeechService} from './edge';
 import {GoogleSpeechService} from './google';
 import {SPEECH_KEY} from '~lib/constants/settings';
 import {storageApi} from "~lib/utils/storage";
@@ -17,12 +16,11 @@ interface BaseSpeechService {
 // 朗读管理器
 export class SpeechManager {
     private services: Map<SpeechService, BaseSpeechService> = new Map();
-    private currentService: SpeechService = 'edge'; // 默认使用 Edge TTS
+    private currentService: SpeechService = 'google'; // 默认使用 Google TTS（更稳定）
     private currentAudio: HTMLAudioElement | null = null;
 
     constructor() {
         this.services.set('browser', new LocalSpeechService());
-        this.services.set('edge', new EdgeSpeechService());
         this.services.set('google', new GoogleSpeechService());
 
         // 初始化时读取用户设置
@@ -33,6 +31,7 @@ export class SpeechManager {
     private async loadUserSettings() {
         try {
             const settings = await storageApi.get(SPEECH_KEY);
+
             if (settings && typeof settings === 'object') {
                 const {engine, speed, pitch, volume} = settings as any;
                 if (engine && this.services.has(engine)) {
@@ -68,6 +67,7 @@ export class SpeechManager {
         try {
             // 获取用户设置的朗读参数
             const settings = await storageApi.get(SPEECH_KEY);
+
             let userSettings = {speed: 1, pitch: 1, volume: 1};
             if (settings && typeof settings === 'object') {
                 const userSettingsData = settings as any;
@@ -77,7 +77,7 @@ export class SpeechManager {
                     volume: userSettingsData.volume ?? 1
                 };
             }
-
+            
             // 合并用户设置和传入的选项
             const finalOptions: SpeechOptions = {
                 ...options,
@@ -88,32 +88,60 @@ export class SpeechManager {
 
             // 首先尝试用户选择的服务
             const result = await service.speak(finalOptions);
+           
+            // 如果首选服务成功，直接返回
+            if (result.success) {
+                return result;
+            }
+
+            // 如果是browser TTS且返回requiresBrowser标记，直接返回让content script处理
+            if (result.requiresBrowser && result.error === 'browser_tts_required') {
+                return result;
+            }
+
+            // 如果Google TTS失败，直接回退到Browser TTS
+            if (this.currentService === 'google') {
+                console.warn(`[Speech Manager] Google TTS 失败，尝试自动回退:`, result.error);
+                
+                return {
+                    success: false,
+                    error: 'browser_tts_required',
+                    requiresBrowser: true
+                };
+            }
 
             // 如果首选服务失败，尝试其他服务作为fallback
-            if (!result.success && this.currentService !== 'browser') {
+            console.log(`[Speech Manager] ${this.currentService} 失败，开始尝试回退服务`);
+            
+            // 定义回退顺序：优先使用远程TTS，最后使用browser TTS
+            const allServices = ['google', 'browser'];
+            const fallbackOrder = allServices.filter(s => s !== this.currentService);
 
-                // 按优先级尝试其他服务：edge -> google -> browser
-                const fallbackOrder = ['edge', 'google', 'browser'];
-                const currentIndex = fallbackOrder.indexOf(this.currentService);
+            for (const fallbackService of fallbackOrder) {
+                const fallbackInstance = this.services.get(fallbackService as SpeechService);
 
-                for (let i = 0; i < fallbackOrder.length; i++) {
-                    if (i === currentIndex) continue; // 跳过已尝试的服务
-
-                    const fallbackService = fallbackOrder[i];
-                    const fallbackInstance = this.services.get(fallbackService as SpeechService);
-
-                    if (fallbackInstance) {
+                if (fallbackInstance) {
+                    try {
                         const fallbackResult = await fallbackInstance.speak(finalOptions);
 
                         if (fallbackResult.success) {
                             return fallbackResult;
                         }
+
+                        // 如果是browser TTS且返回requiresBrowser标记，也认为是成功的回退
+                        if (fallbackResult.requiresBrowser && fallbackResult.error === 'browser_tts_required') {
+                            return fallbackResult;
+                        }
+                    } catch (error) {
+                        console.error(`[Speech Manager] ${fallbackService} 回退时出错:`, error);
                     }
                 }
             }
-
-            // 不在这里播放音频，让 content script 处理
-            return result;
+            
+            return {
+                success: false,
+                error: '所有TTS服务都不可用'
+            };
         } catch (error) {
             console.error('TTS 服务调用失败:', error);
             return {success: false, error: error.message};

@@ -61,9 +61,8 @@ export async function callTranslateAPI(
 // TTS API调用
 export async function callTTSAPI(text: string, lang: string): Promise<{ success: boolean; audioData?: ArrayBuffer; error?: string }> {
     try {
-
         const ttsLang = getTTSLang(lang);
-
+        
         const response = await sendToBackground({
             name: "handle" as never,
             body: {
@@ -72,6 +71,8 @@ export async function callTTSAPI(text: string, lang: string): Promise<{ success:
                 options: {
                     text,
                     lang: ttsLang,
+                    // 注意：这里不需要传递speed、pitch、volume参数
+                    // 因为background的语音管理器会自动从用户设置中读取这些参数
                 },
             },
         });

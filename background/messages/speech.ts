@@ -25,13 +25,37 @@ export const handleSpeechMessage = async (req: SpeechMessageRequest): Promise<Sp
           };
         }
         
-        // 直接使用speechManager，它会根据设置自动选择引擎
+        // 直接使用speechManager，它会根据设置自动选择引擎并处理回退
         const result = await speechManager.speak(req.options);
+        
+        // 如果结果需要browser环境处理（Web Speech API），直接返回标记
+        if (result.requiresBrowser && result.error === 'browser_tts_required') {
+          return {
+            success: false, // 在background中标记为失败
+            error: 'browser_tts_required', // content script会识别这个错误并使用Web Speech API
+            data: result
+          };
+        }
         
         // 如果有 audioData 且为 ArrayBuffer，需要转换为可传递的格式
         if (result.success && result.audioData && result.audioData instanceof ArrayBuffer) {
+          // 验证 ArrayBuffer 是否有效
+          if (result.audioData.byteLength === 0) {
+            console.error('[Speech Message] 收到空的 ArrayBuffer，标记为失败');
+            return {
+              success: false,
+              error: '音频数据为空'
+            };
+          }
+          
           // 将 ArrayBuffer 转换为 Uint8Array，这样可以通过消息传递
           const uint8Array = new Uint8Array(result.audioData);
+          console.log('[Speech Message] ArrayBuffer 转换:', {
+            originalSize: result.audioData.byteLength,
+            uint8ArrayLength: uint8Array.length,
+            first10Bytes: Array.from(uint8Array.slice(0, 10))
+          });
+          
           return {
             success: result.success,
             data: {

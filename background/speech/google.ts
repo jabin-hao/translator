@@ -5,10 +5,18 @@ export class GoogleSpeechService {
 
   async speak(options: SpeechOptions): Promise<SpeechResult> {
     try {
-      const { text, lang, speed = 1 } = options;
+      const { text, lang, speed = 1, pitch, volume } = options;
+  
+      // 使用正确的参数和客户端标识
+      const params = new URLSearchParams({
+        'ie': 'UTF-8',
+        'tl': lang,
+        'client': 'dict-chrome-ex',
+        'ttsspeed': '0.5', // Google TTS 的固定速度参数
+        'q': text
+      });
       
-      // 使用Google Translate TTS API
-      const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=${lang}&client=tw-ob&ttsspeed=${speed}`;
+      const url = `https://translate.google.com/translate_tts?${params.toString()}`;
       
       const response = await fetch(url, {
         method: 'GET',
@@ -19,22 +27,38 @@ export class GoogleSpeechService {
           'Accept-Language': 'en-US,en;q=0.5',
           'Accept-Encoding': 'gzip, deflate, br',
           'Connection': 'keep-alive',
-          'Upgrade-Insecure-Requests': '1',
         },
         signal: AbortSignal.timeout(15000),
       });
 
       if (!response.ok) {
-        console.error('Google TTS HTTP错误:', response.status, response.statusText);
+        console.error('[Google TTS] HTTP错误:', response.status, response.statusText);
+        return {
+          success: false,
+          error: `Google TTS HTTP错误: ${response.status} ${response.statusText}`
+        };
       }
 
       const audioBlob = await response.blob();
       
       if (audioBlob.size === 0) {
-        console.error('Google TTS 返回空音频数据');
+        console.error('[Google TTS] 返回空音频数据');
+        return {
+          success: false,
+          error: 'Google TTS 返回空音频数据'
+        };
       }
       
       const arrayBuffer = await audioBlob.arrayBuffer();
+
+      // 检查 ArrayBuffer 是否为空
+      if (arrayBuffer.byteLength === 0) {
+        console.error('Google TTS 返回空的 ArrayBuffer');
+        return {
+          success: false,
+          error: 'Google TTS 返回空的音频数据'
+        };
+      }
 
       return {
         success: true,

@@ -17,7 +17,16 @@ export const TRANSLATE_ENGINES = [
 
 // TTS引擎统一配置
 export const TTS_ENGINES = [
-    { label: 'Edge TTS', value: 'edge', icon: bingIcon, description: 'Microsoft Edge 文本转语音服务，音质最佳', disabled: false },
-    { label: 'Google TTS', value: 'google', icon: googleIcon, description: 'Google 文本转语音服务，稳定可靠', disabled: false },
-    { label: 'Browser TTS', value: 'browser', icon: null, description: '浏览器内置语音合成，无需网络', disabled: false },
-];
+    {
+        name: 'google',
+        label: 'Google TTS',
+        description: '谷歌语音合成 (推荐，稳定可靠)',
+        priority: 1
+    },
+    {
+        name: 'browser',
+        label: '浏览器内置',
+        description: '使用浏览器内置的 Web Speech API',
+        priority: 3
+    }
+] as const;

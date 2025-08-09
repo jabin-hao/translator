@@ -100,36 +100,98 @@ export async function translate(
     // 4. 获取翻译引擎函数
     const translateFunction = TRANSLATE_ENGINES[engine as keyof typeof TRANSLATE_ENGINES];
     if (!translateFunction) {
-      console.error(`不支持的翻译引擎: ${engine}`);
+      throw new Error(`不支持的翻译引擎: ${engine}`);
     }
     
-    // 执行翻译，添加超时处理
-    const translation = await Promise.race([
-      translateFunction(text, from, to),
-      new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('翻译超时')), 30000) // 增加到30秒超时
-      )
-    ]);
+    // 5. 尝试翻译，如果失败则自动回退到其他引擎
+    let lastError: Error | null = null;
+    const enginePriority = ['bing', 'google']; // 优先级顺序
+    const currentEngineIndex = enginePriority.indexOf(engine);
+    
+    // 先尝试用户选择的引擎
+    try {
+      const translation = await Promise.race([
+        translateFunction(text, from, to),
+        new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error('翻译超时')), 30000)
+        )
+      ]);
 
-    // 如果启用缓存，保存到缓存
-    if (shouldUseCache) {
+      // 如果启用缓存，保存到缓存
+      if (shouldUseCache) {
+        try {
+          await cacheManager.set(text, translation, from, to, engine);
+        } catch (cacheError) {
+          console.error('保存到缓存失败:', cacheError);
+        }
+      }
+
+      return {
+        text,
+        translation,
+        engine,
+        from,
+        to,
+        cached: false,
+      };
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      console.warn(`${engine} 翻译失败:`, lastError.message);
+    }
+    
+    // 6. 如果首选引擎失败，尝试回退到其他引擎
+    for (const fallbackEngine of enginePriority) {
+      if (fallbackEngine === engine) continue; // 跳过已经尝试过的引擎
+      
+      const fallbackFunction = TRANSLATE_ENGINES[fallbackEngine as keyof typeof TRANSLATE_ENGINES];
+      if (!fallbackFunction) continue;
+      
       try {
-        await cacheManager.set(text, translation, from, to, engine);
-      } catch (cacheError) {
-        console.error('保存到缓存失败:', cacheError);
+        console.log(`尝试回退到 ${fallbackEngine} 引擎`);
+        const translation = await Promise.race([
+          fallbackFunction(text, from, to),
+          new Promise<never>((_, reject) => 
+            setTimeout(() => reject(new Error('翻译超时')), 30000)
+          )
+        ]);
+
+        // 如果启用缓存，保存到缓存（使用原始引擎名）
+        if (shouldUseCache) {
+          try {
+            await cacheManager.set(text, translation, from, to, engine);
+          } catch (cacheError) {
+            console.error('保存到缓存失败:', cacheError);
+          }
+        }
+
+        console.log(`成功回退到 ${fallbackEngine} 引擎`);
+        return {
+          text,
+          translation,
+          engine: fallbackEngine, // 标记实际使用的引擎
+          from,
+          to,
+          cached: false,
+        };
+      } catch (error) {
+        console.warn(`${fallbackEngine} 引擎回退也失败:`, error);
+        lastError = error instanceof Error ? error : new Error(String(error));
       }
     }
-
+    
+    // 7. 所有引擎都失败了，抛出最后一个错误
+    throw lastError || new Error('所有翻译引擎都不可用');
+  } catch (error) {
+    console.error('翻译服务调用失败:', error);
+    // 返回错误结果而不是抛出异常
     return {
       text,
-      translation,
-      engine,
-      from,
-      to,
+      translation: `翻译失败: ${error instanceof Error ? error.message : String(error)}`,
+      engine: options.engine,
+      from: options.from,
+      to: options.to,
       cached: false,
     };
-  } catch (error) {
-    console.error(error);
   }
 }
 

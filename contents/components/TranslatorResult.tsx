@@ -2,9 +2,20 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { Card, Button, Divider } from 'antd';
 import { CopyOutlined, SoundOutlined } from '@ant-design/icons';
 import '../index.css';
-import { Storage } from '@plasmohq/storage';
+import { useStorage } from '@plasmohq/storage/hook';
 import { getEngineLangCode, getLangAbbr, getTTSLang, getBrowserLang } from '~lib/constants/languages';
+import { FAVORITE_LANGS_KEY, SPEECH_KEY } from '~lib/constants/settings';
 import { useTranslation } from 'react-i18next';
+
+// 获取友好的引擎名称
+const getEngineDisplayName = (engine: string) => {
+  const engineNames = {
+    'bing': 'Bing',
+    'google': 'Google',
+    'deepl': 'DeepL'
+  };
+  return engineNames[engine] || engine;
+};
 
 // 扩展 Window 接口以支持全局音频元素
 declare global {
@@ -36,22 +47,19 @@ interface TranslatorResultProps {
   setShouldTranslate?: (should: boolean) => void; // 新增
 }
 
-const storage = new Storage();
-
-// 获取友好的引擎名称
-const getEngineDisplayName = (engine: string) => {
-  const engineNames = {
-    'bing': 'Bing',
-    'google': 'Google',
-    'deepl': 'DeepL'
-  };
-  return engineNames[engine] || engine;
-};
-
 const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
   // =============== 最关键：useTranslation 必须在最前面，无条件调用 ===============
   const { t } = useTranslation();
   
+  // =============== 使用 useStorage hooks ===============
+  const [favoriteLangs] = useStorage<string[]>(FAVORITE_LANGS_KEY, []);
+  const [speechSettings] = useStorage<{ speed: number; pitch: number; volume: number; engine: string }>(SPEECH_KEY, {
+    speed: 1,
+    pitch: 1,
+    volume: 1,
+    engine: 'edge'
+  });
+
   // =============== 早期验证：检查基本props的合法性 ===============
   const isPropsValid = useMemo(() => {
     return (
@@ -67,7 +75,6 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
   // =============== 所有其他 hooks 必须在这里，无条件执行 ===============
   const [targetLang, setTargetLang] = useState<string | undefined>(undefined);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [favoriteLangs, setFavoriteLangs] = useState<string[]>([]);
   const [translatedText, setTranslatedText] = useState('');
   const [loading, setLoading] = useState(false);
   const [usedEngine, setUsedEngine] = useState(props.engine);
@@ -90,29 +97,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
     setShouldRender(isPropsValid);
   }, [isPropsValid]);
 
-  // 2. 获取收藏语言
-  useEffect(() => {
-    if (!shouldRender) return;
-    
-    let isMounted = true;
-    const fetchFav = async () => {
-      try {
-        const fav = await storage.get('favoriteLangs');
-        if (isMounted && Array.isArray(fav)) {
-          setFavoriteLangs(fav);
-        }
-      } catch (e) {
-        console.error('获取收藏语言失败:', e);
-      }
-    };
-    fetchFav();
-    
-    return () => {
-      isMounted = false;
-    };
-  }, [shouldRender]);
-
-  // 3. 设置目标语言
+  // 2. 设置目标语言
   useEffect(() => {
     if (!shouldRender) return;
     
@@ -271,34 +256,39 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
   };
 
   // Web Speech API 朗读函数
-  const speakWithWebSpeechAPI = (text: string, lang: string): Promise<void> => {
-    return new Promise((resolve, reject) => {
+  const speakWithWebSpeechAPI = async (text: string, lang: string): Promise<void> => {
+    return new Promise(async (resolve, reject) => {
       if (!('speechSynthesis' in window)) {
         reject(new Error('Web Speech API 不支持'));
         return;
       }
 
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = getTTSLang(lang);
-      utterance.rate = 1;
-      utterance.pitch = 1;
-      utterance.volume = 1;
-      
-      utterance.onstart = () => {
-        setIsSpeaking(true);
-      };
-      
-      utterance.onend = () => {
-        setIsSpeaking(false);
-        resolve();
-      };
-      
-      utterance.onerror = (event) => {
-        setIsSpeaking(false);
-        reject(new Error(`Web Speech API 错误: ${event.error}`));
-      };
-      
-      window.speechSynthesis.speak(utterance);
+      try {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = getTTSLang(lang);
+        utterance.rate = speechSettings.speed || 1;
+        utterance.pitch = speechSettings.pitch || 1;
+        utterance.volume = speechSettings.volume || 1;
+        
+        utterance.onstart = () => {
+          setIsSpeaking(true);
+        };
+        
+        utterance.onend = () => {
+          setIsSpeaking(false);
+          resolve();
+        };
+        
+        utterance.onerror = (event) => {
+          setIsSpeaking(false);
+          reject(new Error(`Web Speech API 错误: ${event.error}`));
+        };
+        
+        window.speechSynthesis.speak(utterance);
+      } catch (error) {
+        console.error('[Web Speech API] 获取设置失败:', error);
+        reject(error);
+      }
     });
   };
 
@@ -312,26 +302,26 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
     }
 
     try {
-      // 首先尝试使用 Edge TTS 服务
-      const edgeResult = await props.callTTSAPI(text, lang);
-      
-      if (edgeResult.success && edgeResult.audioData) {
+      // 调用background的TTS服务
+      const result = await props.callTTSAPI(text, lang);
+
+      // 如果TTS服务成功且有音频数据，播放音频
+      if (result.success && result.audioData) {
         try {
           // 确保 audioData 是 ArrayBuffer 类型
           let audioBuffer: ArrayBuffer;
           
-          if (edgeResult.audioData instanceof ArrayBuffer) {
-            audioBuffer = edgeResult.audioData;
-          } else if ((edgeResult.audioData as any) instanceof Uint8Array) {
-            const uint8Array = edgeResult.audioData as Uint8Array;
+          if (result.audioData instanceof ArrayBuffer) {
+            audioBuffer = result.audioData;
+          } else if ((result.audioData as any) instanceof Uint8Array) {
+            const uint8Array = result.audioData as Uint8Array;
             audioBuffer = uint8Array.buffer instanceof ArrayBuffer 
               ? uint8Array.buffer.slice(uint8Array.byteOffset, uint8Array.byteOffset + uint8Array.byteLength)
               : new ArrayBuffer(0);
-          } else if (edgeResult.audioData && typeof edgeResult.audioData === 'object') {
+          } else if (result.audioData && typeof result.audioData === 'object') {
             // 检查是否是通过消息传递序列化的 Uint8Array
-            const obj = edgeResult.audioData as any;
-            console.log('[TTS] 收到的音频数据对象:', obj, '类型:', typeof obj, '构造函数:', obj.constructor?.name);
-            
+            const obj = result.audioData as any;
+
             if (obj.constructor?.name === 'Uint8Array' || (obj.buffer && obj.byteLength !== undefined)) {
               const uint8Array = new Uint8Array(Object.values(obj));
               audioBuffer = uint8Array.buffer;
@@ -347,30 +337,53 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
               }
             } else {
               console.error('未知的音频数据格式:', obj);
-              console.error('对象键:', Object.keys(obj));
-              console.error('对象值:', Object.values(obj));
-              throw new Error('音频数据格式不支持');
+              
+              // 如果是空对象，给出更具体的错误信息
+              if (Object.keys(obj).length === 0) {
+                console.error('TTS 服务返回了空的音频数据，可能是网络问题或 API 限制');
+                throw new Error('TTS 服务无法生成音频');
+              } else {
+                throw new Error('音频数据格式不支持');
+              }
             }
           } else {
-            console.error('无法识别的音频数据类型:', typeof edgeResult.audioData, edgeResult.audioData);
+            console.error('无法识别的音频数据类型:', typeof result.audioData, result.audioData);
             throw new Error('音频数据格式不支持');
+          }
+          
+          // 检查音频数据是否有效
+          if (audioBuffer.byteLength === 0) {
+            throw new Error('音频数据为空');
           }
           
           // 使用 Web Audio API 播放
           await playAudioFromArrayBuffer(audioBuffer);
           return;
         } catch (audioError) {
-          console.warn('Web Audio API 播放失败，回退到 Web Speech API:', audioError);
-          // 继续执行下面的 Web Speech API 回退逻辑
+          console.warn('[TTS] Web Audio API 播放失败，回退到 Web Speech API:', audioError);
+          // 如果播放失败，回退到本地Web Speech API
         }
       }
       
-      // Edge TTS 失败或没有音频数据，回退到 Web Speech API
-      await speakWithWebSpeechAPI(text, lang);
-    } catch (error) {
-      console.error('Edge TTS 失败，尝试 Web Speech API:', error);
+      // 检查是否需要使用Web Speech API (browser TTS)
+      if (result.error === 'browser_tts_required' || !result.success) {
+        await speakWithWebSpeechAPI(text, lang);
+        return;
+      }
       
-      // 最后的回退方案：Web Speech API
+      // 如果没有音频数据但标记为成功，也回退到Web Speech API
+      if (result.success && !result.audioData) {
+        await speakWithWebSpeechAPI(text, lang);
+        return;
+      }
+      
+      // 其他情况抛出错误
+      throw new Error(result.error || 'TTS服务失败');
+      
+    } catch (error) {
+      console.error('[TTS] TTS服务完全失败:', error);
+      
+      // 最后的回退方案：直接使用Web Speech API
       await speakWithWebSpeechAPI(text, lang);
     }
   };

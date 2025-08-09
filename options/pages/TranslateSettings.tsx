@@ -4,8 +4,6 @@ import { TRANSLATE_ENGINES, TTS_ENGINES } from '~lib/constants/engines';
 import { useTranslation } from 'react-i18next';
 import { useStorage } from '~lib/utils/storage';
 import {
-  getDictConfig,
-  setDictConfig,
   addAlwaysSite,
   addNeverSite,
   removeAlwaysSite,
@@ -20,7 +18,7 @@ import {
 } from '~lib/settings/siteTranslateSettings';
 import type { CustomDictEntry } from '~lib/settings/siteTranslateSettings';
 import { DeleteOutlined } from '@ant-design/icons';
-import { TRANSLATE_SETTINGS_KEY, SPEECH_KEY, DEEPL_API_KEY, SITE_TRANSLATE_SETTINGS_KEY } from '~lib/constants/settings';
+import { TRANSLATE_SETTINGS_KEY, SPEECH_KEY, DEEPL_API_KEY } from '~lib/constants/settings';
 import SettingsPageContainer from '../components/SettingsPageContainer';
 import SettingsGroup from '../components/SettingsGroup';
 import SettingsItem from '../components/SettingsItem';
@@ -103,6 +101,14 @@ const TranslateSettings: React.FC = () => {
 
   const handleSpeechEngineChange = (val: string) => {
     setSpeechSettings({ ...speechSettings, engine: val });
+    
+    // 根据引擎切换给出提示
+    if (val === 'google') {
+      message.info(t('已切换到Google TTS，注意：该引擎仅支持速度调节，不支持音调和音量设置'));
+    } else if (val === 'browser') {
+      message.info(t('已切换到Browser TTS，支持速度、音调和音量的完整调节'));
+    }
+    
     message.success(t('朗读引擎已保存')).then(() => {});
   };
 
@@ -112,11 +118,21 @@ const TranslateSettings: React.FC = () => {
   };
 
   const handleSpeechPitchChange = (val: number) => {
+    // 只有支持pitch的引擎才保存此设置
+    if (speechSettings.engine === 'google') {
+      message.warning(t('Google TTS不支持音调设置'));
+      return;
+    }
     setSpeechSettings({ ...speechSettings, pitch: val });
     message.success(t('朗读音调已保存')).then(() => {});
   };
 
   const handleSpeechVolumeChange = (val: number) => {
+    // 只有browser引擎支持volume
+    if (speechSettings.engine !== 'browser') {
+      message.warning(t('此TTS引擎不支持音量设置，仅Browser TTS支持'));
+      return;
+    }
     setSpeechSettings({ ...speechSettings, volume: val });
     message.success(t('朗读音量已保存')).then(() => {});
   };
@@ -352,7 +368,7 @@ const TranslateSettings: React.FC = () => {
 
         <SettingsItem
           label={t('朗读引擎')}
-          description={t('选择用于朗读的默认引擎，Edge TTS 音质最佳，Google TTS 稳定，浏览器 TTS 无需网络')}
+          description={t('选择用于朗读的默认引擎，Google TTS 稳定可靠，浏览器 TTS 无需网络')}
         >
           <Select
             value={speechSettings.engine}
@@ -361,8 +377,7 @@ const TranslateSettings: React.FC = () => {
             size="middle"
           >
             {TTS_ENGINES.map(e => (
-              <Option key={e.value} value={e.value} disabled={e.disabled}>
-                {e.icon && <img src={e.icon} alt={e.label} style={{ width: 16, height: 16, verticalAlign: 'middle', marginRight: 6 }} />}
+              <Option key={e.name} value={e.name}>
                 {e.label}
               </Option>
             ))}
@@ -388,11 +403,13 @@ const TranslateSettings: React.FC = () => {
 
         <SettingsItem
           label={t('朗读音调')}
+          description={t('仅Browser TTS支持，Google TTS不支持此设置')}
         >
           <Select
             value={speechSettings.pitch}
             onChange={handleSpeechPitchChange}
             style={{ width: 120 }}
+            disabled={speechSettings.engine === 'google'}
           >
             <Option value={0.5}>{t('低音')}</Option>
             <Option value={0.75}>{t('中低音')}</Option>
@@ -404,11 +421,13 @@ const TranslateSettings: React.FC = () => {
 
         <SettingsItem
           label={t('朗读音量')}
+          description={t('仅Browser TTS支持，Google TTS不支持此设置')}
         >
           <Select
             value={speechSettings.volume}
             onChange={handleSpeechVolumeChange}
             style={{ width: 120 }}
+            disabled={speechSettings.engine !== 'browser'}
           >
             <Option value={0.25}>{t('25%')}</Option>
             <Option value={0.5}>{t('50%')}</Option>

@@ -7,27 +7,21 @@ interface BaseSpeechService {
   stop(): void;
 }
 
-// 本地 TTS 服务
+// 本地 TTS 服务 (Web Speech API)
+// 注意：这个服务在background中只是占位符，实际的Web Speech API需要在content script中执行
 export class LocalSpeechService implements BaseSpeechService {
-  name: SpeechService = 'local';
+  name: SpeechService = 'browser';
 
   async speak(options: SpeechOptions): Promise<SpeechResult> {
-    try {
-      return {
-        success: false,
-        error: 'TTS not available in background script'
-      };
-    } catch (error) {
-      console.error('Local TTS error:', error);
-      return {
-        success: false,
-        error: error.message
-      };
-    }
+    // 在background中，本地TTS服务返回特殊标记，让content script处理
+    return {
+      success: false,
+      error: 'browser_tts_required', // 特殊错误标记，表示需要在content script中使用Web Speech API
+      requiresBrowser: true // 添加标记表示需要浏览器环境
+    };
   }
 
   stop(): void {
-    // 本地 TTS 服务不支持停止操作
-    console.warn('Local TTS service does not support stop operation.');
+    // 本地 TTS 服务的停止操作需要在content script中处理
   }
 } 

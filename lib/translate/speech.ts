@@ -13,6 +13,7 @@ export interface SpeechResult {
   audioData?: ArrayBuffer | Uint8Array; // 支持 ArrayBuffer 和 Uint8Array
   audioType?: string; // 音频 MIME 类型
   error?: string;
+  requiresBrowser?: boolean; // 标记是否需要在浏览器环境中执行
 }
 
-export type SpeechService = 'edge' | 'google' | 'browser' | 'local';
+export type SpeechService = 'google' | 'browser' | 'local';
