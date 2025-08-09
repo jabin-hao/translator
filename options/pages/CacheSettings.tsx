@@ -240,19 +240,6 @@ const CacheSettings: React.FC = () => {
           </Button>
         </SettingsItem>
       </SettingsGroup>
-
-      <SettingsGroup title={t('缓存说明')}>
-        <SettingsItem
-          label={t('功能说明')}
-        >
-          <div style={{ fontSize: 13, color: 'var(--ant-color-text-secondary)' }}>
-            <div style={{ marginBottom: 4 }}>• {t('翻译缓存可以显著提高重复翻译的速度')}</div>
-            <div style={{ marginBottom: 4 }}>• {t('缓存会自动过期，确保翻译结果的时效性')}</div>
-            <div style={{ marginBottom: 4 }}>• {t('缓存数据仅存储在本地，不会上传到服务器')}</div>
-            <div style={{ marginBottom: 0 }}>• {t('清空缓存不会影响翻译功能，只是需要重新翻译')}</div>
-          </div>
-        </SettingsItem>
-      </SettingsGroup>
     </SettingsPageContainer>
   );
 };

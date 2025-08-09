@@ -610,9 +610,6 @@ const TranslateSettings: React.FC = () => {
         cancelText="取消"
         okText="保存"
       >
-        <div style={{ marginBottom: 8, color: 'var(--ant-color-text-secondary)', fontSize: 13 }}>
-          你可以为该网站设置专属词典，优先替换翻译结果。原文需精确匹配，建议区分大小写。
-        </div>
         {/* 词条列表 */}
         <List
           size="small"

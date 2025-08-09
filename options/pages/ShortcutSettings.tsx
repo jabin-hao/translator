@@ -170,19 +170,6 @@ const ShortcutSettings: React.FC = () => {
           </div>
         </SettingsItem>
       </SettingsGroup>
-
-      <SettingsGroup title={t('使用说明')}>
-        <SettingsItem
-          label={t('功能说明')}
-        >
-          <div style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--ant-color-text-secondary)' }}>
-            <p>• {t('选中文字后，双击 Ctrl 键即可快速翻译')}</p>
-            <p>• {t('可以设置自定义快捷键替代默认的 Ctrl 双击')}</p>
-            <p>• {t('自定义快捷键支持组合键，如 Ctrl+Shift+T')}</p>
-            <p>• {t('关闭快捷键功能后，仍可通过点击翻译图标进行翻译')}</p>
-          </div>
-        </SettingsItem>
-      </SettingsGroup>
     </SettingsPageContainer>
   );
 };
