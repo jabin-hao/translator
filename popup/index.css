@@ -24,12 +24,31 @@ body {
 #__plasmo {
   width: 400px !important;
   height: auto !important;
+  max-height: 1000px !important;
   margin: 0 !important;
   padding: 0 !important;
   background: transparent !important;
+  overflow: visible !important;
 }
 
 /* 确保根容器没有边距 */
 * {
   box-sizing: border-box !important;
+}
+
+/* 禁用所有可能的滚动条 */
+html, body, #__plasmo, #__plasmo > *, .ant-app {
+  overflow: visible !important;
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important; /* IE */
+}
+
+/* 禁用WebKit滚动条 */
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+#__plasmo::-webkit-scrollbar,
+.ant-app::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }

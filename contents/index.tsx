@@ -220,6 +220,18 @@ const ContentScript = () => {
     // 显示翻译图标
     const showTranslationIcon = (text: string, rect: DOMRect) => {
         if (!showInputTranslator && !result) {
+            // 如果开启了自动翻译，直接触发翻译
+            if (autoTranslate) {
+                // 将翻译结果显示在选中文字的正下方
+                setResult({
+                    x: rect.left + window.scrollX, // 左对齐
+                    y: rect.bottom + window.scrollY, // 正下方
+                    originalText: text
+                });
+                setShouldTranslate(true);
+                return;
+            }
+            
             // 更精确的位置计算 - 使用视窗相对坐标，因为图标使用fixed定位
             const iconWidth = 32;
             const iconHeight = 32;

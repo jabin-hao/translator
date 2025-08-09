@@ -1,19 +1,8 @@
 import { storageApi } from '~lib/utils/storage';
-import { SITE_TRANSLATE_SETTINGS_KEY, DICT_KEY } from '../constants/settings';
+import { useStorage } from '~lib/utils/storage';
+import { DICT_KEY } from '../constants/settings';
 
-export interface SiteTranslateSettings {
-  autoTranslateEnabled: boolean;
-  alwaysTranslateSites: string[];
-  neverTranslateSites: string[];
-  pageTranslateMode?: string;
-}
-
-const defaultSettings: SiteTranslateSettings = {
-  autoTranslateEnabled: false,
-  alwaysTranslateSites: [],
-  neverTranslateSites: []
-};
-
+// 主要使用的配置接口
 export interface DictConfig {
   siteAlwaysList: string[];
   siteNeverList: string[];
@@ -25,20 +14,27 @@ export interface DictConfig {
 const defaultDict: DictConfig = {
   siteAlwaysList: [],
   siteNeverList: [],
-  customDicts: {}
+  customDicts: {},
+  autoTranslateEnabled: false
 };
 
-export async function getSiteTranslateSettings(): Promise<SiteTranslateSettings> {
-  const data = await storageApi.get(SITE_TRANSLATE_SETTINGS_KEY);
-  if (data && typeof data === 'object') {
-    return { ...defaultSettings, ...(data as SiteTranslateSettings) };
-  }
-  return { ...defaultSettings };
+// React Hook 版本 - 用于组件中的响应式状态管理
+export function useDictConfig() {
+  return useStorage<DictConfig>(DICT_KEY, defaultDict);
 }
 
-export async function setSiteTranslateSettings(settings: SiteTranslateSettings) {
-  await storageApi.set(SITE_TRANSLATE_SETTINGS_KEY, settings);
+// 自动翻译开关的单独hook
+export function useAutoTranslateEnabled() {
+  const [dictConfig, setDictConfig] = useDictConfig();
+  
+  const setAutoTranslateEnabled = async (enabled: boolean) => {
+    await setDictConfig({ ...dictConfig, autoTranslateEnabled: enabled });
+  };
+  
+  return [dictConfig.autoTranslateEnabled ?? false, setAutoTranslateEnabled] as const;
 }
+
+// 主要API - 推荐使用
 
 export async function getDictConfig(): Promise<DictConfig> {
   const data = await storageApi.get(DICT_KEY);
@@ -104,28 +100,39 @@ export async function removeCustomDict(host: string) {
 }
 
 export async function setAutoTranslateEnabled(enabled: boolean) {
-  const settings = await getSiteTranslateSettings();
-  settings.autoTranslateEnabled = enabled;
-  await setSiteTranslateSettings(settings);
+  const dict = await getDictConfig();
+  await setDictConfig({ ...dict, autoTranslateEnabled: enabled });
 }
 
-// 新增：支持路径匹配的工具函数
+// 支持路径匹配的工具函数
 export function matchSiteList(list: string[], url: string): boolean {
+  
   // 完整匹配
-  if (list.includes(url)) return true;
+  if (list.includes(url)) {
+    return true;
+  }
+  
   // 路径递减匹配
   try {
     const u = new URL(url.startsWith('http') ? url : 'https://' + url);
     let path = u.pathname;
+
     while (path && path !== '/') {
       const test = u.hostname + path;
-      if (list.includes(test)) return true;
+      if (list.includes(test)) {
+        return true;
+      }
       path = path.substring(0, path.lastIndexOf('/'));
     }
+    
     // 主域名匹配
-    return list.includes(u.hostname);
-  } catch {
+    const result = list.includes(u.hostname);
+    return result;
+  } catch (error) {
     // fallback: 只用字符串包含
-    return list.some(item => url.startsWith(item));
+    return list.some(item => {
+      const match = url.startsWith(item);
+      return match;
+    });
   }
-} 
+}

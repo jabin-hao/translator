@@ -12,7 +12,9 @@ import {
   addNeverSite,
   removeAlwaysSite,
   removeNeverSite,
-  removeCustomDict
+  removeCustomDict,
+  useDictConfig,
+  useAutoTranslateEnabled
 } from '~lib/settings/siteTranslateSettings';
 import { DeleteOutlined } from '@ant-design/icons';
 import { TRANSLATE_SETTINGS_KEY, SPEECH_KEY, DEEPL_API_KEY, SITE_TRANSLATE_SETTINGS_KEY } from '~lib/constants/settings';
@@ -40,22 +42,18 @@ const TranslateSettings: React.FC = () => {
 
   const [deeplApiKey, setDeeplApiKey] = useStorage(DEEPL_API_KEY, '');
 
-  // 网站自动翻译设置 - 使用 useStorage hook
-  const [siteTranslateSettings, setSiteTranslateSettings] = useStorage(SITE_TRANSLATE_SETTINGS_KEY, {
-    autoTranslateEnabled: false,
-    alwaysTranslateSites: [],
-    neverTranslateSites: []
-  });
+  // 网站自动翻译设置 - 使用专门的hooks
+  const [dictConfig, setDictConfigState] = useDictConfig();
+  const [siteAutoEnabled, setSiteAutoEnabled] = useAutoTranslateEnabled();
 
   // 本地UI状态（不需要持久化的状态）
   const [deeplApiKeyInput, setDeeplApiKeyInput] = useState(deeplApiKey || '');
   
   // 朗读引擎设置 - 现在从useStorage获取
 
-  // 从 siteTranslateSettings 提取值
-  const siteAutoEnabled = siteTranslateSettings?.autoTranslateEnabled ?? false;
-  const alwaysSites = siteTranslateSettings?.alwaysTranslateSites ?? [];
-  const neverSites = siteTranslateSettings?.neverTranslateSites ?? [];
+  // 从 dictConfig 提取值
+  const alwaysSites = dictConfig?.siteAlwaysList ?? [];
+  const neverSites = dictConfig?.siteNeverList ?? [];
   const [addHost, setAddHost] = useState('');
   const [addType, setAddType] = useState<'always'|'never'>('always');
 
@@ -79,6 +77,11 @@ const TranslateSettings: React.FC = () => {
   useEffect(() => {
     setDeeplApiKeyInput(deeplApiKey || '');
   }, [deeplApiKey]);
+
+  // 初始化页面翻译模式
+  useEffect(() => {
+    setPageTranslateMode((dictConfig?.pageTranslateMode || 'translated') as 'translated' | 'compare');
+  }, [dictConfig?.pageTranslateMode]);
 
   const handleEngineChange = (val: string) => {
     setTranslateSettings({ ...translateSettings, engine: val });
@@ -129,68 +132,39 @@ const TranslateSettings: React.FC = () => {
   };
 
   const handleSiteAutoChange = async (checked: boolean) => {
-    // 更新 siteTranslateSettings 对象
-    const newSettings = {
-      ...siteTranslateSettings,
-      autoTranslateEnabled: checked
-    };
-    setSiteTranslateSettings(newSettings);
+    // 使用专门的hook来更新自动翻译开关
+    await setSiteAutoEnabled(checked);
     message.success(checked ? t('已开启网站自动翻译') : t('已关闭网站自动翻译'));
   };
   
   const handleRemoveAlways = async (host: string) => {
     await removeAlwaysSite(host);
     await removeCustomDict(host);
-    // 重新读取最新的设置
-    const dict = await getDictConfig();
-    const newSettings = {
-      ...siteTranslateSettings,
-      alwaysTranslateSites: dict.siteAlwaysList || []
-    };
-    setSiteTranslateSettings(newSettings);
     message.success(t('已移除白名单并清除词库'));
   };
   
   const handleRemoveNever = async (host: string) => {
     await removeNeverSite(host);
-    // 重新读取最新的设置
-    const dict = await getDictConfig();
-    const newSettings = {
-      ...siteTranslateSettings,
-      neverTranslateSites: dict.siteNeverList || []
-    };
-    setSiteTranslateSettings(newSettings);
     message.success(t('已移除黑名单'));
   };
+  
   const handleAddHost = async () => {
     const host = addHost.trim();
     if (!host) return;
     if (addType === 'always') {
       await addAlwaysSite(host);
-      const dict = await getDictConfig();
-      const newSettings = {
-        ...siteTranslateSettings,
-        alwaysTranslateSites: dict.siteAlwaysList || []
-      };
-      setSiteTranslateSettings(newSettings);
       message.success(t('已加入白名单'));
     } else {
       await addNeverSite(host);
-      const dict = await getDictConfig();
-      const newSettings = {
-        ...siteTranslateSettings,
-        neverTranslateSites: dict.siteNeverList || []
-      };
-      setSiteTranslateSettings(newSettings);
       message.success(t('已加入黑名单'));
     }
     setAddHost('');
   };
 
   const handlePageTranslateModeChange = async (e: any) => {
-    setPageTranslateMode(e.target.value);
-    const dict = await getDictConfig();
-    await setDictConfig({ ...dict, pageTranslateMode: e.target.value });
+    const newMode = e.target.value;
+    setPageTranslateMode(newMode);
+    await setDictConfigState({ ...dictConfig, pageTranslateMode: newMode });
     message.success(t('整页翻译模式已保存'));
   };
 
@@ -226,18 +200,6 @@ const TranslateSettings: React.FC = () => {
   // 只展示最新5个（倒序）
   const alwaysSitesToShow = (alwaysSites || []).slice(-5).reverse();
   const neverSitesToShow = (neverSites || []).slice(-5).reverse();
-
-
-  // 刷新站点列表的通用函数
-  const refreshSiteLists = async () => {
-    const dict = await getDictConfig();
-    const newSettings = {
-      ...siteTranslateSettings,
-      alwaysTranslateSites: dict.siteAlwaysList || [],
-      neverTranslateSites: dict.siteNeverList || []
-    };
-    setSiteTranslateSettings(newSettings);
-  };
 
   // 批量操作的通用组件
   const BatchSiteModal: React.FC<{
@@ -276,14 +238,12 @@ const TranslateSettings: React.FC = () => {
           await onBatchRemove(selected);
           setSelected([]);
           onClose();
-          await refreshSiteLists();
         }}>{t('批量移除')}</Button>,
         ...(onBatchTransfer && transferButtonText ? [
           <Button key="transfer" disabled={selected.length === 0} onClick={async () => {
             await onBatchTransfer(selected);
             setSelected([]);
             onClose();
-            await refreshSiteLists();
           }}>{transferButtonText}</Button>
         ] : [])
       ]}

@@ -13,7 +13,11 @@ export const setupMessageHandler = () => {
           sendResponse({ success: true });
           // 翻译完成后通知前端隐藏 loading
           if (chrome?.runtime?.id) {
-            chrome.runtime.sendMessage({type: 'FULL_PAGE_TRANSLATE_DONE'}).then(() => {});
+            try {
+              chrome.runtime.sendMessage({type: 'FULL_PAGE_TRANSLATE_DONE'}).then(() => {});
+            } catch (error) {
+              console.log('消息发送失败，可能是扩展上下文已失效:', error);
+            }
           }
         }).catch(err => {
           console.error('整页翻译失败:', err);
@@ -26,11 +30,17 @@ export const setupMessageHandler = () => {
         sendResponse({ success: true });
         // 还原完成后通知 popup 结束 loading
         if (chrome?.runtime?.id) {
-          chrome.runtime.sendMessage({type: 'RESTORE_ORIGINAL_PAGE_DONE'}).then(() => {});
+          try {
+            chrome.runtime.sendMessage({type: 'RESTORE_ORIGINAL_PAGE_DONE'}).then(() => {});
+          } catch (error) {
+            console.log('消息发送失败，可能是扩展上下文已失效:', error);
+          }
         }
+        return true; // 异步响应
       } else if (msg.type === 'CHECK_PAGE_TRANSLATED') {
         const translated = getPageTranslationStatus();
         sendResponse({ translated });
+        return true; // 异步响应
       }
     });
   }

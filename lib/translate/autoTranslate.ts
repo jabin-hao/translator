@@ -1,4 +1,4 @@
-import { getSiteTranslateSettings, getDictConfig, matchSiteList } from '~lib/settings/siteTranslateSettings';
+import { getDictConfig, matchSiteList } from '~lib/settings/siteTranslateSettings';
 import { lazyFullPageTranslate } from '~lib/translate/fullPageTranslate';
 
 // 自动翻译逻辑
@@ -13,11 +13,11 @@ export const setupAutoTranslate = (
     const path = window.location.pathname;
     const fullUrl = path === '/' ? host : host + path;
     
+    
     try {
-      const settings = await getSiteTranslateSettings();
       const dict = await getDictConfig();
       
-      if (!settings.autoTranslateEnabled) {
+      if (!dict.autoTranslateEnabled) {
         return;
       }
       
@@ -28,7 +28,7 @@ export const setupAutoTranslate = (
       if (matchSiteList(dict.siteAlwaysList || [], fullUrl)) {
         if (typeof (window as any).__autoFullPageTranslated === 'undefined') {
           (window as any).__autoFullPageTranslated = true;
-          const mode = (settings as any).pageTranslateMode || 'translated';
+          const mode = (dict.pageTranslateMode || 'translated') as 'translated' | 'compare';
           
           const result = await lazyFullPageTranslate(pageTargetLang, mode, engine);
           
@@ -39,7 +39,12 @@ export const setupAutoTranslate = (
           
           // 通知 popup 更新状态
           if (chrome?.runtime?.id) {
-            await chrome.runtime.sendMessage({type: 'FULL_PAGE_TRANSLATE_DONE'});
+            try {
+              await chrome.runtime.sendMessage({type: 'FULL_PAGE_TRANSLATE_DONE'});
+            } catch (error) {
+              // 忽略消息发送错误，可能是因为扩展上下文已失效
+              console.log('消息发送失败，可能是扩展上下文已失效:', error);
+            }
           }
         }
       }

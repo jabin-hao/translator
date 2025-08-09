@@ -11,10 +11,14 @@ import { useStorage } from '~lib/utils/storage';
 import { useTheme } from '~lib/utils/theme';
 import {
   getDictConfig,
+  setDictConfig,
   addAlwaysSite,
   removeAlwaysSite,
   addNeverSite,
-  removeNeverSite
+  removeNeverSite,
+  matchSiteList,
+  useDictConfig,
+  useAutoTranslateEnabled
 } from '~lib/settings/siteTranslateSettings';
 import { TRANSLATE_SETTINGS_KEY, CACHE_KEY, PAGE_LANG_KEY, TEXT_LANG_KEY, SITE_TRANSLATE_SETTINGS_KEY } from '~lib/constants/settings';
 
@@ -46,12 +50,8 @@ const PopupInner: React.FC = () => {
   const [pageTargetLang, setPageTargetLang] = useStorage(PAGE_LANG_KEY, 'zh-CN');
   const [textTargetLang, setTextTargetLang] = useStorage(TEXT_LANG_KEY, 'zh-CN');
   
-  // 网站自动翻译设置 - 使用 useStorage hook
-  const [siteTranslateSettings, setSiteTranslateSettings] = useStorage(SITE_TRANSLATE_SETTINGS_KEY, {
-    autoTranslateEnabled: false,
-    alwaysTranslateSites: [],
-    neverTranslateSites: []
-  });
+  // 网站自动翻译设置 - 使用专门的hook
+  const [siteAutoTranslateEnabled, setSiteAutoTranslateEnabled] = useAutoTranslateEnabled();
   
   // 从 translateSettings 对象中提取值
   const engine = translateSettings?.engine || 'google';
@@ -61,8 +61,7 @@ const PopupInner: React.FC = () => {
   const [isPageTranslated, setIsPageTranslated] = useState(false);
   const [isPageTranslating, setIsPageTranslating] = useState(false);
 
-  // 网站自动翻译相关状态 - 直接从 useStorage 获取
-  const siteAutoTranslateEnabled = siteTranslateSettings?.autoTranslateEnabled ?? false;
+  // 网站管理相关状态
   const [siteKey, setSiteKey] = useState('');
   const [siteSettings, setSiteSettings] = useState({ always: false, never: false });
 
@@ -73,14 +72,24 @@ const PopupInner: React.FC = () => {
       if (url) {
         try {
           const u = new URL(url);
-          const key = u.pathname === '/' ? u.hostname : u.hostname + u.pathname;
+          const host = u.hostname;
+          const path = u.pathname;
+          const key = path === '/' ? host : host + path;
+          
           setSiteKey(key);
           const dict = await getDictConfig();
+          
+          // 使用matchSiteList函数来检查匹配
+          const isAlways = matchSiteList(dict.siteAlwaysList || [], key);
+          const isNever = matchSiteList(dict.siteNeverList || [], key);
+          
           setSiteSettings({
-            always: dict.siteAlwaysList.includes(key),
-            never: dict.siteNeverList.includes(key)
+            always: isAlways,
+            never: isNever
           });
-        } catch {}
+        } catch (error) {
+          console.error('[Popup] URL解析失败:', error);
+        }
       }
     });
   }, []);
@@ -132,6 +141,13 @@ const PopupInner: React.FC = () => {
     setTranslateSettings({ ...translateSettings, autoRead: checked });
     message.success(t('自动朗读设置已保存'));
   };
+
+  // 新增：划词自动翻译开关处理
+  const handleAutoTranslateChange = async (checked: boolean) => {
+    setTranslateSettings({ ...translateSettings, autoTranslate: checked });
+    message.success(t('划词自动翻译设置已保存'));
+  };
+
   const handleCacheToggle = (checked: boolean) => {
     setCacheEnabled(checked);
     message.success(checked ? t('已启用翻译缓存') : t('已禁用翻译缓存'));
@@ -154,12 +170,8 @@ const PopupInner: React.FC = () => {
 
   // 新增：网站自动翻译开关处理
   const handleSiteAutoTranslateChange = async (checked: boolean) => {
-    // 更新 siteTranslateSettings 对象
-    const newSettings = {
-      ...siteTranslateSettings,
-      autoTranslateEnabled: checked
-    };
-    setSiteTranslateSettings(newSettings);
+    // 直接使用hook的setter函数
+    await setSiteAutoTranslateEnabled(checked);
     message.success(checked ? t('已开启网站自动翻译') : t('已关闭网站自动翻译'));
   };
 
@@ -170,10 +182,15 @@ const PopupInner: React.FC = () => {
     } else {
       await addAlwaysSite(siteKey);
     }
+    
+    // 重新获取配置并检查匹配
     const dict = await getDictConfig();
+    const isAlways = matchSiteList(dict.siteAlwaysList || [], siteKey);
+    const isNever = matchSiteList(dict.siteNeverList || [], siteKey);
+    
     setSiteSettings({
-      always: dict.siteAlwaysList.includes(siteKey),
-      never: dict.siteNeverList.includes(siteKey)
+      always: isAlways,
+      never: isNever
     });
     message.success(siteSettings.always ? t('已移除总是翻译该网站') : t('已添加到总是翻译该网站'));
   };
@@ -184,10 +201,15 @@ const PopupInner: React.FC = () => {
     } else {
       await addNeverSite(siteKey);
     }
+    
+    // 重新获取配置并检查匹配
     const dict = await getDictConfig();
+    const isAlways = matchSiteList(dict.siteAlwaysList || [], siteKey);
+    const isNever = matchSiteList(dict.siteNeverList || [], siteKey);
+    
     setSiteSettings({
-      always: dict.siteAlwaysList.includes(siteKey),
-      never: dict.siteNeverList.includes(siteKey)
+      always: isAlways,
+      never: isNever
     });
     message.success(siteSettings.never ? t('已移除永不翻译该网站') : t('已添加到永不翻译该网站'));
   };
@@ -223,11 +245,11 @@ const PopupInner: React.FC = () => {
   return (
     <div style={{
       width: '100%',
-      height: 'auto', // 改为自动高度
+      height: 'auto',
       maxHeight: '600px',
       maxWidth: '400px', 
       minWidth: 380,
-      minHeight: 'auto', // 改为自动最小高度
+      minHeight: 'auto',
       boxSizing: 'border-box',
       background: isDark ? '#1f1f1f' : '#ffffff',
       overflow: 'hidden',
@@ -236,7 +258,7 @@ const PopupInner: React.FC = () => {
     }}>
       {/* 自定义标题栏 */}
       <div style={{
-        padding: '12px 16px 8px',
+        padding: '8px 16px 4px',
         borderBottom: 'none',
         background: isDark ? '#1f1f1f' : '#ffffff',
         display: 'flex',
@@ -281,13 +303,14 @@ const PopupInner: React.FC = () => {
       
       {/* 内容区域 */}
       <div style={{
-        padding: '0 16px 12px',
+        padding: '0 16px 8px',
         background: isDark ? '#1f1f1f' : '#ffffff',
-        overflow: 'visible', // 改为visible让内容完全显示
+        overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
+        flex: 1,
       }}>
-        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+        <Space direction="vertical" size={8} style={{ width: '100%' }}>
           {/* 翻译引擎选择 */}
           <div>
             <Text strong style={{ display: 'block', marginBottom: 6 }}>
@@ -351,10 +374,14 @@ const PopupInner: React.FC = () => {
 
           {/* 功能开关 */}
           <div>
-            <Text strong style={{ display: 'block', marginBottom: 8 }}>
+            <Text strong style={{ display: 'block', marginBottom: 6 }}>
               {t('功能设置')}
             </Text>
-            <Space direction="vertical" size={8} style={{ width: '100%' }}>
+            <Space direction="vertical" size={6} style={{ width: '100%' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text>{t('划词自动翻译')}</Text>
+                <Switch checked={autoTranslate} onChange={handleAutoTranslateChange} />
+              </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text>{t('网站自动翻译')}</Text>
                 <Switch checked={siteAutoTranslateEnabled} onChange={handleSiteAutoTranslateChange} />
@@ -375,10 +402,10 @@ const PopupInner: React.FC = () => {
             <>
               <Divider style={{ margin: 0 }} />
               <div>
-                <Text strong style={{ display: 'block', marginBottom: 8 }}>
+                <Text strong style={{ display: 'block', marginBottom: 6 }}>
                   {t('网站管理')}
                 </Text>
-                <Space direction="vertical" size={6} style={{ width: '100%' }}>
+                <Space direction="vertical" size={4} style={{ width: '100%' }}>
                   <Button
                     type={siteSettings.always ? 'primary' : 'default'}
                     block
@@ -402,14 +429,14 @@ const PopupInner: React.FC = () => {
           )}
 
           {/* 主要操作按钮 */}
-          <div style={{ paddingTop: 8 }}>
+          <div style={{ paddingTop: 4 }}>
             <Button
               type={isPageTranslated ? 'default' : 'primary'}
               icon={isPageTranslated ? <ReloadOutlined /> : <TranslationOutlined />}
               loading={isPageTranslating}
               onClick={isPageTranslated ? handleRestorePage : handleFullPageTranslate}
               block
-              style={{ borderRadius: 8, height: 40, fontWeight: 500 }}
+              style={{ borderRadius: 8, height: 32, fontWeight: 500 }}
             >
               {isPageTranslated ? t('显示原网页') : t('翻译当前网站')}
             </Button>
