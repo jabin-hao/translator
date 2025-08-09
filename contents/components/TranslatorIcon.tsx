@@ -18,12 +18,16 @@ const TranslatorIcon: React.FC<TranslatorIconProps> = ({ x, y, onClick }) => {
     return null;
   }
 
+  // 确保图标位置在合理范围内（视窗相对坐标，用于fixed定位）
+  const safeX = Math.max(0, Math.min(x, window.innerWidth - 50));
+  const safeY = Math.max(0, Math.min(y, window.innerHeight - 50));
+
   return (
     <div
       className="translator-icon"
       style={{ 
-        left: x + 10, 
-        top: y - 10,
+        left: safeX, // 移除额外的 +10 偏移
+        top: safeY,  // 移除额外的 -10 偏移
         position: 'fixed',
         width: '32px',
         height: '32px',
@@ -37,7 +41,8 @@ const TranslatorIcon: React.FC<TranslatorIconProps> = ({ x, y, onClick }) => {
         justifyContent: 'center',
         boxShadow: isDark ? '0 8px 24px rgba(0,0,0,0.3)' : '0 8px 24px rgba(0,0,0,0.15)',
         pointerEvents: 'auto',
-        userSelect: 'none'
+        userSelect: 'none',
+        transition: 'all 0.1s ease-out'
       }}
       tabIndex={0}
       onClick={e => {

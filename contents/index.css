@@ -1,6 +1,23 @@
+/* 导入主题变量 */
+@import './styles/theme.css';
+
 /* 全局样式重置 */
 * {
   box-sizing: border-box;
+}
+
+/* Message容器重置 */
+#message-container {
+  writing-mode: horizontal-tb !important;
+  direction: ltr !important;
+  text-orientation: mixed !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+}
+
+#message-container * {
+  writing-mode: horizontal-tb !important;
+  direction: ltr !important;
+  text-orientation: mixed !important;
 }
 
 /* 确保Ant Design组件在内容脚本中正确显示 */
@@ -23,6 +40,42 @@
 }
 
 .ant-card-head-title {
+  color: var(--text-primary) !important;
+}
+
+/* 按钮样式 */
+.ant-btn {
+  color: var(--text-primary) !important;
+  border-color: var(--card-border) !important;
+}
+
+.ant-btn-primary {
+  background: var(--button-primary) !important;
+  border-color: var(--button-primary) !important;
+  color: #ffffff !important;
+}
+
+.ant-btn-primary:hover {
+  background: var(--button-hover) !important;
+  border-color: var(--button-hover) !important;
+}
+
+/* 输入框样式 */
+.ant-input {
+  background: var(--select-bg) !important;
+  border-color: var(--select-border) !important;
+  color: var(--text-primary) !important;
+}
+
+.ant-input:focus {
+  border-color: var(--button-primary) !important;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2) !important;
+}
+
+/* 文本域样式 */
+.ant-input-textarea .ant-input {
+  background: var(--select-bg) !important;
+  border-color: var(--select-border) !important;
   color: var(--text-primary) !important;
 }
 
@@ -95,6 +148,52 @@
 /* 确保message组件正确显示 */
 .ant-message {
   z-index: 2147483647 !important;
+  pointer-events: auto !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+  writing-mode: horizontal-tb !important;
+  direction: ltr !important;
+  text-orientation: mixed !important;
+}
+
+.ant-message .ant-message-notice {
+  z-index: 2147483647 !important;
+  pointer-events: auto !important;
+  writing-mode: horizontal-tb !important;
+  direction: ltr !important;
+  text-orientation: mixed !important;
+}
+
+.ant-message .ant-message-notice-content {
+  background: var(--card-bg) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--card-border) !important;
+  box-shadow: var(--shadow) !important;
+  writing-mode: horizontal-tb !important;
+  direction: ltr !important;
+  text-orientation: mixed !important;
+  white-space: normal !important;
+  word-break: normal !important;
+  line-height: normal !important;
+  display: inline-block !important;
+  min-width: 200px !important;
+  text-align: left !important;
+}
+
+.ant-message .ant-message-custom-content {
+  writing-mode: horizontal-tb !important;
+  direction: ltr !important;
+  text-orientation: mixed !important;
+  white-space: normal !important;
+  word-break: normal !important;
+  line-height: normal !important;
+  display: inline-block !important;
+}
+
+/* 确保message中的所有文本都是水平方向 */
+.ant-message * {
+  writing-mode: horizontal-tb !important;
+  direction: ltr !important;
+  text-orientation: mixed !important;
 }
 
 /* TranslatorResult 组件样式 */

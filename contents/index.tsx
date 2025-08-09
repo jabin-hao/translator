@@ -98,7 +98,7 @@ const AppContent = ({
     };
 
     return (
-        <>
+        <>          
             {icon && (
                 <TranslatorIcon
                     x={icon.x}
@@ -220,11 +220,39 @@ const ContentScript = () => {
     // 显示翻译图标
     const showTranslationIcon = (text: string, rect: DOMRect) => {
         if (!showInputTranslator && !result) {
-            // 将图标位置设置为选中文字的右上方
-            // x: 右边位置，y: 上边位置并稍微向上偏移
+            // 更精确的位置计算 - 使用视窗相对坐标，因为图标使用fixed定位
+            const iconWidth = 32;
+            const iconHeight = 32;
+            const margin = 10;
+            
+            // 图标使用fixed定位，所以直接使用rect的坐标即可
+            let iconX = rect.right;
+            let iconY = rect.top - 15; // 调整为-15，让图标更偏上
+            
+            // 边界检查 - 使用视窗坐标系
+            // 检查右边界 - 如果图标会超出右边界，移到文字左侧
+            if (iconX + iconWidth + margin > window.innerWidth) {
+                iconX = rect.left - iconWidth - margin;
+            }
+            
+            // 检查左边界
+            if (iconX < margin) {
+                iconX = margin;
+            }
+            
+            // 检查上边界 - 如果图标会超出上边界，移到文字下方
+            if (iconY < margin) {
+                iconY = rect.bottom + margin;
+            }
+            
+            // 检查下边界
+            if (iconY + iconHeight + margin > window.innerHeight) {
+                iconY = window.innerHeight - iconHeight - margin;
+            }
+            
             setIcon({ 
-                x: rect.right + window.scrollX, 
-                y: rect.top + window.scrollY - 5, // 向上偏移5px
+                x: iconX, 
+                y: iconY,
                 text 
             });
         }
@@ -265,8 +293,8 @@ const ContentScript = () => {
                 const rect = range.getBoundingClientRect();
                 
                 setResult({
-                    x: rect.left + window.scrollX, // 选中文字的左边位置
-                    y: rect.bottom + window.scrollY, // 选中文字的正下方
+                    x: rect.left, // 使用视窗相对坐标，因为结果组件也使用fixed定位
+                    y: rect.bottom + 5, // 选中文字的正下方
                     originalText: icon.text
                 });
             } else {
@@ -350,10 +378,41 @@ const ContentScript = () => {
             <StyleProvider hashPriority="high" container={document.getElementById(HOST_ID)?.shadowRoot}>
                 <App
                     message={{
-                        top: 20,
-                        duration: 2.5,
+                        top: 0, // 从顶部开始，因为容器已经有padding-top
+                        duration: 3,
                         maxCount: 3,
-                        getContainer: () => document.getElementById(HOST_ID)?.shadowRoot?.host as HTMLElement || document.body,
+                        getContainer: () => {
+                            const shadowHost = document.getElementById(HOST_ID);
+                            if (shadowHost?.shadowRoot) {
+                                // 在shadow root内部创建一个容器元素来承载message
+                                let messageContainer = shadowHost.shadowRoot.querySelector('#message-container') as HTMLElement;
+                                if (!messageContainer) {
+                                    messageContainer = document.createElement('div');
+                                    messageContainer.id = 'message-container';
+                                    messageContainer.style.cssText = `
+                                        position: fixed; 
+                                        top: 20px; 
+                                        left: 50%;
+                                        transform: translateX(-50%);
+                                        width: 100vw; 
+                                        height: auto; 
+                                        pointer-events: none; 
+                                        z-index: 2147483647;
+                                        display: block;
+                                        text-align: center;
+                                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                                        line-height: normal;
+                                        white-space: normal;
+                                        word-break: normal;
+                                        writing-mode: horizontal-tb;
+                                        direction: ltr;
+                                    `;
+                                    shadowHost.shadowRoot.appendChild(messageContainer);
+                                }
+                                return messageContainer;
+                            }
+                            return document.body;
+                        },
                     }}
                 >
                     <AppContent

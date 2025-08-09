@@ -13,6 +13,8 @@
   --select-border: #d9d9d9;
   --button-bg: #ffffff;
   --button-border: #d9d9d9;
+  --button-primary: #1890ff;
+  --button-hover: #40a9ff;
   --result-bg: #f5f5f5;
   --shadow: 0 8px 24px rgba(0,0,0,0.15);
 }
@@ -32,6 +34,8 @@
   --select-border: #404040;
   --button-bg: #2a2a2a;
   --button-border: #404040;
+  --button-primary: #1890ff;
+  --button-hover: #40a9ff;
   --result-bg: #1a1a1a;
   --shadow: 0 8px 24px rgba(0,0,0,0.3);
 }

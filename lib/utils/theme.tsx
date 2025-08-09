@@ -107,8 +107,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children, storageK
 
   // 将主题信息同步到 Shadow DOM 根元素
   useEffect(() => {
-    // 查找 Shadow DOM 容器
-    const hostElement = document.getElementById('plasmo-shadow-container');
+    // 查找当前的 Shadow DOM 容器 - 使用正确的ID
+    const hostElement = document.getElementById('translator-csui');
     if (hostElement?.shadowRoot) {
       const shadowContainer = hostElement.shadowRoot.host as HTMLElement;
       if (shadowContainer) {
@@ -118,6 +118,23 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children, storageK
           shadowContainer.setAttribute('data-theme', 'light');
         }
       }
+      
+      // 也设置到shadowRoot本身，如果需要的话
+      const shadowRoot = hostElement.shadowRoot as any;
+      if (shadowRoot.host) {
+        if (isDark) {
+          shadowRoot.host.setAttribute('data-theme', 'dark');
+        } else {
+          shadowRoot.host.setAttribute('data-theme', 'light');
+        }
+      }
+    }
+    
+    // 同时设置到document.body作为备选
+    if (isDark) {
+      document.body.setAttribute('data-theme', 'dark');
+    } else {
+      document.body.setAttribute('data-theme', 'light');
     }
   }, [isDark]);
 
