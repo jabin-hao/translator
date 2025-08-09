@@ -2,6 +2,7 @@
 export const SITE_LANG_KEY = 'site_page_lang'; // 网页语言
 export const SPEECH_KEY = 'speech_settings'; // 语音合成相关设置
 export const DEEPL_API_KEY = 'deepl_api_key';
+export const YANDEX_API_KEY = 'yandex_api_key';
 export const PAGE_LANG_KEY = 'pageTargetLang'; // 网页翻译目标语言
 export const TEXT_LANG_KEY = 'textTargetLang'; // 文本翻译目标语言
 export const FAVORITE_LANGS_KEY = 'favoriteLangs'; // 常用语言

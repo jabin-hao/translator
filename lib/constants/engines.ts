@@ -7,12 +7,20 @@ import deeplIcon from '../../assets/deepl.svg?url';
 // @ts-ignore
 import yandexIcon from '../../assets/yandex.svg?url';
 
+// 翻译引擎接口
+export interface TranslateEngine {
+    label: string;
+    value: string;
+    icon: string;
+    disabled?: boolean;
+}
+
 // 翻译引擎统一配置
-export const TRANSLATE_ENGINES = [
+export const TRANSLATE_ENGINES: TranslateEngine[] = [
     { label: 'Bing', value: 'bing', icon: bingIcon },
     { label: 'Google', value: 'google', icon: googleIcon },
-    { label: 'DeepL', value: 'deepl', icon: deeplIcon, disabled: true },
-    { label: 'Yandex', value: 'yandex', icon: yandexIcon, disabled: true },
+    { label: 'DeepL', value: 'deepl', icon: deeplIcon },
+    { label: 'Yandex', value: 'yandex', icon: yandexIcon },
 ];
 
 // TTS引擎统一配置

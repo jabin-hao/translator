@@ -4,6 +4,7 @@ import {storageApi} from "~lib/utils/storage"
 import {googleTranslate, googleTranslateBatch} from "~background/translate/google"
 import {bingTranslate, bingTranslateBatch} from "~background/translate/bing"
 import {deeplTranslate, deeplTranslateBatch} from "~background/translate/deepl"
+import {yandexTranslate, yandexTranslateBatch} from "~background/translate/yandex"
 import { TRANSLATION_CACHE_CONFIG_KEY } from "~lib/constants/settings"
 import { findCustomTranslation } from "~lib/settings/siteTranslateSettings"
 
@@ -28,6 +29,7 @@ const TRANSLATE_ENGINES = {
   google: googleTranslate,
   bing: bingTranslate,
   deepl: deeplTranslate,
+  yandex: yandexTranslate,
 } as const;
 
 // 检查缓存是否启用
@@ -274,6 +276,7 @@ export async function translateBatch(
       google: typeof googleTranslateBatch === 'function' ? googleTranslateBatch : undefined,
       bing: typeof bingTranslateBatch === 'function' ? bingTranslateBatch : undefined,
       deepl: typeof deeplTranslateBatch === 'function' ? deeplTranslateBatch : undefined,
+      yandex: typeof yandexTranslateBatch === 'function' ? yandexTranslateBatch : undefined,
     };
     const batchFn = batchEngines[engine];
     if (batchFn) {

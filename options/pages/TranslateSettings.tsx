@@ -18,7 +18,7 @@ import {
 } from '~lib/settings/siteTranslateSettings';
 import type { CustomDictEntry } from '~lib/settings/siteTranslateSettings';
 import { DeleteOutlined } from '@ant-design/icons';
-import { TRANSLATE_SETTINGS_KEY, SPEECH_KEY, DEEPL_API_KEY } from '~lib/constants/settings';
+import { TRANSLATE_SETTINGS_KEY, SPEECH_KEY, DEEPL_API_KEY, YANDEX_API_KEY } from '~lib/constants/settings';
 import SettingsPageContainer from '../components/SettingsPageContainer';
 import SettingsGroup from '../components/SettingsGroup';
 import SettingsItem from '../components/SettingsItem';
@@ -42,6 +42,7 @@ const TranslateSettings: React.FC = () => {
   });
 
   const [deeplApiKey, setDeeplApiKey] = useStorage(DEEPL_API_KEY, '');
+  const [yandexApiKey, setYandexApiKey] = useStorage(YANDEX_API_KEY, '');
 
   // 网站自动翻译设置 - 使用专门的hooks
   const [dictConfig, setDictConfigState] = useDictConfig();
@@ -49,6 +50,7 @@ const TranslateSettings: React.FC = () => {
 
   // 本地UI状态（不需要持久化的状态）
   const [deeplApiKeyInput, setDeeplApiKeyInput] = useState(deeplApiKey || '');
+  const [yandexApiKeyInput, setYandexApiKeyInput] = useState(yandexApiKey || '');
   
   // 朗读引擎设置 - 现在从useStorage获取
 
@@ -78,6 +80,11 @@ const TranslateSettings: React.FC = () => {
   useEffect(() => {
     setDeeplApiKeyInput(deeplApiKey || '');
   }, [deeplApiKey]);
+
+  // 同步Yandex输入框状态  
+  useEffect(() => {
+    setYandexApiKeyInput(yandexApiKey || '');
+  }, [yandexApiKey]);
 
   // 初始化页面翻译模式
   useEffect(() => {
@@ -142,12 +149,25 @@ const TranslateSettings: React.FC = () => {
   };
 
   const handleSaveDeeplApiKey = () => {
-    if (!deeplApiKeyInput.trim()) {
-      message.error(t('请输入 DeepL API Key')).then(() => {});
-      return;
-    }
     setDeeplApiKey(deeplApiKeyInput.trim());
-    message.success(t('DeepL API Key 已保存')).then(() => {});
+    if (deeplApiKeyInput.trim()) {
+      message.success(t('DeepL API Key 已保存')).then(() => {});
+    } else {
+      message.success(t('DeepL API Key 已清除，将使用免费模式')).then(() => {});
+    }
+  };
+
+  const handleYandexApiKeyInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setYandexApiKeyInput(e.target.value);
+  };
+
+  const handleSaveYandexApiKey = () => {
+    setYandexApiKey(yandexApiKeyInput.trim());
+    if (yandexApiKeyInput.trim()) {
+      message.success(t('Yandex API Key 已保存')).then(() => {});
+    } else {
+      message.success(t('Yandex API Key 已清除，将使用免费模式')).then(() => {});
+    }
   };
 
   const handleSiteAutoChange = async (checked: boolean) => {
@@ -325,19 +345,69 @@ const TranslateSettings: React.FC = () => {
         {translateSettings.engine === 'deepl' && (
           <SettingsItem
             label={t('DeepL API Key')}
-            description={t('获取方式：访问 https://www.deepl.com/ 注册账号，在账户设置中找到 API 部分获取免费 API Key')}
+            description={t('可选配置。DeepL支持免费使用，无需API Key。如需更稳定的服务，可访问 https://www.deepl.com/ 注册账号获取API Key')}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Input.Password
                 value={deeplApiKeyInput}
                 onChange={handleDeeplApiKeyInputChange}
-                placeholder={t('请输入 DeepL API Key')}
+                placeholder={t('可选：输入 DeepL API Key 以获得更稳定的服务')}
                 style={{ width: 320 }}
                 size="middle"
               />
               <Button 
                 type="primary" 
                 onClick={handleSaveDeeplApiKey}
+                size="middle"
+              >
+                {t('保存')}
+              </Button>
+            </div>
+          </SettingsItem>
+        )}
+
+        {/* Yandex API Key 设置 */}
+        {translateSettings.engine === 'yandex' && (
+          <SettingsItem
+            label={t('Yandex API Key')}
+            description={t('可选配置。Yandex支持免费使用，无需API Key。如需更稳定的服务，可访问 https://translate.yandex.com/developers 获取API Key')}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Input.Password
+                value={yandexApiKeyInput}
+                onChange={handleYandexApiKeyInputChange}
+                placeholder={t('可选：输入 Yandex API Key 以获得更稳定的服务')}
+                style={{ width: 320 }}
+                size="middle"
+              />
+              <Button 
+                type="primary" 
+                onClick={handleSaveYandexApiKey}
+                size="middle"
+              >
+                {t('保存')}
+              </Button>
+            </div>
+          </SettingsItem>
+        )}
+
+        {/* Yandex API Key 设置 */}
+        {translateSettings.engine === 'yandex' && (
+          <SettingsItem
+            label={t('Yandex API Key')}
+            description={t('获取方式：访问 https://translate.yandex.com/developers 注册账号，创建应用并获取 API Key')}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Input.Password
+                value={yandexApiKeyInput}
+                onChange={handleYandexApiKeyInputChange}
+                placeholder={t('请输入 Yandex API Key')}
+                style={{ width: 320 }}
+                size="middle"
+              />
+              <Button 
+                type="primary" 
+                onClick={handleSaveYandexApiKey}
                 size="middle"
               >
                 {t('保存')}
