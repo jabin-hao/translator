@@ -43,7 +43,7 @@ export const setupAutoTranslate = (
               await chrome.runtime.sendMessage({type: 'FULL_PAGE_TRANSLATE_DONE'});
             } catch (error) {
               // 忽略消息发送错误，可能是因为扩展上下文已失效
-              console.log('消息发送失败，可能是扩展上下文已失效:', error);
+              console.warn('消息发送失败，可能是扩展上下文已失效:', error);
             }
           }
         }

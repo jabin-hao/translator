@@ -7,6 +7,7 @@ export interface TranslateMessage {
   text?: string;
   texts?: string[];
   options: TranslateOptions;
+  host?: string; // 添加域名参数用于自定义词库查找
 }
 
 export interface TranslateResponse {
@@ -20,13 +21,13 @@ export async function handleTranslateMessage(message: TranslateMessage): Promise
   try {
     
     if (message.type === 'translate' && message.text) {
-      const result = await translate(message.text, message.options);
+      const result = await translate(message.text, message.options, message.host);
       return {
         success: true,
         data: result,
       };
     } else if (message.type === 'translateBatch' && message.texts) {
-      const results = await translateBatch(message.texts, message.options);
+      const results = await translateBatch(message.texts, message.options, message.host);
       return {
         success: true,
         data: results,

@@ -75,61 +75,41 @@ function isVisible(node: Node): boolean {
 }
 
 import { sendToBackground } from '@plasmohq/messaging';
-import { getCustomDict } from '../settings/siteTranslateSettings';
 import { PROGRAMMING_LANGUAGES, CODE_FILE_SUFFIXES, GITHUB_CODE_SELECTORS, GITHUB_CODE_CLASSES, EXCLUDE_TAGS } from '../constants/constants';
 
 function getDomain() {
-  return location.hostname.replace(/^www\./, '');
+  return location.hostname;
 }
 
 // 批量翻译文本
 async function batchTranslateTexts(texts: string[], from: string, to: string, engine: string): Promise<string[]> {
   const domain = getDomain();
-  const dict = await getCustomDict(domain);
-  const dictTrimmed: Record<string, string> = {};
-  for (const k in dict) {
-    dictTrimmed[k.trim()] = dict[k].trim();
-  }
-
-  // 记录哪些文本命中词库，哪些需要翻译
-  const result: string[] = [];
-  const toTranslate: string[] = [];
-  const toTranslateIndices: number[] = [];
-
-  texts.forEach((t, i) => {
-    const key = (t || '').trim();
-    if (dictTrimmed[key]) {
-      result[i] = dictTrimmed[key];
-    } else {
-      toTranslate.push(t);
-      toTranslateIndices.push(i);
+  
+  // 直接调用 background 服务，让 background 处理自定义词库逻辑
+  const resp = await sendToBackground({
+    name: 'handle' as never,
+    body: {
+      service: 'translate',
+      action: 'translateBatch',
+      texts: texts,
+      host: domain, // 传递域名给 background
+      options: { from, to, engine }
     }
   });
+  
+  if (resp && resp.success && Array.isArray(resp.data)) {
+    const results = resp.data.map((r: any) => r.translation || '');
+    
+    // 统计自定义词库命中情况
+    const customHits = resp.data.filter((r: any) => r.engine === 'custom').length;
+    const cacheHits = resp.data.filter((r: any) => r.cached === true).length;
+    const apiCalls = resp.data.length - customHits - cacheHits;
 
-  // 只对未命中的文本调用翻译API
-  let translatedArr: string[] = [];
-  if (toTranslate.length > 0) {
-    const resp = await sendToBackground({
-      name: 'handle' as never,
-      body: {
-        service: 'translate',
-        action: 'translateBatch',
-        texts: toTranslate,
-        options: { from, to, engine }
-      }
-    });
-    if (resp && resp.success && Array.isArray(resp.data)) {
-      translatedArr = resp.data.map((r: any) => r.translation || '');
-    } else {
-      translatedArr = toTranslate;
-    }
-    // 回填到 result
-    toTranslateIndices.forEach((idx, j) => {
-      result[idx] = translatedArr[j];
-    });
+    return results;
+  } else {
+    console.error('[fullPageTranslate] 翻译失败:', resp);
+    return texts; // 失败时返回原文
   }
-
-  return result;
 }
 
 // 判断块是否在视窗内

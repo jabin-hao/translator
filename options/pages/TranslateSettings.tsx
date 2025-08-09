@@ -6,16 +6,19 @@ import { useStorage } from '~lib/utils/storage';
 import {
   getDictConfig,
   setDictConfig,
-  getCustomDict,
-  setCustomDict,
   addAlwaysSite,
   addNeverSite,
   removeAlwaysSite,
   removeNeverSite,
-  removeCustomDict,
   useDictConfig,
-  useAutoTranslateEnabled
+  useAutoTranslateEnabled,
+  // 新的自定义词库 API
+  getCustomDictEntries,
+  addCustomDictEntry,
+  deleteCustomDictEntry,
+  deleteCustomDictByHost
 } from '~lib/settings/siteTranslateSettings';
+import type { CustomDictEntry } from '~lib/settings/siteTranslateSettings';
 import { DeleteOutlined } from '@ant-design/icons';
 import { TRANSLATE_SETTINGS_KEY, SPEECH_KEY, DEEPL_API_KEY, SITE_TRANSLATE_SETTINGS_KEY } from '~lib/constants/settings';
 import SettingsPageContainer from '../components/SettingsPageContainer';
@@ -69,7 +72,7 @@ const TranslateSettings: React.FC = () => {
 
   const [dictModalOpen, setDictModalOpen] = useState(false);
   const [dictHost, setDictHost] = useState<string | null>(null);
-  const [dictData, setDictData] = useState<{[k: string]: string}>({});
+  const [dictEntries, setDictEntries] = useState<CustomDictEntry[]>([]);
   const [dictAddKey, setDictAddKey] = useState('');
   const [dictAddValue, setDictAddValue] = useState('');
 
@@ -139,7 +142,7 @@ const TranslateSettings: React.FC = () => {
   
   const handleRemoveAlways = async (host: string) => {
     await removeAlwaysSite(host);
-    await removeCustomDict(host);
+    await deleteCustomDictByHost(host);
     message.success(t('已移除白名单并清除词库'));
   };
   
@@ -170,31 +173,41 @@ const TranslateSettings: React.FC = () => {
 
   const handleEditDict = async (host: string) => {
     setDictHost(host);
-    const dict = await getCustomDict(host) || {};
-    setDictData(dict);
+    const entries = await getCustomDictEntries(host);
+    setDictEntries(entries);
     setDictModalOpen(true);
   };
 
   const handleSaveDict = async () => {
-    if (dictHost) {
-      await setCustomDict(dictHost, dictData);
-      setDictModalOpen(false);
-      message.success('词库已保存');
-    }
+    // 使用新的 IndexedDB API，不需要手动保存
+    setDictModalOpen(false);
+    message.success('词库已保存');
   };
 
   // 添加词条的通用函数
-  const handleAddDictEntry = () => {
+  const handleAddDictEntry = async () => {
     const key = dictAddKey.trim();
     const value = dictAddValue.trim();
-    if (!key || !value) return;
-    if (dictData[key]) {
-      message.warning('该原文已存在').then(() => {});
+    if (!key || !value || !dictHost) return;
+    
+    // 检查是否已存在
+    const existingEntry = dictEntries.find(entry => entry.originalText === key);
+    if (existingEntry) {
+      message.warning('该原文已存在');
       return;
     }
-    setDictData({ ...dictData, [key]: value });
-    setDictAddKey('');
-    setDictAddValue('');
+    
+    try {
+      const id = await addCustomDictEntry(dictHost, key, value);
+      // 重新加载词库条目
+      const entries = await getCustomDictEntries(dictHost);
+      setDictEntries(entries);
+      setDictAddKey('');
+      setDictAddValue('');
+      message.success('词条已添加');
+    } catch (error) {
+      message.error('添加词条失败');
+    }
   };
 
   // 只展示最新5个（倒序）
@@ -573,10 +586,10 @@ const TranslateSettings: React.FC = () => {
         {/* 词条列表 */}
         <List
           size="small"
-          dataSource={Object.entries(dictData)}
+          dataSource={dictEntries}
           locale={{ emptyText: '暂无词条' }}
           style={{ maxHeight: 320, minHeight: 40, overflowY: 'auto', marginBottom: 12 }}
-          renderItem={([k, v]) => (
+          renderItem={(entry) => (
             <List.Item
               style={{ padding: '4px 0', alignItems: 'center' }}
               actions={[
@@ -586,26 +599,43 @@ const TranslateSettings: React.FC = () => {
                     type="text"
                     icon={<DeleteOutlined />}
                     danger
-                    onClick={() => {
-                      const newDict = { ...dictData };
-                      delete newDict[k];
-                      setDictData(newDict);
+                    onClick={async () => {
+                      try {
+                        await deleteCustomDictEntry(entry.id!);
+                        // 重新加载词库条目
+                        if (dictHost) {
+                          const entries = await getCustomDictEntries(dictHost);
+                          setDictEntries(entries);
+                        }
+                        message.success('词条已删除');
+                      } catch (error) {
+                        message.error('删除词条失败');
+                      }
                     }}
                   />
                 </Tooltip>
               ]}
             >
               <Input
-                value={k}
+                value={entry.originalText}
                 disabled
                 style={{ width: 120, marginRight: 8 }}
               />
               <Input
-                value={v}
-                onChange={e => {
-                  const newDict = { ...dictData };
-                  newDict[k] = e.target.value;
-                  setDictData(newDict);
+                value={entry.customTranslation}
+                onChange={async (e) => {
+                  const newTranslation = e.target.value;
+                  try {
+                    // 更新词条
+                    await addCustomDictEntry(entry.host, entry.originalText, newTranslation);
+                    // 重新加载词库条目
+                    if (dictHost) {
+                      const entries = await getCustomDictEntries(dictHost);
+                      setDictEntries(entries);
+                    }
+                  } catch (error) {
+                    message.error('更新词条失败');
+                  }
                 }}
                 style={{ flex: 1 }}
                 placeholder="自定义译文"

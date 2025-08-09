@@ -29,9 +29,16 @@ const CacheSettings: React.FC = () => {
   const loadStats = async () => {
     try {
       const stats = await cacheManager.getStats();
-      setStats(stats);
+      // 验证统计数据的有效性
+      const validStats = {
+        count: isNaN(stats.count) ? 0 : stats.count,
+        size: isNaN(stats.size) ? 0 : stats.size
+      };
+      
+      setStats(validStats);
       message.success(t('统计已刷新'));
     } catch (error) {
+      console.error('加载缓存统计失败:', error);
       message.error(t('刷新统计失败'));
     }
   };
@@ -76,6 +83,11 @@ const CacheSettings: React.FC = () => {
   }, [config]);
 
   const formatSize = (bytes: number) => {
+    // 防护 NaN 值
+    if (isNaN(bytes) || bytes < 0) {
+      console.warn('formatSize received invalid value:', bytes);
+      return '0 B';
+    }
     if (bytes < 1024) return `${bytes} ${t('B')}`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} ${t('KB')}`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} ${t('MB')}`;

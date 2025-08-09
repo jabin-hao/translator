@@ -471,16 +471,18 @@ export class TranslationCacheManager {
       
       const memoryCount = this.cache.size;
       const memorySize = Array.from(this.cache.values()).reduce((total, entry) => {
-        return total + CacheUtils.calculateEntrySize(entry);
+        const entrySize = CacheUtils.calculateEntrySize(entry);
+        return total + (isNaN(entrySize) ? 0 : entrySize);
       }, 0);
 
       if (!this.db) {
-        return {
+        const result = {
           count: memoryCount,
           size: memorySize,
           hitRate: this.calculateHitRate(),
           memoryUsage: memorySize,
         };
+        return result;
       }
 
       return new Promise((resolve) => {
@@ -492,35 +494,48 @@ export class TranslationCacheManager {
             const totalCount = countRequest.result;
             
             // 估算总大小（避免加载所有数据）
-            const estimatedSize = totalCount > 0 
-              ? (memorySize / memoryCount) * totalCount 
-              : 0;
+            let estimatedSize = 0;
+            if (totalCount > 0 && memoryCount > 0 && memorySize > 0) {
+              // 基于内存中的数据估算平均大小
+              const avgSize = memorySize / memoryCount;
+              estimatedSize = avgSize * totalCount;
+            } else if (totalCount > 0) {
+              // 如果内存中没有数据，使用默认的平均大小估算
+              const defaultAvgSize = 100; // 假设每个条目平均100字节
+              estimatedSize = defaultAvgSize * totalCount;
+            }
 
-            resolve({
+            const finalSize = Math.max(estimatedSize, memorySize);
+            
+            const result = {
               count: totalCount,
-              size: Math.max(estimatedSize, memorySize),
+              size: isNaN(finalSize) ? 0 : finalSize,
               hitRate: this.calculateHitRate(),
-              memoryUsage: memorySize,
-            });
+              memoryUsage: isNaN(memorySize) ? 0 : memorySize,
+            };
+            
+            resolve(result);
           };
 
           countRequest.onerror = () => {
             console.error('获取缓存统计失败:', countRequest.error);
-            resolve({
+            const fallbackResult = {
               count: memoryCount,
-              size: memorySize,
+              size: isNaN(memorySize) ? 0 : memorySize,
               hitRate: this.calculateHitRate(),
-              memoryUsage: memorySize,
-            });
+              memoryUsage: isNaN(memorySize) ? 0 : memorySize,
+            };
+            resolve(fallbackResult);
           };
         } catch (error) {
           console.error('获取缓存统计失败:', error);
-          resolve({
+          const fallbackResult = {
             count: memoryCount,
-            size: memorySize,
+            size: isNaN(memorySize) ? 0 : memorySize,
             hitRate: this.calculateHitRate(),
-            memoryUsage: memorySize,
-          });
+            memoryUsage: isNaN(memorySize) ? 0 : memorySize,
+          };
+          resolve(fallbackResult);
         }
       });
     } catch (error) {
@@ -537,7 +552,8 @@ export class TranslationCacheManager {
   // 计算缓存命中率
   private calculateHitRate(): number {
     const total = this.hitCount + this.missCount;
-    return total > 0 ? (this.hitCount / total) * 100 : 0;
+    const rate = total > 0 ? (this.hitCount / total) * 100 : 0;
+    return isNaN(rate) ? 0 : rate;
   }
 
   // 重置统计信息

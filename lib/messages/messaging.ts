@@ -16,7 +16,7 @@ export const setupMessageHandler = () => {
             try {
               chrome.runtime.sendMessage({type: 'FULL_PAGE_TRANSLATE_DONE'}).then(() => {});
             } catch (error) {
-              console.log('消息发送失败，可能是扩展上下文已失效:', error);
+              console.error('消息发送失败，可能是扩展上下文已失效:', error);
             }
           }
         }).catch(err => {
@@ -33,7 +33,7 @@ export const setupMessageHandler = () => {
           try {
             chrome.runtime.sendMessage({type: 'RESTORE_ORIGINAL_PAGE_DONE'}).then(() => {});
           } catch (error) {
-            console.log('消息发送失败，可能是扩展上下文已失效:', error);
+            console.error('消息发送失败，可能是扩展上下文已失效:', error);
           }
         }
         return true; // 异步响应

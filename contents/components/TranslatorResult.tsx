@@ -330,16 +330,25 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
           } else if (edgeResult.audioData && typeof edgeResult.audioData === 'object') {
             // 检查是否是通过消息传递序列化的 Uint8Array
             const obj = edgeResult.audioData as any;
+            console.log('[TTS] 收到的音频数据对象:', obj, '类型:', typeof obj, '构造函数:', obj.constructor?.name);
+            
             if (obj.constructor?.name === 'Uint8Array' || (obj.buffer && obj.byteLength !== undefined)) {
               const uint8Array = new Uint8Array(Object.values(obj));
               audioBuffer = uint8Array.buffer;
             } else if (typeof obj === 'object' && obj[0] !== undefined) {
               // 可能是普通对象形式的数组
               const values = Object.values(obj) as number[];
-              const uint8Array = new Uint8Array(values);
-              audioBuffer = uint8Array.buffer;
+              if (values.length > 0) {
+                const uint8Array = new Uint8Array(values);
+                audioBuffer = uint8Array.buffer;
+              } else {
+                console.error('音频数据对象为空:', obj);
+                throw new Error('收到空的音频数据');
+              }
             } else {
               console.error('未知的音频数据格式:', obj);
+              console.error('对象键:', Object.keys(obj));
+              console.error('对象值:', Object.values(obj));
               throw new Error('音频数据格式不支持');
             }
           } else {

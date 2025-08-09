@@ -45,6 +45,7 @@ const handler: PlasmoMessaging.MessageHandler<HandlerRequest, HandlerResponse> =
             type: action as 'translate' | 'translateBatch',
             text: data.text,
             texts: data.texts,
+            host: data.host, // 传递域名参数
             options: {
               from: data.options?.from || 'auto',
               to: data.options?.to || 'zh-CN',

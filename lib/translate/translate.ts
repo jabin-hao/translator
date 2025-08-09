@@ -5,6 +5,7 @@ import {googleTranslate, googleTranslateBatch} from "~background/translate/googl
 import {bingTranslate, bingTranslateBatch} from "~background/translate/bing"
 import {deeplTranslate, deeplTranslateBatch} from "~background/translate/deepl"
 import { TRANSLATION_CACHE_CONFIG_KEY } from "~lib/constants/settings"
+import { findCustomTranslation } from "~lib/settings/siteTranslateSettings"
 
 export interface TranslateOptions {
   from: string;
@@ -49,15 +50,37 @@ async function isCacheEnabled(): Promise<boolean> {
 // 统一翻译函数
 export async function translate(
   text: string, 
-  options: TranslateOptions
+  options: TranslateOptions,
+  host?: string
 ): Promise<TranslateResult> {
   try {
     const { from, to, engine, useCache = true } = options;
     
-    // 检查全局缓存开关和选项中的缓存开关
+    // 1. 首先检查自定义词库
+    try {
+      const currentHost = host || (typeof window !== 'undefined' ? window.location.hostname : '');
+      if (currentHost) {
+        const customTranslation = await findCustomTranslation(currentHost, text.trim());
+        if (customTranslation) {
+          return {
+            text,
+            translation: customTranslation,
+            engine: 'custom',
+            from,
+            to,
+            cached: false,
+          };
+        }
+      }
+    } catch (error) {
+      // 自定义词库查找失败，继续使用常规翻译
+      console.error('自定义词库查找失败:', error);
+    }
+    
+    // 2. 检查全局缓存开关和选项中的缓存开关
     const shouldUseCache = useCache && await isCacheEnabled();
 
-    // 如果启用缓存 先尝试从缓存获取
+    // 3. 如果启用缓存 先尝试从缓存获取
     if (shouldUseCache) {
       // 确保 IndexedDB 已初始化
       await cacheManager.initDB();
@@ -74,7 +97,7 @@ export async function translate(
       }
     }
 
-    // 获取翻译引擎函数
+    // 4. 获取翻译引擎函数
     const translateFunction = TRANSLATE_ENGINES[engine as keyof typeof TRANSLATE_ENGINES];
     if (!translateFunction) {
       console.error(`不支持的翻译引擎: ${engine}`);
@@ -113,7 +136,8 @@ export async function translate(
 // 批量翻译函数
 export async function translateBatch(
   texts: string[],
-  options: TranslateOptions
+  options: TranslateOptions,
+  host?: string
 ): Promise<TranslateResult[]> {
   const { from, to, engine, useCache = true } = options;
   
@@ -125,14 +149,41 @@ export async function translateBatch(
     await cacheManager.initDB();
   }
 
-  //先查缓存，提高命中率
+  //先查自定义词库和缓存，提高命中率
   const results: TranslateResult[] = [];
   const toTranslate: string[] = [];
   const toTranslateIndices: number[] = [];
+  let customHitCount = 0;
+  let cacheHitCount = 0;
   
-  // 先查缓存，分离命中和未命中的文本
+  // 先查自定义词库，再查缓存，分离命中和未命中的文本
   for (let i = 0; i < texts.length; i++) {
     const text = texts[i];
+    
+    // 1. 首先检查自定义词库
+    try {
+      const currentHost = host || (typeof window !== 'undefined' ? window.location.hostname : '');
+      if (currentHost) {
+        const customTranslation = await findCustomTranslation(currentHost, text.trim());
+        if (customTranslation) {
+          results[i] = {
+            text,
+            translation: customTranslation,
+            engine: 'custom',
+            from,
+            to,
+            cached: false,
+          };
+          customHitCount++;
+          continue;
+        }
+      }
+    } catch (error) {
+      // 自定义词库查找失败，继续查缓存
+      console.error('自定义词库查找失败:', error);
+    }
+    
+    // 2. 检查缓存
     if (shouldUseCache) {
       const cached = await cacheManager.get(text, from, to, engine);
       if (cached) {
@@ -144,9 +195,12 @@ export async function translateBatch(
           to,
           cached: true,
         };
+        cacheHitCount++;
         continue;
       }
     }
+    
+    // 3. 需要API翻译
     toTranslate.push(text);
     toTranslateIndices.push(i);
   }
@@ -192,7 +246,7 @@ export async function translateBatch(
     // fallback: 单条循环
     for (let i = 0; i < toTranslate.length; i++) {
       try {
-        results[toTranslateIndices[i]] = await translate(toTranslate[i], options);
+        results[toTranslateIndices[i]] = await translate(toTranslate[i], options, host);
       } catch (error) {
         results[toTranslateIndices[i]] = {
           text: toTranslate[i],
