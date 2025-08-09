@@ -28,7 +28,7 @@ export function useStorage<T = any>(key: string, defaultValue?: T) {
     // 初始化读取
     storageApi.get(key).then((val) => {
       if (mounted) {
-        console.log(`useStorage ${key} initial value:`, val);
+        // console.log(`useStorage ${key} initial value:`, val);
         setValue(val === undefined ? defaultValueRef.current as T : (val as T));
       }
     });

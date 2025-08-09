@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Select, Switch, Divider, message, Input, Button, List, Modal, Checkbox, Tooltip, Radio } from 'antd';
+import { Select, Switch, message, Input, Button, List, Modal, Checkbox, Tooltip, Radio } from 'antd';
 import { TRANSLATE_ENGINES, TTS_ENGINES } from '~lib/constants/engines';
 import { useTranslation } from 'react-i18next';
 import { useStorage } from '~lib/utils/storage';
@@ -16,6 +16,9 @@ import {
 } from '~lib/settings/siteTranslateSettings';
 import { DeleteOutlined } from '@ant-design/icons';
 import { TRANSLATE_SETTINGS_KEY, SPEECH_KEY, DEEPL_API_KEY, SITE_TRANSLATE_SETTINGS_KEY } from '~lib/constants/settings';
+import SettingsPageContainer from '../components/SettingsPageContainer';
+import SettingsGroup from '../components/SettingsGroup';
+import SettingsItem from '../components/SettingsItem';
 const { Option } = Select;
 
 const TranslateSettings: React.FC = () => {
@@ -304,21 +307,20 @@ const TranslateSettings: React.FC = () => {
   );
 
   return (
-    <Card
+    <SettingsPageContainer
       title={t('翻译设置')}
-      style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
-      styles={{
-        body:{ padding: 0, flex: 1, display: 'flex', flexDirection: 'column' }
-      }}
+      description={t('配置翻译引擎、语音朗读和网站管理等设置')}
     >
-      <div style={{ flex: 1, overflow: 'auto', padding: '24px' }}>
-        {/* 翻译引擎设置 */}
-        <div style={{ marginBottom: 24 }}>
-          <b>{t('翻译引擎')}：</b>
+      {/* 翻译引擎设置 */}
+      <SettingsGroup title={t('翻译引擎')}>
+        <SettingsItem
+          label={t('翻译引擎')}
+          description={t('选择用于翻译的默认引擎，支持多引擎兜底')}
+        >
           <Select
             value={translateSettings.engine}
             onChange={handleEngineChange}
-            style={{ width: 200, marginLeft: 16 }}
+            style={{ width: 240 }}
             size="middle"
           >
             {TRANSLATE_ENGINES.map(e => (
@@ -328,23 +330,20 @@ const TranslateSettings: React.FC = () => {
               </Option>
             ))}
           </Select>
-          <div style={{ fontSize: 13, color: 'var(--ant-color-text-secondary)', marginTop: 8 }}>
-            {t('选择用于翻译的默认引擎，支持多引擎兜底')}
-          </div>
-        </div>
+        </SettingsItem>
 
         {/* DeepL API Key 设置 */}
         {translateSettings.engine === 'deepl' && (
-          <div style={{ marginBottom: 24, marginLeft: 24 }}>
-            <div style={{ marginBottom: 8 }}>
-              <span style={{ fontSize: 13 }}>{t('DeepL API Key')}：</span>
-            </div>
+          <SettingsItem
+            label={t('DeepL API Key')}
+            description={t('获取方式：访问 https://www.deepl.com/ 注册账号，在账户设置中找到 API 部分获取免费 API Key')}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Input.Password
                 value={deeplApiKeyInput}
                 onChange={handleDeeplApiKeyInputChange}
                 placeholder={t('请输入 DeepL API Key')}
-                style={{ width: 400 }}
+                style={{ width: 320 }}
                 size="middle"
               />
               <Button 
@@ -355,39 +354,37 @@ const TranslateSettings: React.FC = () => {
                 {t('保存')}
               </Button>
             </div>
-            <div style={{ fontSize: 12, color: 'var(--ant-color-text-secondary)', marginTop: 8 }}>
-              {t('获取方式：访问 https://www.deepl.com/ 注册账号，在账户设置中找到 API 部分获取免费 API Key')}
-            </div>
-          </div>
+          </SettingsItem>
         )}
+      </SettingsGroup>
         
-        <Divider />
+      {/* 自动翻译设置 */}
+      <SettingsGroup title={t('自动翻译')}>
+        <SettingsItem
+          label={t('划词自动翻译')}
+          description={t('开启后划词将自动翻译，无需手动点击')}
+        >
+          <Switch checked={translateSettings.autoTranslate} onChange={handleAutoTranslateChange} />
+        </SettingsItem>
+      </SettingsGroup>
         
-        {/* 自动翻译设置 */}
-        <div style={{ marginBottom: 24 }}>
-          <b style={{ display: 'inline-block', minWidth: '120px' }}>{t('划词自动翻译')}：</b>
-          <Switch checked={translateSettings.autoTranslate} onChange={handleAutoTranslateChange} style={{ marginLeft: 16 }} />
-          <div style={{ fontSize: 13, color: 'var(--ant-color-text-secondary)', marginTop: 8, marginLeft: 136 }}>
-            {t('开启后划词将自动翻译，无需手动点击')}
-          </div>
-        </div>
-        <Divider />
-        
-        {/* 自动朗读设置 */}
-        <div style={{ marginBottom: 24 }}>
-          <b style={{ display: 'inline-block', minWidth: '120px' }}>{t('自动朗读翻译结果')}：</b>
-          <Switch checked={translateSettings.autoRead} onChange={handleAutoReadChange} style={{ marginLeft: 16 }} />
-          <div style={{ fontSize: 13, color: 'var(--ant-color-text-secondary)', marginTop: 8, marginLeft: 136 }}>
-            {t('翻译完成后自动朗读结果（如支持）')}
-          </div>
-        </div>
+      {/* 语音朗读设置 */}
+      <SettingsGroup title={t('语音朗读')}>
+        <SettingsItem
+          label={t('自动朗读翻译结果')}
+          description={t('翻译完成后自动朗读结果（如支持）')}
+        >
+          <Switch checked={translateSettings.autoRead} onChange={handleAutoReadChange} />
+        </SettingsItem>
 
-        <div style={{ marginBottom: 24 }}>
-          <b style={{ display: 'inline-block', minWidth: '120px' }}>{t('朗读引擎')}：</b>
+        <SettingsItem
+          label={t('朗读引擎')}
+          description={t('选择用于朗读的默认引擎，Edge TTS 音质最佳，Google TTS 稳定，浏览器 TTS 无需网络')}
+        >
           <Select
             value={speechSettings.engine}
             onChange={handleSpeechEngineChange}
-            style={{ width: 200, marginLeft: 16 }}
+            style={{ width: 240 }}
             size="middle"
           >
             {TTS_ENGINES.map(e => (
@@ -397,165 +394,178 @@ const TranslateSettings: React.FC = () => {
               </Option>
             ))}
           </Select>
-          <div style={{ fontSize: 13, color: 'var(--ant-color-text-secondary)', marginTop: 8, marginLeft: 136 }}>
-            {t('选择用于朗读的默认引擎，Edge TTS 音质最佳，Google TTS 稳定，浏览器 TTS 无需网络')}
-          </div>
-        </div>
+        </SettingsItem>
         
-        {/* 朗读参数设置 */}
-        <div style={{ marginBottom: 24, marginLeft: 24 }}>
-          <div style={{ marginBottom: 12 }}>
-            <span style={{ fontSize: 13 }}>{t('朗读速度')}：</span>
-            <Select
-              value={speechSettings.speed}
-              onChange={handleSpeechSpeedChange}
-              style={{ width: 120, marginLeft: 8 }}
-            >
-              <Option value={0.5}>{t('0.5x')}</Option>
-              <Option value={0.75}>{t('0.75x')}</Option>
-              <Option value={1}>{t('1x')}</Option>
-              <Option value={1.25}>{t('1.25x')}</Option>
-              <Option value={1.5}>{t('1.5x')}</Option>
-              <Option value={2}>{t('2x')}</Option>
-            </Select>
-          </div>
-          <div style={{ marginBottom: 12 }}>
-            <span style={{ fontSize: 13 }}>{t('朗读音调')}：</span>
-            <Select
-              value={speechSettings.pitch}
-              onChange={handleSpeechPitchChange}
-              style={{ width: 120, marginLeft: 8 }}
-            >
-              <Option value={0.5}>{t('低音')}</Option>
-              <Option value={0.75}>{t('中低音')}</Option>
-              <Option value={1}>{t('正常')}</Option>
-              <Option value={1.25}>{t('中高音')}</Option>
-              <Option value={1.5}>{t('高音')}</Option>
-            </Select>
-          </div>
-          <div style={{ marginBottom: 12 }}>
-            <span style={{ fontSize: 13 }}>{t('朗读音量')}：</span>
-            <Select
-              value={speechSettings.volume}
-              onChange={handleSpeechVolumeChange}
-              style={{ width: 120, marginLeft: 8 }}
-            >
-              <Option value={0.25}>{t('25%')}</Option>
-              <Option value={0.5}>{t('50%')}</Option>
-              <Option value={0.75}>{t('75%')}</Option>
-              <Option value={1}>{t('100%')}</Option>
-            </Select>
-          </div>
-        </div>
+        <SettingsItem
+          label={t('朗读速度')}
+        >
+          <Select
+            value={speechSettings.speed}
+            onChange={handleSpeechSpeedChange}
+            style={{ width: 120 }}
+          >
+            <Option value={0.5}>{t('0.5x')}</Option>
+            <Option value={0.75}>{t('0.75x')}</Option>
+            <Option value={1}>{t('1x')}</Option>
+            <Option value={1.25}>{t('1.25x')}</Option>
+            <Option value={1.5}>{t('1.5x')}</Option>
+            <Option value={2}>{t('2x')}</Option>
+          </Select>
+        </SettingsItem>
 
-        <Divider />
+        <SettingsItem
+          label={t('朗读音调')}
+        >
+          <Select
+            value={speechSettings.pitch}
+            onChange={handleSpeechPitchChange}
+            style={{ width: 120 }}
+          >
+            <Option value={0.5}>{t('低音')}</Option>
+            <Option value={0.75}>{t('中低音')}</Option>
+            <Option value={1}>{t('正常')}</Option>
+            <Option value={1.25}>{t('中高音')}</Option>
+            <Option value={1.5}>{t('高音')}</Option>
+          </Select>
+        </SettingsItem>
 
-        {/* 网站自动翻译 */}
-        <div style={{ marginBottom: 24 }}>
-          <b style={{ display: 'inline-block', minWidth: '120px' }}>{t('网站自动翻译')}：</b>
-          <Switch checked={siteAutoEnabled} onChange={handleSiteAutoChange} style={{ marginLeft: 16 }} />
-          <div style={{ fontSize: 13, color: 'var(--ant-color-text-secondary)', marginTop: 8, marginLeft: 136 }}>{t('开启后，命中列表的网站将自动整页翻译')}</div>
-        </div>
+        <SettingsItem
+          label={t('朗读音量')}
+        >
+          <Select
+            value={speechSettings.volume}
+            onChange={handleSpeechVolumeChange}
+            style={{ width: 120 }}
+          >
+            <Option value={0.25}>{t('25%')}</Option>
+            <Option value={0.5}>{t('50%')}</Option>
+            <Option value={0.75}>{t('75%')}</Option>
+            <Option value={1}>{t('100%')}</Option>
+          </Select>
+        </SettingsItem>
+      </SettingsGroup>
+
+      {/* 网站自动翻译设置 */}
+      <SettingsGroup title={t('网站自动翻译')}>
+        <SettingsItem
+          label={t('网站自动翻译')}
+          description={t('开启后，命中列表的网站将自动整页翻译')}
+        >
+          <Switch checked={siteAutoEnabled} onChange={handleSiteAutoChange} />
+        </SettingsItem>
 
         {/* 条件渲染：只有开启网站自动翻译时才显示下面的设置 */}
         {siteAutoEnabled && (
           <>
-            <div style={{ marginBottom: 24 }}>
-              <b style={{ display: 'inline-block', minWidth: '120px' }}>{t('整页翻译模式')}：</b>
-              <Radio.Group value={pageTranslateMode} onChange={handlePageTranslateModeChange} style={{ marginLeft: 16 }}>
+            <SettingsItem
+              label={t('整页翻译模式')}
+              description={t('选择整页翻译时的显示方式：仅显示译文或原文与译文对照')}
+            >
+              <Radio.Group value={pageTranslateMode} onChange={handlePageTranslateModeChange}>
                 <Radio.Button value="translated">{t('全部译文')}</Radio.Button>
                 <Radio.Button value="compare">{t('原文对照')}</Radio.Button>
               </Radio.Group>
-              <div style={{ fontSize: 13, color: 'var(--ant-color-text-secondary)', marginTop: 8, marginLeft: 136 }}>{t('选择整页翻译时的显示方式：仅显示译文或原文与译文对照')}</div>
-            </div>
+            </SettingsItem>
 
-            <div style={{ marginBottom: 24, display: 'flex', gap: 8 }}>
-              <Input
-                value={addHost}
-                onChange={e => setAddHost(e.target.value)}
-                placeholder={t('输入域名，如 github.com')}
-                style={{ width: 220 }}
-              />
-              <Select value={addType} onChange={v => setAddType(v)} style={{ width: 100 }}>
-                <Option value="always">{t('白名单')}</Option>
-                <Option value="never">{t('黑名单')}</Option>
-              </Select>
-              <Button onClick={handleAddHost}>{t('添加')}</Button>
-            </div>
+            <SettingsItem
+              label={t('添加网站')}
+            >
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <Input
+                  value={addHost}
+                  onChange={e => setAddHost(e.target.value)}
+                  placeholder={t('输入域名，如 github.com')}
+                  style={{ width: 240 }}
+                />
+                <Select value={addType} onChange={v => setAddType(v)} style={{ width: 100 }}>
+                  <Option value="always">{t('白名单')}</Option>
+                  <Option value="never">{t('黑名单')}</Option>
+                </Select>
+                <Button onClick={handleAddHost}>{t('添加')}</Button>
+              </div>
+            </SettingsItem>
 
             {/* 白名单区域 */}
-            <div style={{ marginBottom: 24 }}>
-              <div style={{ fontWeight: 'bold', marginBottom: 4 }}>{t('网站翻译白名单')}：</div>
-              <List
-                size="small"
-                bordered
-                dataSource={alwaysSitesToShow}
-                renderItem={host => (
-                  <List.Item
-                    actions={[
-                      <Button size="small" type="link" onClick={() => handleEditDict(host)}>{t('自定义词库')}</Button>,
-                      <Button size="small" type="link" danger onClick={() => handleRemoveAlways(host)}>{t('移除')}</Button>
-                    ]}
-                    style={{ alignItems: 'center' }}
-                  >
-                    <Tooltip title={host} placement="topLeft">
-                      <div style={{
-                        maxWidth: 120,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                      }}>{host}</div>
-                    </Tooltip>
-                  </List.Item>
+            <SettingsItem
+              label={t('网站翻译白名单')}
+              description={t('加入白名单的网站会自动整页翻译')}
+            >
+              <div>
+                <List
+                  size="small"
+                  bordered
+                  dataSource={alwaysSitesToShow}
+                  renderItem={host => (
+                    <List.Item
+                      actions={[
+                        <Button size="small" type="link" onClick={() => handleEditDict(host)}>{t('自定义词库')}</Button>,
+                        <Button size="small" type="link" danger onClick={() => handleRemoveAlways(host)}>{t('移除')}</Button>
+                      ]}
+                      style={{ alignItems: 'center' }}
+                    >
+                      <Tooltip title={host} placement="topLeft">
+                        <div style={{
+                          maxWidth: 200,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>{host}</div>
+                      </Tooltip>
+                    </List.Item>
+                  )}
+                  style={{ maxHeight: 200, overflow: 'auto' }}
+                />
+                {alwaysSites.length > 5 && (
+                  <div style={{ textAlign: 'center', marginTop: 8 }}>
+                    <Button size="small" type="link" onClick={() => setShowAllAlways(true)}>
+                      {t('查看全部')} ({alwaysSites.length})
+                    </Button>
+                  </div>
                 )}
-                style={{ width: '25%', minWidth: 180, margin: '0 0 8px 0', borderRadius: 6 }}
-              />
-              {alwaysSites.length > 5 && (
-                <Button size="small" type="link" onClick={() => setShowAllAlways(true)}>{t('查看全部')}</Button>
-              )}
-              <div style={{ fontSize: 13, color: 'var(--ant-color-text-secondary)', marginTop: 8, marginBottom: 8 }}>{t('加入白名单的网站会自动整页翻译')}</div>
-            </div>
+              </div>
+            </SettingsItem>
             
             {/* 黑名单区域 */}
-            <div style={{ marginBottom: 24 }}>
-              <div style={{ fontWeight: 'bold', marginBottom: 4 }}>{t('网站翻译黑名单')}：</div>
-              <List
-                size="small"
-                bordered
-                dataSource={neverSitesToShow}
-                renderItem={host => (
-                  <List.Item
-                    actions={[
-                      <Button size="small" type="link" danger onClick={() => handleRemoveNever(host)}>{t('移除')}</Button>
-                    ]}
-                    style={{ alignItems: 'center' }}
-                  >
-                    <Tooltip title={host} placement="topLeft">
-                      <div style={{
-                        maxWidth: 120,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                      }}>{host}</div>
-                    </Tooltip>
-                  </List.Item>
+            <SettingsItem
+              label={t('网站翻译黑名单')}
+              description={t('加入黑名单的网站不会被自动整页翻译')}
+            >
+              <div>
+                <List
+                  size="small"
+                  bordered
+                  dataSource={neverSitesToShow}
+                  renderItem={host => (
+                    <List.Item
+                      actions={[
+                        <Button size="small" type="link" danger onClick={() => handleRemoveNever(host)}>{t('移除')}</Button>
+                      ]}
+                      style={{ alignItems: 'center' }}
+                    >
+                      <Tooltip title={host} placement="topLeft">
+                        <div style={{
+                          maxWidth: 200,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>{host}</div>
+                      </Tooltip>
+                    </List.Item>
+                  )}
+                  style={{ maxHeight: 200, overflow: 'auto' }}
+                />
+                {neverSites.length > 5 && (
+                  <div style={{ textAlign: 'center', marginTop: 8 }}>
+                    <Button size="small" type="link" onClick={() => setShowAllNever(true)}>
+                      {t('查看全部')} ({neverSites.length})
+                    </Button>
+                  </div>
                 )}
-                style={{ width: '25%', minWidth: 180, margin: '0 0 8px 0', borderRadius: 6 }}
-              />
-              {neverSites.length > 5 && (
-                <Button size="small" type="link" onClick={() => setShowAllNever(true)}>{t('查看全部')}</Button>
-              )}
-              <div style={{ fontSize: 13, color: 'var(--ant-color-text-secondary)', marginTop: 8, marginBottom: 8 }}>{t('加入黑名单的网站不会被自动整页翻译')}</div>
-            </div>
+              </div>
+            </SettingsItem>
           </>
         )}
-
-        <Divider />
-
-      </div>
-      <div style={{padding: '0 24px 16px 24px', color: 'var(--ant-color-text-secondary)', fontSize: 13}}>
-        {t('大部分设置会自动保存，DeepL API Key 需要点击保存按钮。')}
-      </div>
+      </SettingsGroup>
 
       {/* 批量操作 Modal - 使用通用组件 */}
       <BatchSiteModal
@@ -666,7 +676,7 @@ const TranslateSettings: React.FC = () => {
           </Button>
         </div>
       </Modal>
-    </Card>
+    </SettingsPageContainer>
   );
 };
 

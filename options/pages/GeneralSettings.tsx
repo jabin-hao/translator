@@ -1,13 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Select, Radio, Button, message, Upload, Typography, Modal } from 'antd';
-import { useStorage, storageApi } from '~/lib/utils/storage';
-import { UI_LANGUAGES } from '~/lib/constants/languages';
+import { Select, Radio, Button, message, Upload, Typography, Space, Modal, Divider } from 'antd';
+import { useStorage, storageApi } from '~lib/utils/storage';
+import { UI_LANGUAGES } from '~lib/constants/languages';
 import { UploadOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import {POPUP_SETTINGS_KEY, PLUGIN_THEME_KEY, CONTENT_THEME_KEY, TRANSLATION_CACHE_CONFIG_KEY, UI_LANG_KEY, SHORTCUT_SETTINGS_KEY, PAGE_LANG_KEY, TEXT_LANG_KEY, FAVORITE_LANGS_KEY, TRANSLATE_SETTINGS_KEY, SITE_TRANSLATE_SETTINGS_KEY, DICT_KEY } from '~lib/constants/settings';
-import SettingsPageContainer from './SettingsPageContainer';
-import SettingsGroup from './SettingsGroup';
-import SettingsItem from './SettingsItem';
+import SettingsPageContainer from '../components/SettingsPageContainer';
+import SettingsGroup from '../components/SettingsGroup';
+import SettingsItem from '../components/SettingsItem';
 
 const { Title, Paragraph } = Typography;
 

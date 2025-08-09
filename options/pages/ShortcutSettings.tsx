@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
-import { Card, Switch, Divider, Typography, message, Input, Button } from 'antd';
+import { Switch, Typography, message, Input, Button } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { useStorage } from '~lib/utils/storage';
+import SettingsPageContainer from '../components/SettingsPageContainer';
+import SettingsGroup from '../components/SettingsGroup';
+import SettingsItem from '../components/SettingsItem';
 
 const { Title, Paragraph } = Typography;
 
@@ -104,56 +107,33 @@ const ShortcutSettings: React.FC = () => {
   };
 
   return (
-    <Card 
-      title={t('快捷键设置')} 
-      style={{ 
-        height: '100%', 
-        display: 'flex', 
-        flexDirection: 'column',
-        backgroundColor: 'transparent',
-        border: 'none'
-      }}
-      styles={{ 
-        body: { 
-          padding: 0, 
-          flex: 1, 
-          display: 'flex', 
-          flexDirection: 'column',
-          backgroundColor: 'transparent'
-        } 
-      }}
+    <SettingsPageContainer
+      title={t('快捷键设置')}
+      description={t('配置划词翻译的快捷键功能')}
     >
-      <div style={{ flex: 1, overflow: 'auto', padding: '24px' }}>
-        {/* 划词翻译快捷键 */}
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
-            <b style={{ fontSize: 13, flex: 'none' }}>{t('划词翻译')}：</b>
-            <Switch 
-              checked={shortcutSettings.enabled} 
-              onChange={handleToggleEnabled}
-              size="default"
-              style={{ marginLeft: 16 }}
-            />
-          </div>
-          
-          <div style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 13, color: 'var(--ant-color-text-secondary)', marginTop: 8 }}>
-              {t('默认快捷键：双击 Ctrl 键')}{t('选中文字后，双击 Ctrl 键即可快速翻译')}
-            </div>
-          </div>
+      <SettingsGroup title={t('快捷键功能')} first>
+        <SettingsItem
+          label={t('启用快捷键功能')}
+          description={t('开启后可以使用快捷键快速翻译选中的文字')}
+        >
+          <Switch
+            checked={shortcutSettings.enabled}
+            onChange={handleToggleEnabled}
+          />
+        </SettingsItem>
 
-          {/* 自定义快捷键输入 */}
-          <div style={{ marginTop: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
-              <Title level={5} style={{ margin: 0, fontWeight: 'bold', fontSize: 13, flex: 'none' }}>{t('自定义快捷键')}：</Title>
-            </div>
+        <SettingsItem
+          label={t('自定义快捷键')}
+          description={t('默认为双击Ctrl键，可以设置自定义快捷键组合')}
+        >
+          <div style={{ width: '100%' }}>
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
               <Input
                 value={shortcutSettings.customShortcut || ''}
                 onChange={(e) => updateSetting('customShortcut', e.target.value)}
                 placeholder={t('点击右侧按钮录制快捷键，或手动输入（如：ctrl+shift+t）')}
                 disabled={!shortcutSettings.enabled}
-                style={{ width: 200, marginRight: 8 }}
+                style={{ width: 300, marginRight: 8 }}
               />
               <Button
                 type={isRecording ? 'primary' : 'default'}
@@ -187,31 +167,23 @@ const ShortcutSettings: React.FC = () => {
                 </span>
               </div>
             )}
-            <Paragraph type="secondary" style={{ margin: '12px 0 0 0', fontSize: 13 }}>
-              {t('默认快捷键为双击Ctrl。支持自定义组合键（如 Ctrl+T、Alt+F1），不支持自定义双击类快捷键。')}
-            </Paragraph>
           </div>
-        </div>
+        </SettingsItem>
+      </SettingsGroup>
 
-        <Divider />
-
-        {/* 使用说明 */}
-        <div style={{ marginBottom: 0 }}>
-          <Title level={5} style={{ margin: '0 0 12px 0', fontWeight: 'bold', fontSize: 14 }}>
-            {t('使用说明')}
-          </Title>
+      <SettingsGroup title={t('使用说明')}>
+        <SettingsItem
+          label={t('功能说明')}
+        >
           <div style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--ant-color-text-secondary)' }}>
             <p>• {t('选中文字后，双击 Ctrl 键即可快速翻译')}</p>
             <p>• {t('可以设置自定义快捷键替代默认的 Ctrl 双击')}</p>
             <p>• {t('自定义快捷键支持组合键，如 Ctrl+Shift+T')}</p>
             <p>• {t('关闭快捷键功能后，仍可通过点击翻译图标进行翻译')}</p>
           </div>
-        </div>
-      </div>
-      <div style={{padding: '0 24px 16px 24px', color: 'var(--ant-color-text-secondary)', fontSize: 13}}>
-        {t('所有设置均会自动保存，无需手动操作。')}
-      </div>
-    </Card>
+        </SettingsItem>
+      </SettingsGroup>
+    </SettingsPageContainer>
   );
 };
 
