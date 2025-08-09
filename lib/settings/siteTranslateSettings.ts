@@ -81,6 +81,9 @@ export async function removeAlwaysSite(host: string) {
   const trimmedHost = host.trim();
   dict.siteAlwaysList = (dict.siteAlwaysList || []).filter(h => h.trim() !== trimmedHost);
   await setDictConfig(dict);
+  
+  // 同时删除对应的自定义词库
+  await deleteCustomDictByHost(trimmedHost);
 }
 
 export async function removeNeverSite(host: string) {

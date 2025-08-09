@@ -190,6 +190,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
                 Segmented: {
                   itemSelectedBg: 'transparent',
                   itemSelectedColor: 'var(--ant-color-primary)',
+                  itemColor: 'var(--ant-color-text)',
                   itemHoverBg: 'var(--ant-color-primary-bg)',
                   itemHoverColor: 'var(--ant-color-primary)',
                   trackBg: 'var(--ant-color-fill-quaternary)',
@@ -219,6 +220,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
                 Segmented: {
                   itemSelectedBg: 'transparent',
                   itemSelectedColor: 'var(--ant-color-primary)',
+                  itemColor: 'var(--ant-color-text)',
                   itemHoverBg: 'var(--ant-color-primary-bg)',
                   itemHoverColor: 'var(--ant-color-primary)',
                   trackBg: 'var(--ant-color-fill-quaternary)',

@@ -178,7 +178,6 @@ const TranslateSettings: React.FC = () => {
   
   const handleRemoveAlways = async (host: string) => {
     await removeAlwaysSite(host);
-    await deleteCustomDictByHost(host);
     message.success(t('已移除白名单并清除词库'));
   };
   
@@ -528,6 +527,7 @@ const TranslateSettings: React.FC = () => {
                     Segmented: {
                       itemSelectedBg: 'transparent',
                       itemSelectedColor: 'var(--ant-color-primary)',
+                      itemColor: 'var(--ant-color-text)',
                       itemHoverBg: 'var(--ant-color-primary-bg)',
                       itemHoverColor: 'var(--ant-color-primary)',
                       trackBg: 'var(--ant-color-fill-quaternary)',
