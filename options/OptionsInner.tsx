@@ -6,7 +6,7 @@ import { useTheme } from '~lib/utils/theme';
 import GeneralSettings from './pages/GeneralSettings';
 import About from './pages/About';
 import LanguageSettings from './pages/LanguageSettings';
-import PluginIcon from 'components/PluginIcon';
+import PluginIcon from '~contents/components/PluginIcon';
 import TranslateSettings from './pages/TranslateSettings';
 import ShortcutSettings from './pages/ShortcutSettings';
 import CacheSettings from './pages/CacheSettings';

@@ -31,8 +31,9 @@ const SettingsItem: React.FC<SettingsItemProps> = ({
       }}>
         {/* 标签区域 */}
         <div style={{ 
-          minWidth: 160,
-          paddingTop: 4
+          width: 240,
+          paddingTop: 4,
+          flexShrink: 0
         }}>
           <Text style={{ 
             fontSize: 15,
@@ -47,7 +48,8 @@ const SettingsItem: React.FC<SettingsItemProps> = ({
             <Text style={{ 
               fontSize: 13,
               color: isDark ? '#a6a6a6' : '#666666',
-              lineHeight: 1.4
+              lineHeight: 1.4,
+              wordBreak: 'break-word'
             }}>
               {description}
             </Text>

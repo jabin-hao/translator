@@ -105,6 +105,22 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children, storageK
     }
   }, [themeMode]);
 
+  // 将主题信息同步到 Shadow DOM 根元素
+  useEffect(() => {
+    // 查找 Shadow DOM 容器
+    const hostElement = document.getElementById('plasmo-shadow-container');
+    if (hostElement?.shadowRoot) {
+      const shadowContainer = hostElement.shadowRoot.host as HTMLElement;
+      if (shadowContainer) {
+        if (isDark) {
+          shadowContainer.setAttribute('data-theme', 'dark');
+        } else {
+          shadowContainer.setAttribute('data-theme', 'light');
+        }
+      }
+    }
+  }, [isDark]);
+
   // 监听系统主题变化，但只在 auto 模式下
   useEffect(() => {
     if (themeMode === 'auto') {

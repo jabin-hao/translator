@@ -247,19 +247,36 @@ const PopupInner: React.FC = () => {
         <Title level={5} style={{ margin: 0, fontWeight: 600, color: isDark ? '#ffffff' : '#000000' }}>
           {t('快速设置')}
         </Title>
-        <Tooltip 
-          title={`${t('当前主题')}：${themeTextMap[themeMode]}`} 
-          placement="bottom"
-          getPopupContainer={(triggerNode) => triggerNode.parentElement || document.body}
-        >
-          <Button
-            type="text"
-            shape="circle"
-            icon={themeIconMap[themeMode]}
-            onClick={handleThemeSwitch}
-            style={{ border: 'none' }}
-          />
-        </Tooltip>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <Tooltip 
+            title={t('打开设置页面')} 
+            placement="bottom"
+            getPopupContainer={(triggerNode) => triggerNode.parentElement || document.body}
+          >
+            <Button
+              type="text"
+              shape="circle"
+              icon={<Icon icon="material-symbols:settings-outline" width={16} height={16} />}
+              onClick={() => {
+                chrome.runtime.openOptionsPage();
+              }}
+              style={{ border: 'none' }}
+            />
+          </Tooltip>
+          <Tooltip 
+            title={`${t('当前主题')}：${themeTextMap[themeMode]}`} 
+            placement="bottom"
+            getPopupContainer={(triggerNode) => triggerNode.parentElement || document.body}
+          >
+            <Button
+              type="text"
+              shape="circle"
+              icon={themeIconMap[themeMode]}
+              onClick={handleThemeSwitch}
+              style={{ border: 'none' }}
+            />
+          </Tooltip>
+        </div>
       </div>
       
       {/* 内容区域 */}
