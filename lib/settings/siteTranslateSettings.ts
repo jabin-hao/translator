@@ -267,7 +267,7 @@ class CustomDictManager {
           store.put(entry);
           resolve(entry.customTranslation);
         } else {
-          console.error(`[CustomDictManager] 未找到自定义翻译: host="${host}", originalText="${originalText}"`);
+          // console.warn(`[CustomDictManager] 未找到自定义翻译: host="${host}", originalText="${originalText}"`);
           resolve(null);
         }
       };

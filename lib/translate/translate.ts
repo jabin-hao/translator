@@ -149,7 +149,6 @@ export async function translate(
       if (!fallbackFunction) continue;
       
       try {
-        console.log(`尝试回退到 ${fallbackEngine} 引擎`);
         const translation = await Promise.race([
           fallbackFunction(text, from, to),
           new Promise<never>((_, reject) => 
@@ -165,8 +164,7 @@ export async function translate(
             console.error('保存到缓存失败:', cacheError);
           }
         }
-
-        console.log(`成功回退到 ${fallbackEngine} 引擎`);
+        
         return {
           text,
           translation,

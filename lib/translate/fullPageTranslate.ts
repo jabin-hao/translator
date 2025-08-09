@@ -42,6 +42,10 @@ const restoreOriginalTextMap = () => {
     } catch {}
   }
   
+  // 清理所有loading指示器
+  const indicators = document.querySelectorAll('.translation-loading-indicator');
+  indicators.forEach(indicator => indicator.remove());
+  
   // 清理已翻译的节点标记
   const translatedNodes = document.querySelectorAll('[data-translated="true"]');
   translatedNodes.forEach(node => {
@@ -76,6 +80,85 @@ function isVisible(node: Node): boolean {
 
 import { sendToBackground } from '@plasmohq/messaging';
 import { PROGRAMMING_LANGUAGES, CODE_FILE_SUFFIXES, GITHUB_CODE_SELECTORS, GITHUB_CODE_CLASSES, EXCLUDE_TAGS } from '../constants/constants';
+
+// 创建简单的loading指示器
+function createSimpleLoadingIndicator(): HTMLSpanElement {
+  const spinner = document.createElement('span');
+  spinner.className = 'translation-loading-indicator';
+  spinner.style.cssText = `
+    display: inline-flex;
+    align-items: center;
+    margin-right: 6px;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #1890ff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    vertical-align: middle;
+  `;
+  
+  // 添加动画样式
+  if (!document.querySelector('#translation-spinner-style')) {
+    const style = document.createElement('style');
+    style.id = 'translation-spinner-style';
+    style.textContent = `
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+  
+  return spinner;
+}
+
+// 为文本节点添加loading指示器（更安全的方式）
+function addLoadingIndicatorSafely(textNode: Text): HTMLSpanElement | null {
+  if (!textNode.parentNode) return null;
+  
+  // 检查是否已经有指示器
+  const existingIndicator = textNode.parentNode.querySelector('.translation-loading-indicator');
+  if (existingIndicator) {
+    return null;
+  }
+  
+  const indicator = createSimpleLoadingIndicator();
+  
+  try {
+    // 将指示器插入到文本节点之前
+    textNode.parentNode.insertBefore(indicator, textNode);
+    return indicator;
+  } catch (error) {
+    console.warn('无法添加loading指示器:', error);
+    return null;
+  }
+}
+
+// 移除与文本节点相关的loading指示器
+function removeLoadingIndicatorSafely(textNode: Text): void {
+  if (!textNode.parentNode) return;
+  
+  try {
+    // 查找并移除前面的指示器
+    let previousSibling = textNode.previousSibling;
+    while (previousSibling) {
+      if (previousSibling.nodeType === Node.ELEMENT_NODE) {
+        const element = previousSibling as HTMLElement;
+        if (element.classList.contains('translation-loading-indicator')) {
+          element.remove();
+          break;
+        }
+        // 如果遇到其他元素，停止查找
+        break;
+      }
+      previousSibling = previousSibling.previousSibling;
+    }
+  } catch (error) {
+    console.warn('无法移除loading指示器:', error);
+  }
+}
 
 function getDomain() {
   return location.hostname;
@@ -352,6 +435,11 @@ export async function lazyFullPageTranslate(targetLang: string, mode: 'translate
   let translatedSet = new Set<Text>();
   let isStopped = false;
   
+  // 进度管理状态
+  let totalNodes = 0;
+  let completedNodes = 0;
+  let progressCallback: ((total: number, completed: number) => void) | null = null;
+  
   // 保存原始文本映射
   saveOriginalTextMap();
   
@@ -374,13 +462,30 @@ export async function lazyFullPageTranslate(targetLang: string, mode: 'translate
     }
     if (validNodes.length === 0) return;
     
+    // 更新总数
+    totalNodes = Math.max(totalNodes, validNodes.length);
+    
+    // 通知进度更新
+    if (progressCallback) {
+      progressCallback(totalNodes, completedNodes);
+    }
+    
     // 批量翻译，每批20个
     const BATCH_SIZE = 20;
-    let translatedCount = 0;
     for (let i = 0; i < validNodes.length; i += BATCH_SIZE) {
       if (isStopped) break;
       
       const batch = validNodes.slice(i, i + BATCH_SIZE);
+      
+      // 为每个待翻译的节点添加进度指示器
+      const addedIndicators: Text[] = [];
+      batch.forEach(node => {
+        const indicator = addLoadingIndicatorSafely(node);
+        if (indicator) {
+          addedIndicators.push(node);
+        }
+      });
+      
       const texts = batch.map(n => n.nodeValue || '');
       let translatedArr: string[] = [];
       try {
@@ -389,35 +494,73 @@ export async function lazyFullPageTranslate(targetLang: string, mode: 'translate
         // 批量失败时，回退为原文
         translatedArr = texts;
       }
+      
       for (let j = 0; j < batch.length; j++) {
         if (isStopped) break;
         
         const node = batch[j];
         const translated = translatedArr[j];
-        if (!node.parentNode) continue;
+        
+        // 检查节点是否仍然有效
+        if (!node || !node.parentNode || !node.nodeValue) {
+          console.warn('节点无效，跳过翻译:', node);
+          continue;
+        }
+        
+        // 移除进度指示器
+        removeLoadingIndicatorSafely(node);
+        
+        // 保存原始文本以防万一
+        const originalText = node.nodeValue;
+        
         if (mode === 'translated') {
-          node.nodeValue = translated;
-          translatedSet.add(node);
-          translatedCount++;
-          // 标记节点为已翻译
-          if (node.parentElement) {
-            node.parentElement.setAttribute('data-translated', 'true');
+          try {
+            // 只有当翻译结果有效时才更新
+            if (translated && translated.trim()) {
+              node.nodeValue = translated;
+              translatedSet.add(node);
+              completedNodes++;
+              // 标记节点为已翻译
+              if (node.parentElement) {
+                node.parentElement.setAttribute('data-translated', 'true');
+              }
+            } else {
+              // 如果翻译结果为空，保持原文
+              console.warn('翻译结果为空，保持原文:', originalText);
+            }
+          } catch (error) {
+            console.error('翻译节点时出错:', error, '恢复原文:', originalText);
+            // 发生错误时恢复原文
+            try {
+              node.nodeValue = originalText;
+            } catch (restoreError) {
+              console.error('无法恢复原文:', restoreError);
+            }
           }
         } else if (mode === 'compare') {
-          // 动态获取原文颜色
-          let origColor = '';
           try {
-            const computed = window.getComputedStyle(node.parentElement!);
-            origColor = computed && computed.color ? computed.color : '';
-          } catch {}
-          const span = document.createElement('span');
-          span.style.display = 'inline-block';
-          span.setAttribute('data-compare-translated', '1');
-          span.setAttribute('data-compare-id', String(compareIdCounter++));
-          span.setAttribute('data-compare-original', node.nodeValue || '');
-          span.innerHTML = `<span style=\"color:#888;\">${node.nodeValue}</span><br/><span style=\"color:${origColor || '#222'};\">${translated}</span>`;
-          node.parentNode.replaceChild(span, node);
-          translatedCount++;
+            // 动态获取原文颜色
+            let origColor = '';
+            try {
+              const computed = window.getComputedStyle(node.parentElement!);
+              origColor = computed && computed.color ? computed.color : '';
+            } catch {}
+            const span = document.createElement('span');
+            span.style.display = 'inline-block';
+            span.setAttribute('data-compare-translated', '1');
+            span.setAttribute('data-compare-id', String(compareIdCounter++));
+            span.setAttribute('data-compare-original', originalText);
+            span.innerHTML = `<span style=\"color:#888;\">${originalText}</span><br/><span style=\"color:${origColor || '#222'};\">${translated || originalText}</span>`;
+            node.parentNode.replaceChild(span, node);
+            completedNodes++;
+          } catch (error) {
+            console.error('Compare模式处理失败:', error);
+          }
+        }
+        
+        // 每个节点翻译完成后更新进度
+        if (progressCallback) {
+          progressCallback(totalNodes, completedNodes);
         }
       }
     }
@@ -454,6 +597,10 @@ export async function lazyFullPageTranslate(targetLang: string, mode: 'translate
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', handleResize);
       
+      // 清理所有进度指示器
+      const indicators = document.querySelectorAll('.translation-loading-indicator');
+      indicators.forEach(indicator => indicator.remove());
+      
       // 恢复原始文本映射
       restoreOriginalTextMap();
       
@@ -465,7 +612,14 @@ export async function lazyFullPageTranslate(targetLang: string, mode: 'translate
       
       // 重置自动翻译标记
       resetAutoTranslateFlag();
-    }
+    },
+    setProgressCallback: (callback: (total: number, completed: number) => void) => {
+      progressCallback = callback;
+    },
+    getProgress: () => ({
+      total: totalNodes,
+      completed: completedNodes
+    })
   };
 }
 

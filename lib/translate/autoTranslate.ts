@@ -13,7 +13,6 @@ export const setupAutoTranslate = (
     const path = window.location.pathname;
     const fullUrl = path === '/' ? host : host + path;
     
-    
     try {
       const dict = await getDictConfig();
       

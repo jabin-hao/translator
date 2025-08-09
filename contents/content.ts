@@ -27,6 +27,9 @@ export async function callTranslateAPI(
     const toMapped = getEngineLangCode(to, engine);
 
     try {
+        // 读取用户的缓存设置
+        const cacheEnabled = await storageApi.get(CACHE_KEY) ?? true; // 默认启用缓存
+
         // 使用通用消息处理器
         const response = await sendToBackground({
             name: "handle" as never,
@@ -38,7 +41,7 @@ export async function callTranslateAPI(
                     from: fromMapped,
                     to: toMapped,
                     engine,
-                    useCache: true, // 启用缓存
+                    useCache: cacheEnabled, // 使用用户设置的缓存选项
                 },
             },
         });

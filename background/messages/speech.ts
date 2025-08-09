@@ -50,11 +50,6 @@ export const handleSpeechMessage = async (req: SpeechMessageRequest): Promise<Sp
           
           // 将 ArrayBuffer 转换为 Uint8Array，这样可以通过消息传递
           const uint8Array = new Uint8Array(result.audioData);
-          console.log('[Speech Message] ArrayBuffer 转换:', {
-            originalSize: result.audioData.byteLength,
-            uint8ArrayLength: uint8Array.length,
-            first10Bytes: Array.from(uint8Array.slice(0, 10))
-          });
           
           return {
             success: result.success,

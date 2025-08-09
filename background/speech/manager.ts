@@ -111,8 +111,6 @@ export class SpeechManager {
             }
 
             // 如果首选服务失败，尝试其他服务作为fallback
-            console.log(`[Speech Manager] ${this.currentService} 失败，开始尝试回退服务`);
-            
             // 定义回退顺序：优先使用远程TTS，最后使用browser TTS
             const allServices = ['google', 'browser'];
             const fallbackOrder = allServices.filter(s => s !== this.currentService);

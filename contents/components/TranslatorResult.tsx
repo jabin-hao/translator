@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { Card, Button, Divider } from 'antd';
-import { CopyOutlined, SoundOutlined } from '@ant-design/icons';
+import { Card, Button, Divider, Spin } from 'antd';
+import { CopyOutlined, SoundOutlined, LoadingOutlined } from '@ant-design/icons';
 import '../index.css';
 import { useStorage } from '@plasmohq/storage/hook';
 import { getEngineLangCode, getLangAbbr, getTTSLang, getBrowserLang } from '~lib/constants/languages';
@@ -615,7 +615,15 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
     >
       <div className="translator-result-content">
         <div className="translator-result-text">
-          {loading ? t('翻译中...') : translatedText}
+          {loading ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Spin 
+                size="small"
+                indicator={<LoadingOutlined style={{ fontSize: 14, color: '#1890ff' }} spin />}
+              />
+              <span style={{ color: '#1890ff' }}>{t('翻译中...')}</span>
+            </div>
+          ) : translatedText}
         </div>
         
         {/* Footer区域 */}
