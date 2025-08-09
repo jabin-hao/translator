@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Select, Radio, Button, message, Upload, Typography, Space, Modal, Divider } from 'antd';
+import { Select, Radio, Button, message, Upload, Typography, Space, Modal, Divider, Segmented, ConfigProvider, theme } from 'antd';
 import { useStorage, storageApi } from '~lib/utils/storage';
 import { UI_LANGUAGES } from '~lib/constants/languages';
 import { UploadOutlined, DownloadOutlined } from '@ant-design/icons';
@@ -55,9 +55,9 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
   };
 
   // 主题切换时同步 localStorage，保证多标签页同步
-  const handleThemeChange = async (e: import('antd').RadioChangeEvent) => {
-    setThemeMode(e.target.value);
-    await storageApi.set(PLUGIN_THEME_KEY, e.target.value);
+  const handleThemeChange = async (value: string) => {
+    setThemeMode(value);
+    await storageApi.set(PLUGIN_THEME_KEY, value);
   };
 
   const handleExportConfig = useCallback(async () => {
@@ -184,22 +184,58 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
           label={t('设置页面主题')}
           description={t('控制设置页面的主题样式')}
         >
-          <Radio.Group value={themeMode} onChange={handleThemeChange}>
-            <Radio.Button value="auto">{t('自动')}</Radio.Button>
-            <Radio.Button value="light">{t('日间')}</Radio.Button>
-            <Radio.Button value="dark">{t('夜间')}</Radio.Button>
-          </Radio.Group>
+          <ConfigProvider
+            theme={{
+              components: {
+                Segmented: {
+                  itemSelectedBg: 'transparent',
+                  itemSelectedColor: 'var(--ant-color-primary)',
+                  itemHoverBg: 'var(--ant-color-primary-bg)',
+                  itemHoverColor: 'var(--ant-color-primary)',
+                  trackBg: 'var(--ant-color-fill-quaternary)',
+                },
+              },
+            }}
+          >
+            <Segmented
+              value={themeMode}
+              onChange={handleThemeChange}
+              options={[
+                { label: t('自动'), value: 'auto' },
+                { label: t('日间'), value: 'light' },
+                { label: t('夜间'), value: 'dark' }
+              ]}
+            />
+          </ConfigProvider>
         </SettingsItem>
 
         <SettingsItem 
           label={t('悬浮窗组件主题')}
           description={t('控制翻译悬浮窗等组件的主题样式')}
         >
-          <Radio.Group value={contentTheme} onChange={e => setContentTheme(e.target.value)}>
-            <Radio.Button value="auto">{t('自动')}</Radio.Button>
-            <Radio.Button value="light">{t('日间')}</Radio.Button>
-            <Radio.Button value="dark">{t('夜间')}</Radio.Button>
-          </Radio.Group>
+          <ConfigProvider
+            theme={{
+              components: {
+                Segmented: {
+                  itemSelectedBg: 'transparent',
+                  itemSelectedColor: 'var(--ant-color-primary)',
+                  itemHoverBg: 'var(--ant-color-primary-bg)',
+                  itemHoverColor: 'var(--ant-color-primary)',
+                  trackBg: 'var(--ant-color-fill-quaternary)',
+                },
+              },
+            }}
+          >
+            <Segmented
+              value={contentTheme}
+              onChange={setContentTheme}
+              options={[
+                { label: t('自动'), value: 'auto' },
+                { label: t('日间'), value: 'light' },
+                { label: t('夜间'), value: 'dark' }
+              ]}
+            />
+          </ConfigProvider>
         </SettingsItem>
       </SettingsGroup>
 

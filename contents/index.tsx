@@ -352,7 +352,7 @@ const ContentScript = () => {
 
     // 设置消息处理器，确保只注册一次
     useEffect(() => {
-        setupMessageHandler();
+        setupMessageHandler(setShowInputTranslator);
     }, []);
 
     // 监听 result 状态变化，result 出现后再 setIcon(null)

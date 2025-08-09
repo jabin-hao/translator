@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Select, Switch, message, Input, Button, List, Modal, Checkbox, Tooltip, Radio } from 'antd';
+import { Select, Switch, message, Input, Button, List, Modal, Checkbox, Tooltip, Radio, Segmented, ConfigProvider } from 'antd';
 import { TRANSLATE_ENGINES, TTS_ENGINES } from '~lib/constants/engines';
 import { useTranslation } from 'react-i18next';
 import { useStorage } from '~lib/utils/storage';
@@ -200,10 +200,9 @@ const TranslateSettings: React.FC = () => {
     setAddHost('');
   };
 
-  const handlePageTranslateModeChange = async (e: any) => {
-    const newMode = e.target.value;
-    setPageTranslateMode(newMode);
-    await setDictConfigState({ ...dictConfig, pageTranslateMode: newMode });
+  const handlePageTranslateModeChange = async (value: 'translated' | 'compare') => {
+    setPageTranslateMode(value);
+    await setDictConfigState({ ...dictConfig, pageTranslateMode: value });
     message.success(t('整页翻译模式已保存'));
   };
 
@@ -523,10 +522,28 @@ const TranslateSettings: React.FC = () => {
               label={t('整页翻译模式')}
               description={t('选择整页翻译时的显示方式：仅显示译文或原文与译文对照')}
             >
-              <Radio.Group value={pageTranslateMode} onChange={handlePageTranslateModeChange}>
-                <Radio.Button value="translated">{t('全部译文')}</Radio.Button>
-                <Radio.Button value="compare">{t('原文对照')}</Radio.Button>
-              </Radio.Group>
+              <ConfigProvider
+                theme={{
+                  components: {
+                    Segmented: {
+                      itemSelectedBg: 'transparent',
+                      itemSelectedColor: 'var(--ant-color-primary)',
+                      itemHoverBg: 'var(--ant-color-primary-bg)',
+                      itemHoverColor: 'var(--ant-color-primary)',
+                      trackBg: 'var(--ant-color-fill-quaternary)',
+                    },
+                  },
+                }}
+              >
+                <Segmented
+                  value={pageTranslateMode}
+                  onChange={handlePageTranslateModeChange}
+                  options={[
+                    { label: t('全部译文'), value: 'translated' },
+                    { label: t('原文对照'), value: 'compare' }
+                  ]}
+                />
+              </ConfigProvider>
             </SettingsItem>
 
             <SettingsItem
