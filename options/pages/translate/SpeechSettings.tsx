@@ -106,66 +106,71 @@ const SpeechSettings: React.FC = () => {
 
   return (
     <SettingsPageContainer title={t('朗读设置')}>
-      <SettingsGroup title={t('基本设置')}>
+      <SettingsGroup title={t('朗读功能')}>
         <SettingsItem 
           label={t('启用语音朗读')}
-          description={t('启用翻译结果的语音朗读功能')}
+          description={t('开启后，可以朗读翻译结果')}
         >
           <Switch
             checked={speechSettings?.enabled || false}
             onChange={(checked) => handleSettingChange('enabled', checked)}
           />
         </SettingsItem>
-
-        <SettingsItem 
-          label={t('朗读引擎')}
-          description={t('选择语音合成引擎')}
-        >
-          <ConfigProvider
-            theme={{
-              components: {
-                Segmented: {
-                  itemColor: isDark ? '#fff' : undefined,
-                  itemHoverColor: isDark ? '#fff' : undefined,
-                  itemSelectedColor: isDark ? '#fff' : undefined,
-                }
-              }
-            }}
-          >
-            <Segmented
-              value={speechSettings?.engine || 'google'}
-              onChange={(value) => handleSettingChange('engine', value)}
-              options={TTS_ENGINES.map(engine => ({
-                label: engine.label,
-                value: engine.name
-              }))}
-            />
-          </ConfigProvider>
-        </SettingsItem>
-
-        <SettingsItem 
-          label={t('默认语音')}
-          description={t('选择默认的语音声音')}
-        >
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <Select
-              value={speechSettings?.voice || 'auto'}
-              onChange={(value) => handleSettingChange('voice', value)}
-              style={{ width: 200 }}
-            >
-              <Option value="auto">{t('自动选择')}</Option>
-              {getAvailableVoices().map(voice => (
-                <Option key={voice.name} value={voice.name}>
-                  {voice.name} ({voice.lang})
-                </Option>
-              ))}
-            </Select>
-            <Button onClick={() => testSpeech()}>
-              {t('测试')}
-            </Button>
-          </div>
-        </SettingsItem>
       </SettingsGroup>
+
+      {/* 只有启用朗读功能时才显示其他设置 */}
+      {speechSettings?.enabled && (
+        <>
+          <SettingsGroup title={t('基本设置')}>
+            <SettingsItem 
+              label={t('朗读引擎')}
+              description={t('选择语音合成引擎')}
+            >
+              <ConfigProvider
+                theme={{
+                  components: {
+                    Segmented: {
+                      itemColor: isDark ? '#fff' : undefined,
+                      itemHoverColor: isDark ? '#fff' : undefined,
+                      itemSelectedColor: isDark ? '#fff' : undefined,
+                    }
+                  }
+                }}
+              >
+                <Segmented
+                  value={speechSettings?.engine || 'google'}
+                  onChange={(value) => handleSettingChange('engine', value)}
+                  options={TTS_ENGINES.map(engine => ({
+                    label: engine.label,
+                    value: engine.name
+                  }))}
+                />
+              </ConfigProvider>
+            </SettingsItem>
+
+            <SettingsItem 
+              label={t('默认语音')}
+              description={t('选择默认的语音声音')}
+            >
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <Select
+                  value={speechSettings?.voice || 'auto'}
+                  onChange={(value) => handleSettingChange('voice', value)}
+                  style={{ width: 200 }}
+                >
+                  <Option value="auto">{t('自动选择')}</Option>
+                  {getAvailableVoices().map(voice => (
+                    <Option key={voice.name} value={voice.name}>
+                      {voice.name} ({voice.lang})
+                    </Option>
+                  ))}
+                </Select>
+                <Button onClick={() => testSpeech()}>
+                  {t('测试')}
+                </Button>
+              </div>
+            </SettingsItem>
+          </SettingsGroup>
 
       <SettingsGroup title={t('朗读参数')}>
         <SettingsItem 
@@ -308,6 +313,8 @@ const SpeechSettings: React.FC = () => {
           </SettingsItem>
         ))}
       </SettingsGroup>
+        </>
+      )}
     </SettingsPageContainer>
   );
 };

@@ -3,6 +3,7 @@ import { Switch, Select, Input, Button, message, Segmented, ConfigProvider } fro
 import { useTranslation } from 'react-i18next';
 import { useStorage } from '~lib/utils/storage';
 import { POPUP_SETTINGS_KEY } from '~lib/constants/settings';
+import { LANGUAGES } from '~lib/constants/languages';
 import SettingsPageContainer from '../../components/SettingsPageContainer';
 import SettingsGroup from '../../components/SettingsGroup';
 import SettingsItem from '../../components/SettingsItem';
@@ -13,6 +14,10 @@ const { Option } = Select;
 const InputTranslateSettings: React.FC = () => {
   const { t } = useTranslation();
   const { isDark } = useTheme();
+  
+  // 输入翻译总开关和目标语言
+  const [inputTranslateEnabled, setInputTranslateEnabled] = useStorage('inputTranslateEnabled', true);
+  const [inputTranslateTargetLang, setInputTranslateTargetLang] = useStorage('inputTranslateTargetLang', 'zh');
   
   // popup设置
   const [popupSettings, setPopupSettings] = useStorage(POPUP_SETTINGS_KEY, {
@@ -50,16 +55,54 @@ const InputTranslateSettings: React.FC = () => {
 
   return (
     <SettingsPageContainer title={t('输入翻译设置')}>
-      <SettingsGroup title={t('基本设置')}>
+      {/* 输入翻译总开关 */}
+      <SettingsGroup title={t('输入翻译')}>
         <SettingsItem 
-          label={t('显示输入翻译器')}
-          description={t('在弹窗中显示输入翻译功能')}
+          label={t('启用输入翻译')}
+          description={t('开启后，可在搜索引擎等输入框中进行翻译')}
         >
           <Switch
-            checked={popupSettings.showInputTranslator}
-            onChange={(checked) => handleSettingChange('showInputTranslator', checked)}
+            checked={inputTranslateEnabled}
+            onChange={setInputTranslateEnabled}
           />
         </SettingsItem>
+
+        {inputTranslateEnabled && (
+          <SettingsItem 
+            label={t('目标语言')}
+            description={t('输入翻译的目标语言')}
+          >
+            <Select
+              value={inputTranslateTargetLang}
+              onChange={setInputTranslateTargetLang}
+              style={{ width: 200 }}
+              showSearch
+              placeholder={t('选择目标语言')}
+              optionFilterProp="children"
+            >
+              {LANGUAGES.map((lang) => (
+                <Option key={lang.code} value={lang.code}>
+                  {lang.label}
+                </Option>
+              ))}
+            </Select>
+          </SettingsItem>
+        )}
+      </SettingsGroup>
+
+      {/* 只有开启输入翻译时才显示其他设置 */}
+      {inputTranslateEnabled && (
+        <>
+          <SettingsGroup title={t('基本设置')}>
+            <SettingsItem 
+              label={t('显示输入翻译器')}
+              description={t('在弹窗中显示输入翻译功能')}
+            >
+              <Switch
+                checked={popupSettings.showInputTranslator}
+                onChange={(checked) => handleSettingChange('showInputTranslator', checked)}
+              />
+            </SettingsItem>
 
         <SettingsItem 
           label={t('自动聚焦')}
@@ -213,6 +256,8 @@ const InputTranslateSettings: React.FC = () => {
           </div>
         </SettingsItem>
       </SettingsGroup>
+        </>
+      )}
     </SettingsPageContainer>
   );
 };

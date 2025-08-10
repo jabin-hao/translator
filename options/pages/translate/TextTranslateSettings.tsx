@@ -1,9 +1,8 @@
 import React from 'react';
-import { Select, Switch, Input, Button, message, Segmented, ConfigProvider } from 'antd';
-import { TRANSLATE_ENGINES } from '~lib/constants/engines';
+import { Switch, Select } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { useStorage } from '~lib/utils/storage';
-import { TRANSLATE_SETTINGS_KEY, DEEPL_API_KEY, YANDEX_API_KEY } from '~lib/constants/settings';
+import { TRANSLATE_SETTINGS_KEY } from '~lib/constants/settings';
 import SettingsPageContainer from '../../components/SettingsPageContainer';
 import SettingsGroup from '../../components/SettingsGroup';
 import SettingsItem from '../../components/SettingsItem';
@@ -16,6 +15,7 @@ const TextTranslateSettings: React.FC = () => {
   const { isDark } = useTheme();
   
   // 使用useStorage hooks管理设置
+  const [textTranslateEnabled, setTextTranslateEnabled] = useStorage('textTranslateEnabled', true);
   const [translateSettings, setTranslateSettings] = useStorage(TRANSLATE_SETTINGS_KEY, {
     engine: 'google',
     autoDetectLanguage: true,
@@ -30,13 +30,6 @@ const TextTranslateSettings: React.FC = () => {
     pressKeyWithAlt: false,
   });
 
-  const [deeplApiKey, setDeeplApiKey] = useStorage(DEEPL_API_KEY, '');
-  const [yandexApiKey, setYandexApiKey] = useStorage(YANDEX_API_KEY, '');
-
-  const handleEngineChange = (value: string) => {
-    setTranslateSettings({ ...translateSettings, engine: value });
-  };
-
   const handleSwitchChange = (key: string, checked: boolean) => {
     setTranslateSettings({ ...translateSettings, [key]: checked });
   };
@@ -45,71 +38,25 @@ const TextTranslateSettings: React.FC = () => {
     setTranslateSettings({ ...translateSettings, keyCode: value });
   };
 
-  const testApiKey = async (engine: 'deepl' | 'yandex') => {
-    // TODO: 实现API密钥测试逻辑
-    message.info(t('API密钥测试功能正在开发中'));
-  };
-
   return (
     <SettingsPageContainer title={t('划词翻译设置')}>
-      <SettingsGroup title={t('翻译引擎')}>
+      {/* 划词翻译总开关 */}
+      <SettingsGroup title={t('划词翻译')}>
         <SettingsItem 
-          label={t('翻译引擎')}
-          description={t('选择文本翻译使用的引擎')}
+          label={t('启用划词翻译')}
+          description={t('开启后，选中文本即可进行翻译')}
         >
-          <Select 
-            value={translateSettings.engine} 
-            onChange={handleEngineChange}
-            style={{ width: 150 }}
-          >
-            {TRANSLATE_ENGINES.map((engine) => (
-              <Option key={engine.value} value={engine.value}>
-                {engine.label}
-              </Option>
-            ))}
-          </Select>
+          <Switch 
+            checked={textTranslateEnabled} 
+            onChange={setTextTranslateEnabled} 
+          />
         </SettingsItem>
-
-        {translateSettings.engine === 'deepl' && (
-          <SettingsItem 
-            label={t('DeepL API密钥')}
-            description={t('输入您的DeepL API密钥以使用DeepL翻译服务')}
-          >
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <Input.Password
-                value={deeplApiKey}
-                onChange={(e) => setDeeplApiKey(e.target.value)}
-                placeholder={t('请输入DeepL API密钥')}
-                style={{ width: 300 }}
-              />
-              <Button onClick={() => testApiKey('deepl')}>
-                {t('测试')}
-              </Button>
-            </div>
-          </SettingsItem>
-        )}
-
-        {translateSettings.engine === 'yandex' && (
-          <SettingsItem 
-            label={t('Yandex API密钥')}
-            description={t('输入您的Yandex API密钥以使用Yandex翻译服务')}
-          >
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <Input.Password
-                value={yandexApiKey}
-                onChange={(e) => setYandexApiKey(e.target.value)}
-                placeholder={t('请输入Yandex API密钥')}
-                style={{ width: 300 }}
-              />
-              <Button onClick={() => testApiKey('yandex')}>
-                {t('测试')}
-              </Button>
-            </div>
-          </SettingsItem>
-        )}
       </SettingsGroup>
 
-      <SettingsGroup title={t('翻译触发方式')}>
+      {/* 只有开启划词翻译时才显示其他设置 */}
+      {textTranslateEnabled && (
+        <>
+          <SettingsGroup title={t('翻译触发方式')}>
         <SettingsItem 
           label={t('选词翻译')}
           description={t('选择文本后显示翻译')}
@@ -214,6 +161,8 @@ const TextTranslateSettings: React.FC = () => {
           />
         </SettingsItem>
       </SettingsGroup>
+        </>
+      )}
     </SettingsPageContainer>
   );
 };

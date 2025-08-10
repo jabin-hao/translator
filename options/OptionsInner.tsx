@@ -15,6 +15,8 @@ import TextTranslateSettings from './pages/translate/TextTranslateSettings';
 import PageTranslateSettings from './pages/translate/PageTranslateSettings';
 import InputTranslateSettings from './pages/translate/InputTranslateSettings';
 import SpeechSettings from './pages/translate/SpeechSettings';
+import EngineSettings from './pages/EngineSettings';
+import FavoritesSettings from './pages/FavoritesSettings';
 
 const { Title } = Typography;
 const { Sider, Content, Header } = Layout;
@@ -69,6 +71,7 @@ const OptionsInner = () => {
   const menuItems = [
     { key: 'general', icon: <Icon icon="material-symbols:settings-outline" width={22} />, label: t('通用设置') },
     { key: 'language', icon: <Icon icon="material-symbols:language" width={22} />, label: t('语言设置') },
+    { key: 'engine', icon: <Icon icon="material-symbols:precision-manufacturing" width={22} />, label: t('引擎设置') },
     {
       key: 'translate',
       icon: <Icon icon="material-symbols:g-translate" width={22} />,
@@ -80,6 +83,7 @@ const OptionsInner = () => {
         { key: 'translate-speech', icon: <Icon icon="material-symbols:volume-up" width={18} />, label: t('朗读设置') },
       ]
     },
+    { key: 'favorites', icon: <Icon icon="material-symbols:favorite-outline" width={22} />, label: t('收藏管理') },
     { key: 'cache', icon: <Icon icon="material-symbols:storage" width={22} />, label: t('缓存管理') },
     { key: 'shortcut', icon: <Icon icon="material-symbols:keyboard-outline" width={22} />, label: t('快捷键设置') },
     { key: 'about', icon: <Icon icon="material-symbols:info-outline" width={22} />, label: t('关于') },
@@ -90,6 +94,8 @@ const OptionsInner = () => {
     content = <LanguageSettings />;
   } else if (selectedKey === 'general') {
     content = <GeneralSettings themeMode={themeMode} setThemeMode={setThemeMode} />;
+  } else if (selectedKey === 'engine') {
+    content = <EngineSettings />;
   } else if (selectedKey === 'translate') {
     content = <TranslateSettings />;
   } else if (selectedKey === 'translate-text') {
@@ -100,6 +106,8 @@ const OptionsInner = () => {
     content = <InputTranslateSettings />;
   } else if (selectedKey === 'translate-speech') {
     content = <SpeechSettings />;
+  } else if (selectedKey === 'favorites') {
+    content = <FavoritesSettings />;
   } else if (selectedKey === 'cache') {
     content = <CacheSettings />;
   } else if (selectedKey === 'shortcut') {
