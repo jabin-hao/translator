@@ -18,8 +18,7 @@ export const POPUP_SETTINGS_KEY = 'popup_settings';
 
 // 主题相关常量
 export const UI_LANG_KEY = 'uiLang'; // 界面语言
-export const PLUGIN_THEME_KEY = 'plugin_theme_mode';
-export const CONTENT_THEME_KEY = 'content_theme_mode';
+export const THEME_MODE_KEY = 'theme_mode';
 
 // 缓存相关常量
 export const CACHE_KEY = 'translation_cache_enabled';

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { ConfigProvider, theme } from 'antd';
 import { useStorage } from './storage';
 
@@ -28,6 +28,7 @@ interface ThemeProviderProps {
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children, storageKey }) => {
   // 使用 useStorage hook 替换手动的存储操作
   const [themeMode, setThemeMode] = useStorage<ThemeMode>(storageKey, 'auto');
+  
   const [isDark, setIsDark] = useState(() => {
     // 初始化时计算一次
     if (themeMode === 'auto') {
@@ -88,6 +89,11 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children, storageK
       },
       Message: {
         contentBg: isDark ? '#1f1f1f' : '#ffffff',
+        colorText: isDark ? '#ffffff' : '#000000',
+        colorSuccess: isDark ? '#52c41a' : '#52c41a',
+        colorError: isDark ? '#ff4d4f' : '#ff4d4f',
+        colorWarning: isDark ? '#faad14' : '#faad14',
+        colorInfo: isDark ? '#1890ff' : '#1890ff',
       },
       Notification: {
         colorBgElevated: isDark ? '#1f1f1f' : '#ffffff',

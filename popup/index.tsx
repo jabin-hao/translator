@@ -3,10 +3,11 @@ import PopupInner from "./components/PopupInner";
 import "./index.css";
 
 import { ThemeProvider } from "~lib/utils/theme";
+import { THEME_MODE_KEY } from "~lib/constants/settings";
 
 function Popup() {
   return (
-    <ThemeProvider storageKey="plugin_theme_mode">
+    <ThemeProvider storageKey={THEME_MODE_KEY}>
       <div style={{
         width: '100%',
         height: 'auto',

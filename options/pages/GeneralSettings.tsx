@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Select, Radio, Button, message, Upload, Typography, Space, Modal, Divider, Segmented, ConfigProvider, theme } from 'antd';
-import { useStorage, storageApi } from '~lib/utils/storage';
-import { UI_LANGUAGES } from '~lib/constants/languages';
+import { Select, Radio, Button, message, Upload, Typography, Modal } from 'antd';
+import { useStorage, storageApi } from '~/lib/utils/storage';
+import { UI_LANGUAGES } from '~/lib/constants/languages';
 import { UploadOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import {POPUP_SETTINGS_KEY, PLUGIN_THEME_KEY, CONTENT_THEME_KEY, TRANSLATION_CACHE_CONFIG_KEY, UI_LANG_KEY, SHORTCUT_SETTINGS_KEY, PAGE_LANG_KEY, TEXT_LANG_KEY, FAVORITE_LANGS_KEY, TRANSLATE_SETTINGS_KEY, SITE_TRANSLATE_SETTINGS_KEY, DICT_KEY } from '~lib/constants/settings';
+import {POPUP_SETTINGS_KEY, THEME_MODE_KEY, TRANSLATION_CACHE_CONFIG_KEY, UI_LANG_KEY, SHORTCUT_SETTINGS_KEY, PAGE_LANG_KEY, TEXT_LANG_KEY, FAVORITE_LANGS_KEY, TRANSLATE_SETTINGS_KEY, SITE_TRANSLATE_SETTINGS_KEY, DICT_KEY } from '~lib/constants/settings';
 import SettingsPageContainer from '../components/SettingsPageContainer';
 import SettingsGroup from '../components/SettingsGroup';
 import SettingsItem from '../components/SettingsItem';
@@ -21,7 +21,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
   const { t, i18n } = useTranslation();
   
   // 使用 useStorage hook 替换手动的 storage 操作
-  const [contentTheme, setContentTheme] = useStorage(CONTENT_THEME_KEY, 'auto');
+  // 移除单独的 contentTheme，统一使用 themeMode
   const [uiLang, setUiLang] = useStorage(UI_LANG_KEY, undefined);
   
   const [clearConfigModalVisible, setClearConfigModalVisible] = useState(false);
@@ -55,9 +55,9 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
   };
 
   // 主题切换时同步 localStorage，保证多标签页同步
-  const handleThemeChange = async (value: string) => {
-    setThemeMode(value);
-    await storageApi.set(PLUGIN_THEME_KEY, value);
+  const handleThemeChange = async (e: import('antd').RadioChangeEvent) => {
+    setThemeMode(e.target.value);
+    await storageApi.set(THEME_MODE_KEY, e.target.value);
   };
 
   const handleExportConfig = useCallback(async () => {
@@ -69,8 +69,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
       TRANSLATE_SETTINGS_KEY,
       SITE_TRANSLATE_SETTINGS_KEY,
       POPUP_SETTINGS_KEY,
-      PLUGIN_THEME_KEY,
-      CONTENT_THEME_KEY,
+      THEME_MODE_KEY,
       SHORTCUT_SETTINGS_KEY,
       TRANSLATION_CACHE_CONFIG_KEY,
     ];
@@ -103,8 +102,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
         FAVORITE_LANGS_KEY,
         TRANSLATE_SETTINGS_KEY,
         POPUP_SETTINGS_KEY,
-        PLUGIN_THEME_KEY,
-        CONTENT_THEME_KEY,
+        THEME_MODE_KEY,
         SHORTCUT_SETTINGS_KEY,
         TRANSLATION_CACHE_CONFIG_KEY,
       ];
@@ -138,8 +136,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
         TRANSLATE_SETTINGS_KEY,
         SITE_TRANSLATE_SETTINGS_KEY,
         POPUP_SETTINGS_KEY,
-        PLUGIN_THEME_KEY,
-        CONTENT_THEME_KEY,
+        THEME_MODE_KEY,
         SHORTCUT_SETTINGS_KEY,
         TRANSLATION_CACHE_CONFIG_KEY,
       ];
@@ -184,61 +181,13 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
           label={t('设置页面主题')}
           description={t('控制设置页面的主题样式')}
         >
-          <ConfigProvider
-            theme={{
-              components: {
-                Segmented: {
-                  itemSelectedBg: 'transparent',
-                  itemSelectedColor: 'var(--ant-color-primary)',
-                  itemColor: 'var(--ant-color-text)',
-                  itemHoverBg: 'var(--ant-color-primary-bg)',
-                  itemHoverColor: 'var(--ant-color-primary)',
-                  trackBg: 'var(--ant-color-fill-quaternary)',
-                },
-              },
-            }}
-          >
-            <Segmented
-              value={themeMode}
-              onChange={handleThemeChange}
-              options={[
-                { label: t('自动'), value: 'auto' },
-                { label: t('日间'), value: 'light' },
-                { label: t('夜间'), value: 'dark' }
-              ]}
-            />
-          </ConfigProvider>
+          <Radio.Group value={themeMode} onChange={handleThemeChange}>
+            <Radio.Button value="auto">{t('自动')}</Radio.Button>
+            <Radio.Button value="light">{t('日间')}</Radio.Button>
+            <Radio.Button value="dark">{t('夜间')}</Radio.Button>
+          </Radio.Group>
         </SettingsItem>
 
-        <SettingsItem 
-          label={t('悬浮窗组件主题')}
-          description={t('控制翻译悬浮窗等组件的主题样式')}
-        >
-          <ConfigProvider
-            theme={{
-              components: {
-                Segmented: {
-                  itemSelectedBg: 'transparent',
-                  itemSelectedColor: 'var(--ant-color-primary)',
-                  itemColor: 'var(--ant-color-text)',
-                  itemHoverBg: 'var(--ant-color-primary-bg)',
-                  itemHoverColor: 'var(--ant-color-primary)',
-                  trackBg: 'var(--ant-color-fill-quaternary)',
-                },
-              },
-            }}
-          >
-            <Segmented
-              value={contentTheme}
-              onChange={setContentTheme}
-              options={[
-                { label: t('自动'), value: 'auto' },
-                { label: t('日间'), value: 'light' },
-                { label: t('夜间'), value: 'dark' }
-              ]}
-            />
-          </ConfigProvider>
-        </SettingsItem>
       </SettingsGroup>
 
       <SettingsGroup title={t('数据管理')}>

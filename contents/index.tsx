@@ -22,6 +22,7 @@ import {
     PAGE_LANG_KEY,
     SHORTCUT_SETTINGS_KEY,
     TEXT_LANG_KEY,
+    THEME_MODE_KEY,
     TRANSLATE_SETTINGS_KEY,
     UI_LANG_KEY
 } from '~lib/constants/settings';
@@ -386,7 +387,7 @@ const ContentScript = () => {
     (window as any).callTranslateAPI = callTranslateAPICallback;
 
     return (
-        <ThemeProvider storageKey="content_theme_mode">
+        <ThemeProvider storageKey={THEME_MODE_KEY}>
             <StyleProvider hashPriority="high" container={document.getElementById(HOST_ID)?.shadowRoot}>
                 <App
                     message={{

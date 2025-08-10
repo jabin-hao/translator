@@ -5,6 +5,7 @@ import { initI18n } from '~i18n';
 import i18n from '../i18n';
 import { ThemeProvider } from '~lib/utils/theme';
 import OptionsInner from './OptionsInner';
+import { THEME_MODE_KEY } from '~lib/constants/settings';
 
 const OptionsRoot = () => {
   const [i18nReady, setI18nReady] = useState(false);
@@ -23,7 +24,7 @@ const OptionsRoot = () => {
   }
   
   return (
-    <ThemeProvider storageKey="plugin_theme_mode">
+    <ThemeProvider storageKey={THEME_MODE_KEY}>
       <I18nextProvider i18n={i18n}>
         <App>
           <OptionsInner />

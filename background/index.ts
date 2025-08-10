@@ -1,5 +1,5 @@
 // 后台脚本入口文件
-import { CACHE_KEY, PLUGIN_THEME_KEY, CONTENT_THEME_KEY, UI_LANG_KEY, SHORTCUT_SETTINGS_KEY, TRANSLATION_CACHE_CONFIG_KEY, DEFAULT_CACHE_CONFIG } from '~lib/constants/settings';
+import { CACHE_KEY, THEME_MODE_KEY, UI_LANG_KEY, SHORTCUT_SETTINGS_KEY, TRANSLATION_CACHE_CONFIG_KEY, DEFAULT_CACHE_CONFIG } from '~lib/constants/settings';
 import {storageApi} from "~lib/utils/storage";
 
 console.log('后台脚本已启动');
@@ -23,11 +23,8 @@ chrome.runtime.onInstalled.addListener(async () => {
   if (!cacheConfig) {
     await save(TRANSLATION_CACHE_CONFIG_KEY, DEFAULT_CACHE_CONFIG);
   }
-  if (await get(PLUGIN_THEME_KEY) == null) {
-    await save(PLUGIN_THEME_KEY, 'auto');
-  }
-  if (await get(CONTENT_THEME_KEY) == null) {
-    await save(CONTENT_THEME_KEY, 'auto');
+  if (await get(THEME_MODE_KEY) == null) {
+    await save(THEME_MODE_KEY, 'auto');
   }
   if (await get(UI_LANG_KEY) == null) {
     const browserLang = navigator.language || 'zh-CN';

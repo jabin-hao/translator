@@ -23,6 +23,7 @@ export interface DictConfig {
 const defaultDict: DictConfig = {
   siteAlwaysList: [],
   siteNeverList: [],
+  pageTranslateMode: 'translated',
   autoTranslateEnabled: false
 };
 
