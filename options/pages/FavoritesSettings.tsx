@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { List, Button, Input, message, Modal, Card, Tag, Space, Tooltip, Popconfirm, Select, Empty } from 'antd';
+import { List, Button, Input, message, Modal, Card, Tag, Space, Tooltip, Popconfirm, Select, Empty, Switch } from 'antd';
 import { DeleteOutlined, EditOutlined, SearchOutlined, ExportOutlined, ImportOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { useFavoritesSettings } from '~lib/utils/globalSettingsHooks';
@@ -20,7 +20,7 @@ const FavoritesSettings: React.FC = () => {
   const { isDark } = useTheme();
   
   // 使用新的全局配置系统
-  const { favoritesSettings, updateFavorites } = useFavoritesSettings();
+  const { favoritesSettings, updateFavorites, toggleEnabled } = useFavoritesSettings();
   const favorites = favoritesSettings.words;
   
   const [filteredFavorites, setFilteredFavorites] = useState<FavoriteWord[]>([]);
@@ -146,38 +146,54 @@ const FavoritesSettings: React.FC = () => {
 
   return (
     <SettingsPageContainer title={t('收藏管理')}>
-      <SettingsGroup title={t('我的收藏')}>
-        {/* 搜索和过滤 */}
-        <SettingsItem label={t('搜索和筛选')}>
-          <Space direction="vertical" style={{ width: '100%' }}>
-            <Space>
-              <Search
-                placeholder={t('搜索原文、译文或备注')}
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                style={{ width: 300 }}
-                allowClear
-              />
-              <Select
-                value={selectedLanguage}
-                onChange={setSelectedLanguage}
-                style={{ width: 120 }}
-              >
-                <Option value="all">{t('所有语言')}</Option>
-                {languageOptions.map(lang => (
-                  <Option key={lang} value={lang}>{lang}</Option>
-                ))}
-              </Select>
-            </Space>
-            
-            <Space>
-              <Button
-                icon={<ExportOutlined />}
-                onClick={handleExport}
-                disabled={favorites.length === 0}
-              >
-                {t('导出收藏')}
-              </Button>
+      {/* 收藏夹总开关 */}
+      <SettingsGroup title={t('收藏夹功能')} first>
+        <SettingsItem
+          label={t('启用收藏夹')}
+          description={t('开启后，可以收藏翻译的单词和短语')}
+        >
+          <Switch 
+            checked={favoritesSettings.enabled} 
+            onChange={toggleEnabled} 
+          />
+        </SettingsItem>
+      </SettingsGroup>
+
+      {/* 收藏夹详细设置 - 条件渲染 */}
+      {favoritesSettings.enabled && (
+        <>
+          <SettingsGroup title={t('我的收藏')}>
+            {/* 搜索和过滤 */}
+            <SettingsItem label={t('搜索和筛选')}>
+              <Space direction="vertical" style={{ width: '100%' }}>
+                <Space>
+                  <Search
+                    placeholder={t('搜索原文、译文或备注')}
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                    style={{ width: 300 }}
+                    allowClear
+                  />
+                  <Select
+                    value={selectedLanguage}
+                    onChange={setSelectedLanguage}
+                    style={{ width: 120 }}
+                  >
+                    <Option value="all">{t('所有语言')}</Option>
+                    {languageOptions.map(lang => (
+                      <Option key={lang} value={lang}>{lang}</Option>
+                    ))}
+                  </Select>
+                </Space>
+                
+                <Space>
+                  <Button
+                    icon={<ExportOutlined />}
+                    onClick={handleExport}
+                    disabled={favorites.length === 0}
+                  >
+                    {t('导出收藏')}
+                  </Button>
               <Button
                 icon={<ImportOutlined />}
                 onClick={() => setImportModalVisible(true)}
@@ -288,7 +304,6 @@ const FavoritesSettings: React.FC = () => {
             />
           )}
         </SettingsItem>
-      </SettingsGroup>
 
       {/* 编辑模态框 */}
       <Modal
@@ -356,6 +371,9 @@ const FavoritesSettings: React.FC = () => {
           />
         </div>
       </Modal>
+          </SettingsGroup>
+        </>
+      )}
     </SettingsPageContainer>
   );
 };

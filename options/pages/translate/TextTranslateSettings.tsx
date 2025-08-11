@@ -47,8 +47,8 @@ const TextTranslateSettings: React.FC = () => {
         <>
           <SettingsGroup title={t('翻译触发方式')}>
         <SettingsItem 
-          label={t('选词翻译')}
-          description={t('选择文本后显示翻译')}
+          label={t('选词自动翻译')}
+          description={t('选择文本后自动翻译，关闭则显示翻译图标')}
         >
           <Switch
             checked={textTranslateSettings.selectTranslate}

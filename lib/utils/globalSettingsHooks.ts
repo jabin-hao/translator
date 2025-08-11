@@ -270,6 +270,34 @@ export function useCacheSettings() {
 }
 
 /**
+ * 专门用于快捷键设置的 Hook
+ */
+export function useShortcutSettings() {
+  const { getModuleSettings, updateModuleSettings } = useGlobalSettings();
+  
+  const shortcutSettings = getModuleSettings('shortcuts');
+  
+  const updateShortcuts = useCallback((updates: PartialDeep<GlobalSettings['shortcuts']>) => {
+    updateModuleSettings('shortcuts', updates);
+  }, [updateModuleSettings]);
+
+  const toggleEnabled = useCallback(() => {
+    updateShortcuts({ enabled: !shortcutSettings.enabled });
+  }, [shortcutSettings.enabled, updateShortcuts]);
+
+  const updateShortcut = useCallback((key: keyof Omit<GlobalSettings['shortcuts'], 'enabled'>, value: string) => {
+    updateShortcuts({ [key]: value });
+  }, [updateShortcuts]);
+
+  return {
+    shortcutSettings,
+    updateShortcuts,
+    toggleEnabled,
+    updateShortcut,
+  };
+}
+
+/**
  * 专门用于收藏夹设置的 Hook
  */
 export function useFavoritesSettings() {
@@ -281,9 +309,14 @@ export function useFavoritesSettings() {
     updateModuleSettings('favorites', updates);
   }, [updateModuleSettings]);
 
+  const toggleEnabled = useCallback(() => {
+    updateFavorites({ enabled: !favoritesSettings.enabled });
+  }, [favoritesSettings.enabled, updateFavorites]);
+
   return {
     favoritesSettings,
     updateFavorites,
+    toggleEnabled,
   };
 }
 

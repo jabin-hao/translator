@@ -102,6 +102,7 @@ const CacheSettings: React.FC = () => {
       title={t('缓存设置')}
       description={t('管理翻译缓存以提高翻译速度')}
     >
+      {/* 缓存总开关 */}
       <SettingsGroup title={t('缓存功能')} first>
         <SettingsItem
           label={t('启用缓存')}
@@ -111,43 +112,46 @@ const CacheSettings: React.FC = () => {
         </SettingsItem>
       </SettingsGroup>
 
-      <SettingsGroup title={t('缓存统计')}>
-        <SettingsItem
-          label={t('当前缓存')}
-          description={t('显示当前缓存的条目数和占用空间大小')}
-        >
-          <div>
-            <div style={{ marginBottom: 8 }}>
-              <Button 
-                onClick={loadStats}
-                icon={<Icon icon="material-symbols:refresh" />}
-              >
-                {t('刷新统计')}
-              </Button>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ fontSize: 16, fontWeight: 'bold', color: '#1890ff' }}>{stats.count}</span>
-                <span style={{ fontSize: 13, color: '#666', marginLeft: 4 }}>{t('条')}</span>
+      {/* 缓存详细设置 - 条件渲染 */}
+      {cacheSettings.enabled && (
+        <>
+          <SettingsGroup title={t('缓存统计')}>
+            <SettingsItem
+              label={t('当前缓存')}
+              description={t('显示当前缓存的条目数和占用空间大小')}
+            >
+              <div>
+                <div style={{ marginBottom: 8 }}>
+                  <Button 
+                    onClick={loadStats}
+                    icon={<Icon icon="material-symbols:refresh" />}
+                  >
+                    {t('刷新统计')}
+                  </Button>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <span style={{ fontSize: 16, fontWeight: 'bold', color: '#1890ff' }}>{stats.count}</span>
+                    <span style={{ fontSize: 13, color: '#666', marginLeft: 4 }}>{t('条')}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <span style={{ fontSize: 16, fontWeight: 'bold', color: '#52c41a' }}>{formatSize(stats.size)}</span>
+                  </div>
+                </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ fontSize: 16, fontWeight: 'bold', color: '#52c41a' }}>{formatSize(stats.size)}</span>
-              </div>
-            </div>
-          </div>
-        </SettingsItem>
-      </SettingsGroup>
+            </SettingsItem>
+          </SettingsGroup>
 
-      <SettingsGroup title={t('缓存配置')}>
-        <SettingsItem
-          label={t('缓存有效期')}
-          description={t('超过此时间的缓存将被自动删除')}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {(() => {
-              const MS_PER_HOUR = 1000 * 60 * 60;
-              const MS_PER_DAY = MS_PER_HOUR * 24;
-              const MS_PER_MONTH = MS_PER_DAY * 30;
+          <SettingsGroup title={t('缓存配置')}>
+            <SettingsItem
+              label={t('缓存有效期')}
+              description={t('超过此时间的缓存将被自动删除')}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {(() => {
+                  const MS_PER_HOUR = 1000 * 60 * 60;
+                  const MS_PER_DAY = MS_PER_HOUR * 24;
+                  const MS_PER_MONTH = MS_PER_DAY * 30;
               const months = Math.floor(pendingConfig.maxAge / MS_PER_MONTH);
               const days = Math.floor((pendingConfig.maxAge % MS_PER_MONTH) / MS_PER_DAY);
               const hours = Math.floor((pendingConfig.maxAge % MS_PER_DAY) / MS_PER_HOUR);
@@ -256,6 +260,8 @@ const CacheSettings: React.FC = () => {
           </Button>
         </SettingsItem>
       </SettingsGroup>
+        </>
+      )}
     </SettingsPageContainer>
   );
 };

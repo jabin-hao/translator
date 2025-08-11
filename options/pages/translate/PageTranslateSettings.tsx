@@ -210,8 +210,8 @@ const PageTranslateSettings: React.FC = () => {
   );
 
   // 显示部分站点列表
-  const alwaysSitesToShow = pageTranslateSettings.alwaysList.slice(0, 5);
-  const neverSitesToShow = pageTranslateSettings.neverList.slice(0, 5);
+  const alwaysSitesToShow = (pageTranslateSettings.alwaysList || []).slice(0, 5);
+  const neverSitesToShow = (pageTranslateSettings.neverList || []).slice(0, 5);
 
   return (
     <SettingsPageContainer title={t('网页翻译')}>
@@ -304,10 +304,10 @@ const PageTranslateSettings: React.FC = () => {
                   )}
                   style={{ maxHeight: 200, overflow: 'auto' }}
                 />
-                {pageTranslateSettings.alwaysList.length > 5 && (
+                {(pageTranslateSettings.alwaysList || []).length > 5 && (
                   <div style={{ textAlign: 'center', marginTop: 8 }}>
                     <Button size="small" type="link" onClick={() => setShowAllAlways(true)}>
-                      {t('查看全部')} ({pageTranslateSettings.alwaysList.length})
+                      {t('查看全部')} ({(pageTranslateSettings.alwaysList || []).length})
                     </Button>
                   </div>
                 )}
@@ -343,10 +343,10 @@ const PageTranslateSettings: React.FC = () => {
                   )}
                   style={{ maxHeight: 200, overflow: 'auto' }}
                 />
-                {pageTranslateSettings.neverList.length > 5 && (
+                {(pageTranslateSettings.neverList || []).length > 5 && (
                   <div style={{ textAlign: 'center', marginTop: 8 }}>
                     <Button size="small" type="link" onClick={() => setShowAllNever(true)}>
-                      {t('查看全部')} ({pageTranslateSettings.neverList.length})
+                      {t('查看全部')} ({(pageTranslateSettings.neverList || []).length})
                     </Button>
                   </div>
                 )}
@@ -360,7 +360,7 @@ const PageTranslateSettings: React.FC = () => {
       <BatchSiteModal
         open={showAllAlways}
         title={t('全部白名单')}
-        sites={pageTranslateSettings.alwaysList}
+        sites={pageTranslateSettings.alwaysList || []}
         selected={selectedAlways}
         setSelected={setSelectedAlways}
         onClose={() => setShowAllAlways(false)}
@@ -376,7 +376,7 @@ const PageTranslateSettings: React.FC = () => {
       <BatchSiteModal
         open={showAllNever}
         title={t('全部黑名单')}
-        sites={pageTranslateSettings.neverList}
+        sites={pageTranslateSettings.neverList || []}
         selected={selectedNever}
         setSelected={setSelectedNever}
         onClose={() => setShowAllNever(false)}

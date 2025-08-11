@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Card, Button, Divider, Spin } from 'antd';
-import { CopyOutlined, SoundOutlined, LoadingOutlined } from '@ant-design/icons';
+import { CopyOutlined, SoundOutlined, LoadingOutlined, StarOutlined, StarFilled } from '@ant-design/icons';
 import '../index.css';
-import { useStorage } from '@plasmohq/storage/hook';
 import { getEngineLangCode, getLangAbbr, getTTSLang, getBrowserLang } from '~lib/constants/languages';
-import { FAVORITE_LANGS_KEY, SPEECH_KEY } from '~lib/constants/settings';
 import { useTranslation } from 'react-i18next';
+import { useGlobalSettings, useLanguageSettings, useSpeechSettings, useFavoritesSettings } from '~lib/utils/globalSettingsHooks';
+import { FavoritesManager } from '~lib/utils/favorites';
 
 // 获取友好的引擎名称
 const getEngineDisplayName = (engine: string) => {
@@ -51,14 +51,18 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
   // =============== 最关键：useTranslation 必须在最前面，无条件调用 ===============
   const { t } = useTranslation();
   
-  // =============== 使用 useStorage hooks ===============
-  const [favoriteLangs] = useStorage<string[]>(FAVORITE_LANGS_KEY, []);
-  const [speechSettings] = useStorage<{ speed: number; pitch: number; volume: number; engine: string }>(SPEECH_KEY, {
-    speed: 1,
-    pitch: 1,
-    volume: 1,
-    engine: 'edge'
-  });
+  // =============== 使用新的全局配置系统 ===============
+  const { languageSettings } = useLanguageSettings();
+  const { speechSettings } = useSpeechSettings();
+  const { favoritesSettings } = useFavoritesSettings();
+  
+  const favoriteLangs = languageSettings.favorites;
+  const speechConfig = {
+    speed: speechSettings.speed,
+    pitch: speechSettings.pitch,
+    volume: speechSettings.volume,
+    engine: speechSettings.engine
+  };
 
   // =============== 早期验证：检查基本props的合法性 ===============
   const isPropsValid = useMemo(() => {
@@ -79,6 +83,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
   const [loading, setLoading] = useState(false);
   const [usedEngine, setUsedEngine] = useState(props.engine);
   const [shouldRender, setShouldRender] = useState(false);
+  const [isFavorited, setIsFavorited] = useState(false);
   
   // refs - 也必须无条件调用
   const originalTextRef = useRef(props.text);
@@ -230,6 +235,30 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
     };
   }, [props.onClose]);
 
+  // 8. 检查收藏状态
+  useEffect(() => {
+    if (!shouldRender || !translatedText || !targetLang || translatedText === t('翻译失败')) {
+      return;
+    }
+    
+    const checkFavoriteStatus = async () => {
+      try {
+        const sourceText = props.originalText || props.text;
+        const isAlreadyFavorited = await FavoritesManager.isFavorited(
+          sourceText,
+          'auto', // 源语言设为auto，因为我们通常不知道确切的源语言
+          targetLang
+        );
+        setIsFavorited(isAlreadyFavorited);
+      } catch (error) {
+        console.error('检查收藏状态失败:', error);
+        setIsFavorited(false);
+      }
+    };
+    
+    checkFavoriteStatus();
+  }, [shouldRender, translatedText, targetLang, props.originalText, props.text, t]);
+
   // 7. 组件卸载清理
   useEffect(() => {
     return () => {
@@ -266,9 +295,9 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
       try {
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = getTTSLang(lang);
-        utterance.rate = speechSettings.speed || 1;
-        utterance.pitch = speechSettings.pitch || 1;
-        utterance.volume = speechSettings.volume || 1;
+        utterance.rate = speechConfig.speed || 1;
+        utterance.pitch = speechConfig.pitch || 1;
+        utterance.volume = speechConfig.volume || 1;
         
         utterance.onstart = () => {
           setIsSpeaking(true);
@@ -584,6 +613,52 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
     }
   };
 
+  // 收藏/取消收藏处理
+  const handleFavorite = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    if (!translatedText || translatedText === t('翻译失败') || !targetLang) {
+      props.showMessage('warning', t('没有可收藏的内容'));
+      return;
+    }
+    
+    try {
+      const sourceText = props.originalText || props.text;
+      
+      if (isFavorited) {
+        // 取消收藏 - 需要先获取收藏ID
+        const favorites = await FavoritesManager.getFavorites();
+        const favoriteItem = favorites.find(
+          item => item.word === sourceText && 
+                  item.sourceLanguage === 'auto' && 
+                  item.targetLanguage === targetLang
+        );
+        
+        if (favoriteItem) {
+          await FavoritesManager.removeFavorite(favoriteItem.id);
+          setIsFavorited(false);
+          props.showMessage('success', t('已取消收藏'));
+        }
+      } else {
+        // 添加收藏
+        await FavoritesManager.addFavorite(
+          sourceText,
+          translatedText,
+          'auto',  // 源语言设为auto
+          targetLang,
+          '', // 备注为空
+          [] // 标签为空
+        );
+        setIsFavorited(true);
+        props.showMessage('success', t('已添加到收藏'));
+      }
+    } catch (error) {
+      console.error('收藏操作失败:', error);
+      props.showMessage('error', t('收藏操作失败'));
+    }
+  };
+
   // =============== 渲染逻辑 ===============
   
   // 如果组件不应该渲染或目标语言未设置，返回null
@@ -666,7 +741,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
             </div>
           )}
 
-          {/* 右侧：复制和朗读按钮 */}
+          {/* 右侧：复制、朗读和收藏按钮 */}
           <div
             style={{
               display: 'flex',
@@ -674,15 +749,32 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
               flexShrink: 0,
             }}
           >
-            <Button
-              type={isSpeaking ? 'primary' : 'text'}
-              icon={<SoundOutlined />}
-              size="small"
-              onClick={handleSpeak}
-              title={isSpeaking ? t('停止朗读') : t('朗读')}
-              style={{ marginRight: '4px' }}
-              disabled={!translatedText || loading}
-            />
+            {/* 朗读按钮 - 根据朗读功能开关显示 */}
+            {speechSettings.enabled && (
+              <Button
+                type={isSpeaking ? 'primary' : 'text'}
+                icon={<SoundOutlined />}
+                size="small"
+                onClick={handleSpeak}
+                title={isSpeaking ? t('停止朗读') : t('朗读')}
+                style={{ marginRight: '4px' }}
+                disabled={!translatedText || loading}
+              />
+            )}
+            
+            {/* 收藏按钮 - 根据收藏功能开关显示 */}
+            {favoritesSettings.enabled && (
+              <Button
+                type={isFavorited ? 'primary' : 'text'}
+                icon={isFavorited ? <StarFilled /> : <StarOutlined />}
+                size="small"
+                onClick={handleFavorite}
+                title={isFavorited ? t('取消收藏') : t('收藏')}
+                style={{ marginRight: '4px' }}
+                disabled={!translatedText || loading}
+              />
+            )}
+            
             <Button
               type="text"
               icon={<CopyOutlined />}

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Switch, Typography, message, Input, Button } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { useGlobalSettings } from '~lib/utils/globalSettingsHooks';
+import { useShortcutSettings } from '~lib/utils/globalSettingsHooks';
 import SettingsPageContainer from '../components/SettingsPageContainer';
 import SettingsGroup from '../components/SettingsGroup';
 import SettingsItem from '../components/SettingsItem';
@@ -11,22 +11,21 @@ const { Title, Paragraph } = Typography;
 const ShortcutSettings: React.FC = () => {
   const { t } = useTranslation();
   
-  // 使用新的全局配置系统
-  const { settings, updateSettings } = useGlobalSettings();
-  const shortcuts = settings.shortcuts;
+  // 使用新的快捷键设置 Hook
+  const { shortcutSettings, updateShortcuts, toggleEnabled, updateShortcut } = useShortcutSettings();
   
   const [isRecording, setIsRecording] = useState(false);
   const [recordedKeys, setRecordedKeys] = useState<string[]>([]);
-  const [recordingType, setRecordingType] = useState<keyof typeof shortcuts | null>(null);
+  const [recordingType, setRecordingType] = useState<keyof Omit<typeof shortcutSettings, 'enabled'> | null>(null);
 
   // 保存设置的辅助函数
-  const updateShortcut = async (key: keyof typeof shortcuts, value: string) => {
-    await updateSettings({ shortcuts: { [key]: value } });
+  const saveShortcut = async (key: keyof Omit<typeof shortcutSettings, 'enabled'>, value: string) => {
+    await updateShortcut(key, value);
     message.success(t('快捷键已保存'));
   };
 
   // 开始录制快捷键
-  const startRecording = (type: keyof typeof shortcuts) => {
+  const startRecording = (type: keyof Omit<typeof shortcutSettings, 'enabled'>) => {
     setIsRecording(true);
     setRecordingType(type);
     setRecordedKeys([]);
@@ -78,7 +77,7 @@ const ShortcutSettings: React.FC = () => {
     setTimeout(async () => {
       if (recordedKeys.length > 0 && recordingType) {
         const newShortcut = recordedKeys[0];
-        await updateShortcut(recordingType, newShortcut);
+        await saveShortcut(recordingType, newShortcut);
       }
       // 清空录制状态
       setRecordedKeys([]);
@@ -87,8 +86,8 @@ const ShortcutSettings: React.FC = () => {
   };
 
   // 清除快捷键
-  const clearShortcut = async (type: keyof typeof shortcuts) => {
-    await updateShortcut(type, '');
+  const clearShortcut = async (type: keyof Omit<typeof shortcutSettings, 'enabled'>) => {
+    await saveShortcut(type, '');
     message.success(t('快捷键已清除'));
   };
 
@@ -120,58 +119,74 @@ const ShortcutSettings: React.FC = () => {
       title={t('快捷键设置')}
       description={t('配置翻译器的全局快捷键')}
     >
-      <SettingsGroup title={t('快捷键配置')} first>
-        {shortcutItems.map(item => (
-          <SettingsItem
-            key={item.key}
-            label={item.label}
-            description={item.description}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Input
-                value={shortcuts[item.key] || ''}
-                placeholder={t('点击设置快捷键按钮录制')}
-                readOnly
-                style={{ width: 200 }}
-              />
-              <Button
-                onClick={() => isRecording && recordingType === item.key ? stopRecording() : startRecording(item.key)}
-                type={isRecording && recordingType === item.key ? 'primary' : 'default'}
-              >
-                {isRecording && recordingType === item.key ? t('停止录制') : t('设置快捷键')}
-              </Button>
-              {shortcuts[item.key] && (
+      {/* 快捷键总开关 */}
+      <SettingsGroup title={t('快捷键功能')} first>
+        <SettingsItem
+          label={t('启用快捷键')}
+          description={t('开启后，可以使用快捷键快速访问翻译功能')}
+        >
+          <Switch 
+            checked={shortcutSettings.enabled} 
+            onChange={toggleEnabled} 
+          />
+        </SettingsItem>
+      </SettingsGroup>
+
+      {/* 快捷键配置 - 条件渲染 */}
+      {shortcutSettings.enabled && (
+        <SettingsGroup title={t('快捷键配置')}>
+          {shortcutItems.map(item => (
+            <SettingsItem
+              key={item.key}
+              label={item.label}
+              description={item.description}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Input
+                  value={shortcutSettings[item.key] || ''}
+                  placeholder={t('点击设置快捷键按钮录制')}
+                  readOnly
+                  style={{ width: 200 }}
+                />
                 <Button
-                  onClick={() => clearShortcut(item.key)}
-                  danger
+                  onClick={() => isRecording && recordingType === item.key ? stopRecording() : startRecording(item.key)}
+                  type={isRecording && recordingType === item.key ? 'primary' : 'default'}
                 >
-                  {t('清除')}
+                  {isRecording && recordingType === item.key ? t('停止录制') : t('设置快捷键')}
                 </Button>
+                {shortcutSettings[item.key] && (
+                  <Button
+                    onClick={() => clearShortcut(item.key)}
+                    danger
+                  >
+                    {t('清除')}
+                  </Button>
+                )}
+              </div>
+            </SettingsItem>
+          ))}
+          
+          {isRecording && (
+            <div style={{ 
+              padding: 16, 
+              background: '#f0f0f0', 
+              borderRadius: 6, 
+              marginTop: 16,
+              textAlign: 'center'
+            }}>
+              <Title level={5}>{t('正在录制快捷键...')}</Title>
+              <Paragraph>
+                {t('请按下您想要设置的快捷键组合')}
+              </Paragraph>
+              {recordedKeys.length > 0 && (
+                <Typography.Text strong>
+                  {t('当前录制: ')} {recordedKeys[0]}
+                </Typography.Text>
               )}
             </div>
-          </SettingsItem>
-        ))}
-        
-        {isRecording && (
-          <div style={{ 
-            padding: 16, 
-            background: '#f0f0f0', 
-            borderRadius: 6, 
-            marginTop: 16,
-            textAlign: 'center'
-          }}>
-            <Title level={5}>{t('正在录制快捷键...')}</Title>
-            <Paragraph>
-              {t('请按下您想要设置的快捷键组合')}
-            </Paragraph>
-            {recordedKeys.length > 0 && (
-              <Typography.Text strong>
-                {t('当前录制: ')} {recordedKeys[0]}
-              </Typography.Text>
-            )}
-          </div>
-        )}
-      </SettingsGroup>
+          )}
+        </SettingsGroup>
+      )}
     </SettingsPageContainer>
   );
 };

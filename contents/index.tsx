@@ -1,7 +1,7 @@
 import { StyleProvider } from "@ant-design/cssinjs"
-import { useEffect, useState, useCallback, useMemo, useRef } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import { App } from 'antd';
-import { getBrowserLang, mapUiLangToI18nKey } from '~lib/constants/languages';
+import { mapUiLangToI18nKey } from '~lib/constants/languages';
 import './index.css';
 import antdResetCssText from "data-text:antd/dist/reset.css"
 import type { PlasmoGetShadowHostId } from "plasmo"
@@ -22,7 +22,8 @@ import {
     useGlobalSettings,
     useEngineSettings,
     useTextTranslateSettings,
-    useThemeSettings
+    useThemeSettings,
+    useShortcutSettings
 } from '~lib/utils/globalSettingsHooks';
 import { initializeDefaultSettings, callTranslateAPI, callTTSAPI, stopTTSAPI } from './content';
 
@@ -151,8 +152,6 @@ const ContentScript = () => {
         originalText: string;
     } | null>(null);
     const [showInputTranslator, setShowInputTranslator] = useState(false);
-    const resultPosRef = useRef<{ x: number; y: number; text: string } | null>(null);
-    const lastCtrlPressRef = useRef<number>(0);
 
     // 新增：控制翻译时机
     const [shouldTranslate, setShouldTranslate] = useState(false);
@@ -162,19 +161,20 @@ const ContentScript = () => {
     const { engineSettings } = useEngineSettings();
     const { textTranslateSettings } = useTextTranslateSettings();
     const { themeSettings } = useThemeSettings();
+    const { shortcutSettings } = useShortcutSettings();
 
     // 从全局设置中提取值
     const engine = engineSettings.default;
     const autoRead = settings.speech.autoPlay;
-    const autoTranslate = textTranslateSettings.enabled;
+    const textTranslateEnabled = textTranslateSettings.enabled; // 是否启用划词翻译功能
+    const selectTranslateEnabled = textTranslateSettings.selectTranslate; // 是否在选择时自动翻译
     const textTargetLang = settings.languages.textTarget;
     const pageTargetLang = settings.languages.pageTarget;
-    const favoriteLangs = settings.languages.favorites;
     const uiLang = themeSettings.uiLanguage;
 
     // 快捷键设置
-    const shortcutEnabled = true; // 从全局设置中获取
-    const customShortcut = settings.shortcuts.translateSelection;
+    const shortcutEnabled = shortcutSettings.enabled;
+    const customShortcut = shortcutSettings.translateSelection;
 
     const engineRef = useRef(engine);
     const autoReadRef = useRef(autoRead);
@@ -203,8 +203,8 @@ const ContentScript = () => {
     // 显示翻译图标
     const showTranslationIcon = (text: string, rect: DOMRect) => {
         if (!showInputTranslator && !result) {
-            // 如果开启了自动翻译，直接触发翻译
-            if (autoTranslate) {
+            // 如果开启了选择时自动翻译，直接触发翻译
+            if (selectTranslateEnabled) {
                 // 将翻译结果显示在选中文字的正下方
                 setResult({
                     x: rect.left + window.scrollX, // 左对齐
@@ -321,17 +321,19 @@ const ContentScript = () => {
         return setupSelectionHandler(
             shadowRoot,
             showTranslationIcon,
-            clearTranslationState
+            clearTranslationState,
+            textTranslateEnabled // 传入划词翻译启用状态
         );
-    }, [showInputTranslator, result, icon, autoTranslate]);
+    }, [showInputTranslator, result, icon, textTranslateEnabled, selectTranslateEnabled]);
 
     // 设置快捷键处理器
     useEffect(() => {
         return setupShortcutHandler(
             triggerTranslation,
-            setShowInputTranslator
+            setShowInputTranslator,
+            textTranslateEnabled // 传入划词翻译启用状态
         );
-    }, [shortcutEnabled, customShortcut, triggerTranslation]); // 添加triggerTranslation依赖
+    }, [shortcutEnabled, customShortcut, triggerTranslation, textTranslateEnabled]); // 添加textTranslateEnabled依赖
 
     // 设置消息处理器，确保只注册一次
     useEffect(() => {

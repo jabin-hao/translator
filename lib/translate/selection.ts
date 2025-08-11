@@ -33,7 +33,8 @@ function isClickOnTranslatorComponent(path: EventTarget[], shadowRoot: ShadowRoo
 export const setupSelectionHandler = (
   shadowRoot: ShadowRoot | null,
   showTranslationIcon: (text: string, rect: DOMRect) => void,
-  clearTranslationState: () => void
+  clearTranslationState: () => void,
+  isTextTranslateEnabled: boolean = true // 新增：是否启用划词翻译
 ) => {
   let currentSelectionRange: Range | null = null;
   let iconUpdateTimer: NodeJS.Timeout | null = null;
@@ -64,6 +65,13 @@ export const setupSelectionHandler = (
 
   // 更新图标位置
   const updateIconPosition = () => {
+    // 如果划词翻译功能未启用，不显示图标
+    if (!isTextTranslateEnabled) {
+      clearTranslationState();
+      currentSelectionRange = null;
+      return;
+    }
+    
     if (currentSelectionRange) {
       try {
         // 首先检查保存的选区是否仍然有效
@@ -207,6 +215,12 @@ export const setupSelectionHandler = (
   const handleMouseUp = (e: MouseEvent) => {
     const path = e.composedPath();
     
+    // 0. 如果划词翻译功能未启用，不处理翻译逻辑
+    if (!isTextTranslateEnabled) {
+      isUserSelecting = false;
+      return;
+    }
+    
     // 1. 如果点击路径中包含输入元素，直接返回，不处理翻译逻辑
     if (pathContainsInputElement(path)) {
       isUserSelecting = false;
@@ -258,6 +272,12 @@ export const setupSelectionHandler = (
   const handleMouseDown = (e: MouseEvent) => {
     const path = e.composedPath();
     
+    // 如果划词翻译功能未启用，不处理翻译逻辑
+    if (!isTextTranslateEnabled) {
+      isUserSelecting = false;
+      return;
+    }
+    
     // 如果点击路径中包含输入元素，直接返回，不处理任何逻辑
     if (pathContainsInputElement(path)) {
       isUserSelecting = false;
@@ -290,6 +310,11 @@ export const setupSelectionHandler = (
 
   // 处理选择变化事件（更可靠的选择检测）
   const handleSelectionChange = () => {
+    // 如果划词翻译功能未启用，不处理选择变化
+    if (!isTextTranslateEnabled) {
+      return;
+    }
+    
     // 防止在用户明确开始选择时过早触发
     if (isUserSelecting) {
       return;

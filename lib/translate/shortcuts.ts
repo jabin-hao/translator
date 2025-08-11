@@ -3,7 +3,8 @@ import { isInputElement } from '../utils/domUtil';
 // 快捷键处理逻辑
 export const setupShortcutHandler = (
   triggerTranslation: (text: string, rect: DOMRect) => void,
-  setShowInputTranslator: (show: boolean) => void
+  setShowInputTranslator: (show: boolean) => void,
+  isTextTranslateEnabled: boolean = true // 新增：是否启用划词翻译
 ) => {
   let lastCtrlPressTime = 0;
   let isTranslating = false;
@@ -67,7 +68,11 @@ export const setupShortcutHandler = (
     const text = selection?.toString().trim();
 
     if (text && text.length > 0 && selection && selection.rangeCount > 0) {
-      // 有选中文字
+      // 有选中文字 - 检查是否启用划词翻译
+      if (!isTextTranslateEnabled) {
+        return; // 如果划词翻译未启用，不处理翻译快捷键
+      }
+      
       if (customShortcut) {
         if (isCustomShortcut) {
           shouldTrigger = true;

@@ -12,7 +12,9 @@ import {
   useGlobalSettings,
   useEngineSettings,
   usePageTranslateSettings,
-  useThemeSettings
+  useThemeSettings,
+  useTextTranslateSettings,
+  useSpeechSettings
 } from '~lib/utils/globalSettingsHooks';
 
 const { Text, Title } = Typography;
@@ -46,14 +48,14 @@ const PopupInner: React.FC = () => {
     matchSiteList
   } = usePageTranslateSettings();
   const { themeSettings, updateTheme } = useThemeSettings();
+  const { textTranslateSettings, toggleEnabled: toggleTextTranslate } = useTextTranslateSettings();
+  const { speechSettings, toggleEnabled: toggleSpeech } = useSpeechSettings();
   
   // 从全局设置中提取值
   const engine = engineSettings.default;
   const cacheEnabled = settings.cache.enabled;
   const pageTargetLang = settings.languages.pageTarget;
   const textTargetLang = settings.languages.textTarget;
-  const autoTranslate = pageTranslateSettings.autoTranslate;
-  const autoRead = settings.speech.autoPlay;
   
   const [isPageTranslated, setIsPageTranslated] = useState(false);
   const [isPageTranslating, setIsPageTranslating] = useState(false);
@@ -134,15 +136,16 @@ const PopupInner: React.FC = () => {
     message.success(t('翻译引擎已保存'));
   };
   
-  const handleAutoReadChange = async (checked: boolean) => {
-    await updatePageTranslateSettings({ autoTranslate: checked });
-    message.success(t('自动朗读设置已保存'));
+  // 修改：启用朗读功能开关处理
+  const handleSpeechToggle = async (checked: boolean) => {
+    await toggleSpeech();
+    message.success(checked ? t('已启用朗读功能') : t('已禁用朗读功能'));
   };
 
-  // 新增：划词自动翻译开关处理
-  const handleAutoTranslateChange = async (checked: boolean) => {
-    await updatePageTranslateSettings({ autoTranslate: checked });
-    message.success(t('划词自动翻译设置已保存'));
+  // 修改：启用划词翻译开关处理
+  const handleTextTranslateToggle = async (checked: boolean) => {
+    await toggleTextTranslate();
+    message.success(checked ? t('已启用划词翻译') : t('已禁用划词翻译'));
   };
 
   const handleCacheToggle = async (checked: boolean) => {
@@ -396,16 +399,16 @@ const PopupInner: React.FC = () => {
             </Text>
             <Space direction="vertical" size={6} style={{ width: '100%' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text>{t('划词自动翻译')}</Text>
-                <Switch checked={autoTranslate} onChange={handleAutoTranslateChange} />
+                <Text>{t('启用划词翻译')}</Text>
+                <Switch checked={textTranslateSettings.enabled} onChange={handleTextTranslateToggle} />
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text>{t('网站自动翻译')}</Text>
                 <Switch checked={pageTranslateSettings.autoTranslateEnabled} onChange={handleSiteAutoTranslateChange} />
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text>{t('自动朗读翻译结果')}</Text>
-                <Switch checked={autoRead} onChange={handleAutoReadChange} />
+                <Text>{t('启用朗读')}</Text>
+                <Switch checked={speechSettings.enabled} onChange={handleSpeechToggle} />
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text>{t('启用翻译缓存')}</Text>

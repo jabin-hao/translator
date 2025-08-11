@@ -108,6 +108,7 @@ export interface GlobalSettings {
 
   // 快捷键设置
   shortcuts: {
+    enabled: boolean;
     toggleTranslate: string;
     translateSelection: string;
     translatePage: string;
@@ -123,6 +124,7 @@ export interface GlobalSettings {
 
   // 收藏夹设置
   favorites: {
+    enabled: boolean;
     words: Array<{
       id: string;
       word: string;
@@ -160,7 +162,7 @@ export const DEFAULT_SETTINGS: GlobalSettings = {
     autoDetectLanguage: true,
     showOriginal: false,
     doubleClickTranslate: true,
-    selectTranslate: true,
+    selectTranslate: false, // 默认不自动翻译，显示图标
     quickTranslate: false,
     pressKeyTranslate: false,
     keyCode: 'Space',
@@ -201,7 +203,7 @@ export const DEFAULT_SETTINGS: GlobalSettings = {
 
   speech: {
     enabled: true,
-    engine: 'local',
+    engine: 'google',
     speed: 1,
     pitch: 1,
     volume: 1,
@@ -210,7 +212,7 @@ export const DEFAULT_SETTINGS: GlobalSettings = {
   },
 
   languages: {
-    favorites: ['en', 'zh-CN', 'ja', 'ko'],
+    favorites: ['zh-CN'],
     never: [],
     always: [],
     pageTarget: 'zh-CN',
@@ -218,6 +220,7 @@ export const DEFAULT_SETTINGS: GlobalSettings = {
   },
 
   shortcuts: {
+    enabled: true,
     toggleTranslate: 'Alt+T',
     translateSelection: 'Alt+S',
     translatePage: 'Alt+P',
@@ -231,6 +234,7 @@ export const DEFAULT_SETTINGS: GlobalSettings = {
   },
 
   favorites: {
+    enabled: true,
     words: [],
     autoSave: true,
     maxSize: 1000,
