@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Select, Radio, Button, message, Upload, Typography, Modal } from 'antd';
-import { useStorage, storageApi } from '~/lib/utils/storage';
+import { storageApi } from '~/lib/utils/storage';
 import { UI_LANGUAGES } from '~/lib/constants/languages';
 import { UploadOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import {POPUP_SETTINGS_KEY, THEME_MODE_KEY, TRANSLATION_CACHE_CONFIG_KEY, UI_LANG_KEY, SHORTCUT_SETTINGS_KEY, PAGE_LANG_KEY, TEXT_LANG_KEY, FAVORITE_LANGS_KEY, TRANSLATE_SETTINGS_KEY, SITE_TRANSLATE_SETTINGS_KEY, DICT_KEY } from '~lib/constants/settings';
+import { useGlobalSettings, useThemeSettings } from '~lib/utils/globalSettingsHooks';
+import { GLOBAL_SETTINGS_KEY } from '~lib/settings/globalSettings';
 import SettingsPageContainer from '../components/SettingsPageContainer';
 import SettingsGroup from '../components/SettingsGroup';
 import SettingsItem from '../components/SettingsItem';
@@ -20,9 +21,12 @@ interface GeneralSettingsProps {
 const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMode }) => {
   const { t, i18n } = useTranslation();
   
-  // 使用 useStorage hook 替换手动的 storage 操作
-  // 移除单独的 contentTheme，统一使用 themeMode
-  const [uiLang, setUiLang] = useStorage(UI_LANG_KEY, undefined);
+  // 使用新的全局配置系统
+  const { settings, updateSettings } = useGlobalSettings();
+  const { themeSettings, updateTheme } = useThemeSettings();
+  
+  // 从全局设置中提取值
+  const uiLang = themeSettings.uiLanguage;
   
   const [clearConfigModalVisible, setClearConfigModalVisible] = useState(false);
 
@@ -34,7 +38,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
         const browserLang = navigator.language;
         const { mapUiLangToI18nKey } = await import('../../lib/constants/languages');
         const detectedLang = mapUiLangToI18nKey(browserLang);
-        setUiLang(detectedLang);
+        await updateTheme({ uiLanguage: detectedLang });
       } else {
         // 只有当当前i18n语言与设置的语言不同时才调用changeLanguage
         if (i18n.language !== uiLang) {
@@ -43,10 +47,10 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
       }
     };
     initUiLang();
-  }, [uiLang, i18n, setUiLang]);
+  }, [uiLang, i18n, updateTheme]);
 
   const saveUiLang = async (val: string) => {
-    setUiLang(val);
+    await updateTheme({ uiLanguage: val });
     // 只有当语言真正改变时才调用changeLanguage
     if (i18n.language !== val) {
       await i18n.changeLanguage(val);
@@ -57,28 +61,12 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
   // 主题切换时同步 localStorage，保证多标签页同步
   const handleThemeChange = async (e: import('antd').RadioChangeEvent) => {
     setThemeMode(e.target.value);
-    await storageApi.set(THEME_MODE_KEY, e.target.value);
+    await updateTheme({ mode: e.target.value });
   };
 
   const handleExportConfig = useCallback(async () => {
-    const keys = [
-      UI_LANG_KEY,
-      PAGE_LANG_KEY,
-      TEXT_LANG_KEY,
-      FAVORITE_LANGS_KEY,
-      TRANSLATE_SETTINGS_KEY,
-      SITE_TRANSLATE_SETTINGS_KEY,
-      POPUP_SETTINGS_KEY,
-      THEME_MODE_KEY,
-      SHORTCUT_SETTINGS_KEY,
-      TRANSLATION_CACHE_CONFIG_KEY,
-    ];
-    const data = {};
-    for (const key of keys) {
-      data[key] = await storageApi.get(key);
-    }
-    // 直接导出 dict 字段
-    data['dict'] = await storageApi.get('dict') || {};
+    // 导出全局设置
+    const data = { [GLOBAL_SETTINGS_KEY]: settings };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -89,70 +77,37 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     message.success('配置已导出');
-  }, []);
+  }, [settings]);
 
   const handleImportConfig = useCallback(async (file: File) => {
     try {
       const text = await file.text();
       const json = JSON.parse(text);
-      const keys = [
-        UI_LANG_KEY,
-        PAGE_LANG_KEY,
-        TEXT_LANG_KEY,
-        FAVORITE_LANGS_KEY,
-        TRANSLATE_SETTINGS_KEY,
-        POPUP_SETTINGS_KEY,
-        THEME_MODE_KEY,
-        SHORTCUT_SETTINGS_KEY,
-        TRANSLATION_CACHE_CONFIG_KEY,
-      ];
-      for (const key of keys) {
-        if (json[key] !== undefined) {
-          await storageApi.set(key, json[key]);
-        }
+      
+      // 导入全局设置
+      if (json[GLOBAL_SETTINGS_KEY]) {
+        await updateSettings(json[GLOBAL_SETTINGS_KEY]);
+        message.success('配置已导入，页面将刷新以应用新设置');
+        setTimeout(() => window.location.reload(), 1000);
+      } else {
+        message.error('无效的配置文件格式');
       }
-      // 导入所有自定义词库
-      if (json.customDicts) {
-        for (const host in json.customDicts) {
-          await storageApi.set(`site_custom_dict_${host}`, json.customDicts[host]);
-        }
-      }
-      message.success('配置已导入（已完全覆盖）');
-      setTimeout(() => window.location.reload(), 1000);
-    } catch (err) {
-      message.error('导入失败，文件格式错误或内容无效');
+    } catch (error) {
+      message.error('配置文件格式错误');
     }
     return false; // 阻止自动上传
-  }, []);
+  }, [updateSettings]);
 
   const handleClearConfig = useCallback(async () => {
     try {
-      const keys = [
-        UI_LANG_KEY,
-        DICT_KEY,
-        PAGE_LANG_KEY,
-        TEXT_LANG_KEY,
-        FAVORITE_LANGS_KEY,
-        TRANSLATE_SETTINGS_KEY,
-        SITE_TRANSLATE_SETTINGS_KEY,
-        POPUP_SETTINGS_KEY,
-        THEME_MODE_KEY,
-        SHORTCUT_SETTINGS_KEY,
-        TRANSLATION_CACHE_CONFIG_KEY,
-      ];
-      // 清空所有配置
-      for (const key of keys) {
-        await storageApi.set(key, undefined);
-      }
-      // 重置缓存配置为 7*24小时、2000条
-      await storageApi.set(TRANSLATION_CACHE_CONFIG_KEY, { maxAge: 7*24*60*60*1000, maxSize: 2000 });
-      message.success(t('配置已清空，页面即将刷新'));
+      // 重置为默认设置
+      await storageApi.set(GLOBAL_SETTINGS_KEY, null);
+      message.success('配置已清除，页面将刷新');
       setTimeout(() => window.location.reload(), 1000);
-    } catch (err) {
-      message.error(t('清空配置失败，请重试'));
+    } catch (error) {
+      message.error('清除配置失败');
     }
-    setClearConfigModalVisible(false);
-  }, [setClearConfigModalVisible]);
+  }, []);
 
   return (
     <SettingsPageContainer 

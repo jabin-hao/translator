@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Button, Typography, Modal, Switch, InputNumber, App } from 'antd';
 import { Icon } from '@iconify/react';
 import { useTranslation } from 'react-i18next';
-import { useStorage } from '~lib/utils/storage';
+import { useCacheSettings } from '~lib/utils/globalSettingsHooks';
 import { cacheManager } from '~lib/cache/cache';
-import { DEFAULT_CACHE_CONFIG } from '~lib/constants/settings';
 import { sendToBackground } from '@plasmohq/messaging';
 import SettingsPageContainer from '../components/SettingsPageContainer';
 import SettingsGroup from '../components/SettingsGroup';
@@ -14,16 +13,18 @@ const { Text } = Typography;
 
 const CacheSettings: React.FC = () => {
   const { t } = useTranslation();
-  const { message } = App.useApp(); // 使用App组件的message实例
+  const { message } = App.useApp();
   
-  // 使用 useStorage hook 替换手动的 storage 操作
-  const [cacheEnabled, setCacheEnabled] = useStorage('translation_cache_enabled', true);
-  const [config, setConfig] = useStorage('translation_cache_config', DEFAULT_CACHE_CONFIG);
+  // 使用新的全局配置系统
+  const { cacheSettings, updateCache, toggleEnabled } = useCacheSettings();
   
   const [stats, setStats] = useState<{ count: number; size: number }>({ count: 0, size: 0 });
   const [loading, setLoading] = useState(false);
   // 新增本地 state 保存输入值
-  const [pendingConfig, setPendingConfig] = useState(DEFAULT_CACHE_CONFIG);
+  const [pendingConfig, setPendingConfig] = useState({
+    maxAge: cacheSettings.maxAge,
+    maxSize: cacheSettings.maxSize,
+  });
 
   // 加载缓存统计信息
   const loadStats = async () => {
@@ -68,19 +69,22 @@ const CacheSettings: React.FC = () => {
 
   // 切换缓存开关
   const handleCacheToggle = async (enabled: boolean) => {
-    setCacheEnabled(enabled);
+    await updateCache({ enabled });
     message.success(enabled ? t('已启用翻译缓存') : t('已禁用翻译缓存'));
   };
 
   useEffect(() => {
-    // 只需要加载统计信息，配置由 useStorage hook 自动处理
+    // 只需要加载统计信息，配置由全局设置自动处理
     loadStats().then(() => {});
   }, []);
 
   // 加载配置时同步到 pendingConfig
   useEffect(() => {
-    setPendingConfig(config);
-  }, [config]);
+    setPendingConfig({
+      maxAge: cacheSettings.maxAge,
+      maxSize: cacheSettings.maxSize,
+    });
+  }, [cacheSettings.maxAge, cacheSettings.maxSize]);
 
   const formatSize = (bytes: number) => {
     // 防护 NaN 值
@@ -103,7 +107,7 @@ const CacheSettings: React.FC = () => {
           label={t('启用缓存')}
           description={t('启用缓存可以加快重复翻译的速度')}
         >
-          <Switch checked={cacheEnabled} onChange={handleCacheToggle} />
+          <Switch checked={cacheSettings.enabled} onChange={handleCacheToggle} />
         </SettingsItem>
       </SettingsGroup>
 
@@ -226,7 +230,7 @@ const CacheSettings: React.FC = () => {
         >
           <Button 
             onClick={async () => {
-              setConfig(pendingConfig);
+              await updateCache(pendingConfig);
               await cacheManager.updateConfig(pendingConfig);
               await sendToBackground({ name: 'handle' as never, body: { service: 'cache', action: 'reschedule' } });
               message.success(t('缓存配置已保存'));

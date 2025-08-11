@@ -1,5 +1,22 @@
 import { lazyFullPageTranslate, getPageTranslationStatus, restoreOriginalPage } from '~lib/translate/fullPageTranslate';
-import { getDictConfig } from '~lib/settings/siteTranslateSettings';
+import { Storage } from '@plasmohq/storage';
+import { GLOBAL_SETTINGS_KEY, DEFAULT_SETTINGS } from '~lib/settings/globalSettings';
+import type { GlobalSettings } from '~lib/settings/globalSettings';
+
+const storage = new Storage();
+
+// 获取全局配置
+const getGlobalSettings = async (): Promise<GlobalSettings> => {
+  const settings = await storage.get(GLOBAL_SETTINGS_KEY);
+  if (typeof settings === 'string') {
+    try {
+      return JSON.parse(settings);
+    } catch {
+      return DEFAULT_SETTINGS;
+    }
+  }
+  return settings || DEFAULT_SETTINGS;
+};
 
 // 消息处理逻辑
 export const setupMessageHandler = (setShowInputTranslator?: (show: boolean) => void) => {
@@ -19,8 +36,8 @@ export const setupMessageHandler = (setShowInputTranslator?: (show: boolean) => 
         (async () => {
           try {
             // 读取用户的翻译模式设置
-            const dict = await getDictConfig();
-            const mode = (dict.pageTranslateMode || 'translated') as 'translated' | 'compare';
+            const settings = await getGlobalSettings();
+            const mode = (settings.pageTranslate.pageTranslateMode || 'translated') as 'translated' | 'compare';
             
             const result = await lazyFullPageTranslate(msg.lang, mode, msg.engine);
             const state = (window as any).__translationState;

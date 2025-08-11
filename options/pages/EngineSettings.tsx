@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Switch, Select, Radio, Space, Card, Divider, Alert, Button, Input, Modal, Form, message } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import { useStorage } from '~lib/utils/storage';
-import { TRANSLATE_SETTINGS_KEY, DEEPL_API_KEY, YANDEX_API_KEY } from '~lib/constants/settings';
+import {
+  useGlobalSettings,
+  useEngineSettings,
+  useTextTranslateSettings
+} from '~lib/utils/globalSettingsHooks';
 import SettingsPageContainer from '../components/SettingsPageContainer';
 import SettingsGroup from '../components/SettingsGroup';
 import SettingsItem from '../components/SettingsItem';
@@ -11,48 +14,26 @@ import { useTheme } from '~lib/utils/theme';
 
 const { Option } = Select;
 
-// 自定义引擎接口
-interface CustomEngine {
-  id: string;
-  name: string;
-  type: 'api' | 'llm';
-  apiUrl: string;
-  apiKey: string;
-  model?: string; // 用于大模型
-  prompt?: string; // 用于大模型的翻译提示词
-  headers?: Record<string, string>; // 自定义请求头
-  enabled: boolean;
-}
+// 使用全局设置中的自定义引擎类型
+import type { CustomEngine } from '~lib/settings/globalSettings';
 
 const EngineSettings: React.FC = () => {
   const { t } = useTranslation();
   const { isDark } = useTheme();
   
-  // 全局翻译引擎设置
-  const [translateSettings, setTranslateSettings] = useStorage(TRANSLATE_SETTINGS_KEY, {
-    engine: 'google',
-    autoDetectLanguage: true,
-    showOriginal: false,
-    doubleClickTranslate: true,
-    selectTranslate: true,
-    quickTranslate: false,
-    pressKeyTranslate: false,
-    keyCode: 'Space',
-    pressKeyWithCtrl: false,
-    pressKeyWithShift: false,
-    pressKeyWithAlt: false,
-  });
+  // 使用新的全局配置系统
+  const { settings, updateSettings } = useGlobalSettings();
+  const { engineSettings, setDefaultEngine, updateApiKey, updateEngines } = useEngineSettings();
+  const { textTranslateSettings, updateTextTranslate } = useTextTranslateSettings();
   
-  // API密钥设置
-  const [deepLApiKey, setDeepLApiKey] = useStorage(DEEPL_API_KEY, '');
-  const [yandexApiKey, setYandexApiKey] = useStorage(YANDEX_API_KEY, '');
-  const [bingApiKey, setBingApiKey] = useStorage('bingApiKey', '');
+  // 从全局设置中提取值
+  const engine = engineSettings.default;
+  const customEngines = engineSettings.customEngines;
+  const deepLApiKey = engineSettings.apiKeys.deepl;
+  const yandexApiKey = engineSettings.apiKeys.yandex;
   
-  // 自定义引擎
-  const [customEngines, setCustomEngines] = useStorage<CustomEngine[]>('customEngines', []);
-  
-  // TTS引擎设置（简化版）
-  const [ttsEngine, setTtsEngine] = useStorage('ttsEngine', 'google');
+  // TTS引擎设置（从全局设置中获取）
+  const ttsEngine = settings.speech.engine;
   
   // 模态框状态
   const [engineModalVisible, setEngineModalVisible] = useState(false);
@@ -112,8 +93,8 @@ const EngineSettings: React.FC = () => {
     }
   ];
 
-  const handleEngineChange = (value: string) => {
-    setTranslateSettings({ ...translateSettings, engine: value });
+  const handleEngineChange = async (value: string) => {
+    await setDefaultEngine(value);
   };
 
   const testApiKey = async (engine: string) => {
@@ -174,11 +155,11 @@ const EngineSettings: React.FC = () => {
         const newEngines = customEngines.map(engine => 
           engine.id === editingEngine.id ? newEngine : engine
         );
-        setCustomEngines(newEngines);
+        await updateEngines({ customEngines: newEngines });
         message.success('引擎已更新');
       } else {
         // 添加新引擎
-        setCustomEngines([...customEngines, newEngine]);
+        await updateEngines({ customEngines: [...customEngines, newEngine] });
         message.success('引擎已添加');
       }
       
@@ -189,23 +170,23 @@ const EngineSettings: React.FC = () => {
     }
   };
 
-  const handleDeleteEngine = (engineId: string) => {
+  const handleDeleteEngine = async (engineId: string) => {
     const newEngines = customEngines.filter(engine => engine.id !== engineId);
-    setCustomEngines(newEngines);
+    await updateEngines({ customEngines: newEngines });
     
     // 如果删除的是当前选中的引擎，切换到Google
-    if (translateSettings.engine === engineId) {
-      setTranslateSettings({ ...translateSettings, engine: 'google' });
+    if (engine === engineId) {
+      await setDefaultEngine('google');
     }
     
     message.success('引擎已删除');
   };
 
-  const toggleEngineEnabled = (engineId: string) => {
+  const toggleEngineEnabled = async (engineId: string) => {
     const newEngines = customEngines.map(engine => 
       engine.id === engineId ? { ...engine, enabled: !engine.enabled } : engine
     );
-    setCustomEngines(newEngines);
+    await updateEngines({ customEngines: newEngines });
   };
 
   return (
@@ -217,7 +198,7 @@ const EngineSettings: React.FC = () => {
           description={t('选择全局默认的翻译服务提供商')}
         >
           <Select
-            value={translateSettings.engine}
+            value={engine}
             onChange={handleEngineChange}
             style={{ width: 250 }}
           >
@@ -235,7 +216,7 @@ const EngineSettings: React.FC = () => {
           </Select>
         </SettingsItem>
 
-        {translateSettings.engine === 'deepl' && (
+        {engine === 'deepl' && (
           <SettingsItem
             label={t('DeepL API 密钥')}
             description={t('输入您的 DeepL API 密钥以使用 DeepL 服务')}
@@ -243,7 +224,7 @@ const EngineSettings: React.FC = () => {
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <Input.Password
                 value={deepLApiKey}
-                onChange={(e) => setDeepLApiKey(e.target.value)}
+                onChange={(e) => updateApiKey('deepl', e.target.value)}
                 placeholder={t('请输入 DeepL API 密钥')}
                 style={{ width: 300 }}
               />
@@ -254,15 +235,15 @@ const EngineSettings: React.FC = () => {
           </SettingsItem>
         )}
 
-        {translateSettings.engine === 'bing' && (
+        {engine === 'bing' && (
           <SettingsItem
             label={t('Bing 翻译 API 密钥')}
             description={t('输入您的 Bing 翻译 API 密钥')}
           >
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <Input.Password
-                value={bingApiKey}
-                onChange={(e) => setBingApiKey(e.target.value)}
+                value={engineSettings.apiKeys.bing || ''}
+                onChange={(e) => updateApiKey('bing', e.target.value)}
                 placeholder={t('请输入 Bing API 密钥')}
                 style={{ width: 300 }}
               />
@@ -273,7 +254,7 @@ const EngineSettings: React.FC = () => {
           </SettingsItem>
         )}
 
-        {translateSettings.engine === 'yandex' && (
+        {engine === 'yandex' && (
           <SettingsItem
             label={t('Yandex API 密钥')}
             description={t('输入您的 Yandex API 密钥')}
@@ -281,7 +262,7 @@ const EngineSettings: React.FC = () => {
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <Input.Password
                 value={yandexApiKey}
-                onChange={(e) => setYandexApiKey(e.target.value)}
+                onChange={(e) => updateApiKey('yandex', e.target.value)}
                 placeholder={t('请输入 Yandex API 密钥')}
                 style={{ width: 300 }}
               />
@@ -309,7 +290,9 @@ const EngineSettings: React.FC = () => {
         >
           <Radio.Group
             value={ttsEngine}
-            onChange={(e) => setTtsEngine(e.target.value)}
+            onChange={async (e) => {
+              await updateSettings({ speech: { engine: e.target.value } });
+            }}
           >
             {ttsEngineOptions.map(option => (
               <Radio key={option.value} value={option.value}>

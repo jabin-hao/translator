@@ -1,6 +1,4 @@
-import { storageApi } from '~lib/utils/storage';
 import { isInputElement } from '../utils/domUtil';
-import { SHORTCUT_SETTINGS_KEY } from '~lib/constants/settings';
 
 // 快捷键处理逻辑
 export const setupShortcutHandler = (
@@ -29,8 +27,11 @@ export const setupShortcutHandler = (
       lastCtrlPressTime = now;
     }
 
-    // 获取快捷键设置
-    const shortcutSettings = await storageApi.get(SHORTCUT_SETTINGS_KEY) as any;
+    // 获取快捷键设置 - 使用全局设置
+    const { Storage } = await import('@plasmohq/storage');
+    const storage = new Storage();
+    const globalSettings = await storage.get('global_settings') as any;
+    const shortcutSettings = globalSettings?.shortcuts || {};
     const shortcutEnabled = shortcutSettings?.enabled !== false;
     const customShortcut = shortcutSettings?.customShortcut || '';
 

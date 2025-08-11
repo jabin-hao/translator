@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { List, Button, Input, message, Modal, Card, Tag, Space, Tooltip, Popconfirm, Select, Empty } from 'antd';
 import { DeleteOutlined, EditOutlined, SearchOutlined, ExportOutlined, ImportOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import { useStorage } from '~lib/utils/storage';
+import { useFavoritesSettings } from '~lib/utils/globalSettingsHooks';
 import SettingsPageContainer from '../components/SettingsPageContainer';
 import SettingsGroup from '../components/SettingsGroup';
 import SettingsItem from '../components/SettingsItem';
@@ -11,25 +11,18 @@ import { useTheme } from '~lib/utils/theme';
 const { Search } = Input;
 const { Option } = Select;
 
-// 收藏单词的接口
-interface FavoriteWord {
-  id: string;
-  originalText: string;
-  translatedText: string;
-  sourceLanguage: string;
-  targetLanguage: string;
-  engine: string;
-  timestamp: number;
-  tags?: string[];
-  note?: string;
-}
+// 使用全局设置中的收藏单词接口
+import type { GlobalSettings } from '~lib/settings/globalSettings';
+type FavoriteWord = GlobalSettings['favorites']['words'][0];
 
 const FavoritesSettings: React.FC = () => {
   const { t } = useTranslation();
   const { isDark } = useTheme();
   
-  // 收藏列表状态
-  const [favorites, setFavorites] = useStorage<FavoriteWord[]>('favoriteWords', []);
+  // 使用新的全局配置系统
+  const { favoritesSettings, updateFavorites } = useFavoritesSettings();
+  const favorites = favoritesSettings.words;
+  
   const [filteredFavorites, setFilteredFavorites] = useState<FavoriteWord[]>([]);
   const [searchText, setSearchText] = useState('');
   const [selectedLanguage, setSelectedLanguage] = useState<string>('all');
@@ -51,9 +44,9 @@ const FavoritesSettings: React.FC = () => {
     // 按搜索文本过滤
     if (searchText) {
       filtered = filtered.filter(item => 
-        item.originalText.toLowerCase().includes(searchText.toLowerCase()) ||
-        item.translatedText.toLowerCase().includes(searchText.toLowerCase()) ||
-        item.note?.toLowerCase().includes(searchText.toLowerCase())
+        item.word.toLowerCase().includes(searchText.toLowerCase()) ||
+        item.translation.toLowerCase().includes(searchText.toLowerCase()) ||
+        item.notes?.toLowerCase().includes(searchText.toLowerCase())
       );
     }
     
@@ -71,36 +64,36 @@ const FavoritesSettings: React.FC = () => {
   }, [favorites, searchText, selectedLanguage]);
 
   // 删除收藏
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     const newFavorites = favorites.filter(item => item.id !== id);
-    setFavorites(newFavorites);
+    await updateFavorites({ words: newFavorites });
     message.success(t('已删除收藏'));
   };
 
   // 批量删除
-  const handleBatchDelete = () => {
-    setFavorites([]);
+  const handleBatchDelete = async () => {
+    await updateFavorites({ words: [] });
     message.success(t('已清空所有收藏'));
   };
 
   // 编辑收藏
   const handleEdit = (word: FavoriteWord) => {
     setEditingWord(word);
-    setEditNote(word.note || '');
+    setEditNote(word.notes || '');
     setEditTags(word.tags || []);
     setEditModalVisible(true);
   };
 
   // 保存编辑
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editingWord) return;
     
     const newFavorites = favorites.map(item => 
       item.id === editingWord.id 
-        ? { ...item, note: editNote, tags: editTags }
+        ? { ...item, notes: editNote, tags: editTags }
         : item
     );
-    setFavorites(newFavorites);
+    await updateFavorites({ words: newFavorites });
     setEditModalVisible(false);
     setEditingWord(null);
     message.success(t('已保存修改'));
@@ -120,14 +113,14 @@ const FavoritesSettings: React.FC = () => {
   };
 
   // 导入收藏
-  const handleImport = () => {
+  const handleImport = async () => {
     try {
       const importedData = JSON.parse(importText);
       if (Array.isArray(importedData)) {
         const validData = importedData.filter(item => 
-          item.id && item.originalText && item.translatedText
+          item.id && item.word && item.translation
         );
-        setFavorites([...favorites, ...validData]);
+        await updateFavorites({ words: [...favorites, ...validData] });
         setImportModalVisible(false);
         setImportText('');
         message.success(t(`成功导入 ${validData.length} 个收藏`));
@@ -246,23 +239,20 @@ const FavoritesSettings: React.FC = () => {
                   >
                     <div style={{ marginBottom: 8 }}>
                       <div style={{ fontSize: 16, fontWeight: 500, marginBottom: 4 }}>
-                        {item.originalText}
+                        {item.word}
                       </div>
                       <div style={{ 
                         color: isDark ? '#a6a6a6' : '#666666',
                         fontSize: 14,
                         marginBottom: 8
                       }}>
-                        {item.translatedText}
+                        {item.translation}
                       </div>
                     </div>
                     
                     <div style={{ marginBottom: 8 }}>
                       <Tag color="blue">
                         {item.sourceLanguage} → {item.targetLanguage}
-                      </Tag>
-                      <Tag color="green">
-                        {item.engine}
                       </Tag>
                     </div>
                     
@@ -276,13 +266,13 @@ const FavoritesSettings: React.FC = () => {
                       </div>
                     )}
                     
-                    {item.note && (
+                    {item.notes && (
                       <div style={{ 
                         fontSize: 12, 
                         color: isDark ? '#a6a6a6' : '#999999',
                         marginBottom: 8
                       }}>
-                        {item.note}
+                        {item.notes}
                       </div>
                     )}
                     
@@ -313,10 +303,10 @@ const FavoritesSettings: React.FC = () => {
           <Space direction="vertical" style={{ width: '100%' }}>
             <div>
               <div style={{ fontWeight: 500, marginBottom: 4 }}>
-                {editingWord.originalText}
+                {editingWord.word}
               </div>
               <div style={{ color: isDark ? '#a6a6a6' : '#666666' }}>
-                {editingWord.translatedText}
+                {editingWord.translation}
               </div>
             </div>
             

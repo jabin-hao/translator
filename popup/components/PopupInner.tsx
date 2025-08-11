@@ -6,21 +6,14 @@ import { useTranslation } from 'react-i18next';
 import { ReloadOutlined, TranslationOutlined } from '@ant-design/icons';
 import { Icon } from '@iconify/react';
 
-// 使用重构的 storage hook
-import { useStorage } from '~lib/utils/storage';
+// 使用新的全局配置系统
 import { useTheme } from '~lib/utils/theme';
 import {
-  getDictConfig,
-  setDictConfig,
-  addAlwaysSite,
-  removeAlwaysSite,
-  addNeverSite,
-  removeNeverSite,
-  matchSiteList,
-  useDictConfig,
-  useAutoTranslateEnabled
-} from '~lib/settings/siteTranslateSettings';
-import { TRANSLATE_SETTINGS_KEY, CACHE_KEY, PAGE_LANG_KEY, TEXT_LANG_KEY, SITE_TRANSLATE_SETTINGS_KEY } from '~lib/constants/settings';
+  useGlobalSettings,
+  useEngineSettings,
+  usePageTranslateSettings,
+  useThemeSettings
+} from '~lib/utils/globalSettingsHooks';
 
 const { Text, Title } = Typography;
 
@@ -40,23 +33,27 @@ const PopupInner: React.FC = () => {
   const { t } = useTranslation();
   const { themeMode, setThemeMode, isDark } = useTheme();
   
-  // 使用 useStorage hook 替换手动的 storage 操作
-  const [translateSettings, setTranslateSettings] = useStorage(TRANSLATE_SETTINGS_KEY, {
-    engine: 'google',
-    autoTranslate: true,
-    autoRead: false
-  });
-  const [cacheEnabled, setCacheEnabled] = useStorage(CACHE_KEY, true);
-  const [pageTargetLang, setPageTargetLang] = useStorage(PAGE_LANG_KEY, 'zh-CN');
-  const [textTargetLang, setTextTargetLang] = useStorage(TEXT_LANG_KEY, 'zh-CN');
+  // 使用新的全局配置系统
+  const { settings, updateSettings } = useGlobalSettings();
+  const { engineSettings, setDefaultEngine } = useEngineSettings();
+  const { 
+    pageTranslateSettings, 
+    updatePageTranslateSettings,
+    addToAlwaysList,
+    addToNeverList,
+    removeFromAlwaysList,
+    removeFromNeverList,
+    matchSiteList
+  } = usePageTranslateSettings();
+  const { themeSettings, updateTheme } = useThemeSettings();
   
-  // 网站自动翻译设置 - 使用专门的hook
-  const [siteAutoTranslateEnabled, setSiteAutoTranslateEnabled] = useAutoTranslateEnabled();
-  
-  // 从 translateSettings 对象中提取值
-  const engine = translateSettings?.engine || 'google';
-  const autoTranslate = translateSettings?.autoTranslate ?? true;
-  const autoRead = translateSettings?.autoRead ?? false;
+  // 从全局设置中提取值
+  const engine = engineSettings.default;
+  const cacheEnabled = settings.cache.enabled;
+  const pageTargetLang = settings.languages.pageTarget;
+  const textTargetLang = settings.languages.textTarget;
+  const autoTranslate = pageTranslateSettings.autoTranslate;
+  const autoRead = settings.speech.autoPlay;
   
   const [isPageTranslated, setIsPageTranslated] = useState(false);
   const [isPageTranslating, setIsPageTranslating] = useState(false);
@@ -77,11 +74,10 @@ const PopupInner: React.FC = () => {
           const key = path === '/' ? host : host + path;
           
           setSiteKey(key);
-          const dict = await getDictConfig();
           
-          // 使用matchSiteList函数来检查匹配
-          const isAlways = matchSiteList(dict.siteAlwaysList || [], key);
-          const isNever = matchSiteList(dict.siteNeverList || [], key);
+          // 使用全局配置中的网站列表来检查匹配
+          const isAlways = matchSiteList(pageTranslateSettings.alwaysList || [], key);
+          const isNever = matchSiteList(pageTranslateSettings.neverList || [], key);
           
           setSiteSettings({
             always: isAlways,
@@ -134,30 +130,33 @@ const PopupInner: React.FC = () => {
   }, []);
 
   const handleEngineChange = async (val: string) => {
-    setTranslateSettings({ ...translateSettings, engine: val });
+    await setDefaultEngine(val);
     message.success(t('翻译引擎已保存'));
   };
+  
   const handleAutoReadChange = async (checked: boolean) => {
-    setTranslateSettings({ ...translateSettings, autoRead: checked });
+    await updatePageTranslateSettings({ autoTranslate: checked });
     message.success(t('自动朗读设置已保存'));
   };
 
   // 新增：划词自动翻译开关处理
   const handleAutoTranslateChange = async (checked: boolean) => {
-    setTranslateSettings({ ...translateSettings, autoTranslate: checked });
+    await updatePageTranslateSettings({ autoTranslate: checked });
     message.success(t('划词自动翻译设置已保存'));
   };
 
-  const handleCacheToggle = (checked: boolean) => {
-    setCacheEnabled(checked);
+  const handleCacheToggle = async (checked: boolean) => {
+    await updateSettings({ cache: { enabled: checked } });
     message.success(checked ? t('已启用翻译缓存') : t('已禁用翻译缓存'));
   };
-  const handlePageLangChange = (val: string) => {
-    setPageTargetLang(val);
+  
+  const handlePageLangChange = async (val: string) => {
+    await updateSettings({ languages: { pageTarget: val } });
     message.success(t('网页翻译目标语言已保存'));
   };
-  const handleTextLangChange = (val: string) => {
-    setTextTargetLang(val);
+  
+  const handleTextLangChange = async (val: string) => {
+    await updateSettings({ languages: { textTarget: val } });
     message.success(t('划词翻译目标语言已保存'));
   };
 
@@ -170,23 +169,22 @@ const PopupInner: React.FC = () => {
 
   // 新增：网站自动翻译开关处理
   const handleSiteAutoTranslateChange = async (checked: boolean) => {
-    // 直接使用hook的setter函数
-    await setSiteAutoTranslateEnabled(checked);
+    // 使用全局配置的toggleAutoTranslate
+    await updatePageTranslateSettings({ autoTranslateEnabled: checked });
     message.success(checked ? t('已开启网站自动翻译') : t('已关闭网站自动翻译'));
   };
 
   const handleAlways = async () => {
     if (!siteKey) return;
     if (siteSettings.always) {
-      await removeAlwaysSite(siteKey);
+      await removeFromAlwaysList(siteKey);
     } else {
-      await addAlwaysSite(siteKey);
+      await addToAlwaysList(siteKey);
     }
     
-    // 重新获取配置并检查匹配
-    const dict = await getDictConfig();
-    const isAlways = matchSiteList(dict.siteAlwaysList || [], siteKey);
-    const isNever = matchSiteList(dict.siteNeverList || [], siteKey);
+    // 重新检查匹配状态
+    const isAlways = matchSiteList(pageTranslateSettings.alwaysList || [], siteKey);
+    const isNever = matchSiteList(pageTranslateSettings.neverList || [], siteKey);
     
     setSiteSettings({
       always: isAlways,
@@ -197,15 +195,14 @@ const PopupInner: React.FC = () => {
   const handleNever = async () => {
     if (!siteKey) return;
     if (siteSettings.never) {
-      await removeNeverSite(siteKey);
+      await removeFromNeverList(siteKey);
     } else {
-      await addNeverSite(siteKey);
+      await addToNeverList(siteKey);
     }
     
-    // 重新获取配置并检查匹配
-    const dict = await getDictConfig();
-    const isAlways = matchSiteList(dict.siteAlwaysList || [], siteKey);
-    const isNever = matchSiteList(dict.siteNeverList || [], siteKey);
+    // 重新检查匹配状态
+    const isAlways = matchSiteList(pageTranslateSettings.alwaysList || [], siteKey);
+    const isNever = matchSiteList(pageTranslateSettings.neverList || [], siteKey);
     
     setSiteSettings({
       always: isAlways,
@@ -404,7 +401,7 @@ const PopupInner: React.FC = () => {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text>{t('网站自动翻译')}</Text>
-                <Switch checked={siteAutoTranslateEnabled} onChange={handleSiteAutoTranslateChange} />
+                <Switch checked={pageTranslateSettings.autoTranslateEnabled} onChange={handleSiteAutoTranslateChange} />
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text>{t('自动朗读翻译结果')}</Text>
@@ -418,7 +415,7 @@ const PopupInner: React.FC = () => {
           </div>
 
           {/* 网站管理按钮 */}
-          {siteAutoTranslateEnabled && (
+          {pageTranslateSettings.autoTranslateEnabled && (
             <>
               <Divider style={{ margin: 0 }} />
               <div>

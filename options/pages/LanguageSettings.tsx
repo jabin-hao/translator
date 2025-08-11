@@ -4,13 +4,8 @@ import {PlusOutlined} from '@ant-design/icons';
 import {LANGUAGES} from '~lib/constants/languages';
 import {useTranslation} from 'react-i18next';
 import {
-    ALWAYS_LANGS_KEY,
-    FAVORITE_LANGS_KEY,
-    NEVER_LANGS_KEY,
-    PAGE_LANG_KEY,
-    TEXT_LANG_KEY
-} from "~lib/constants/settings";
-import {useStorage} from '~lib/utils/storage';
+    useLanguageSettings
+} from '~lib/utils/globalSettingsHooks';
 import SettingsPageContainer from '../components/SettingsPageContainer';
 import SettingsGroup from '../components/SettingsGroup';
 import SettingsItem from '../components/SettingsItem';
@@ -19,12 +14,25 @@ const LanguageSettings: React.FC = () => {
     const {t, i18n} = useTranslation();
     const {message} = App.useApp();
     
-    // 使用 useStorage hook 替换手动的 storage 操作
-    const [pageTargetLang, setPageTargetLang] = useStorage(PAGE_LANG_KEY, 'zh-CN');
-    const [textTargetLang, setTextTargetLang] = useStorage(TEXT_LANG_KEY, '');
-    const [favoriteLangs, setFavoriteLangs] = useStorage(FAVORITE_LANGS_KEY, []);
-    const [neverLangs, setNeverLangs] = useStorage(NEVER_LANGS_KEY, []);
-    const [alwaysLangs, setAlwaysLangs] = useStorage(ALWAYS_LANGS_KEY, []);
+    // 使用专门的语言设置hook
+    const { 
+        languageSettings, 
+        setPageTargetLanguage, 
+        setTextTargetLanguage,
+        addFavoriteLanguage,
+        removeFavoriteLanguage,
+        addNeverLanguage,
+        removeNeverLanguage,
+        addAlwaysLanguage,
+        removeAlwaysLanguage
+    } = useLanguageSettings();
+    
+    // 从语言设置中提取值
+    const pageTargetLang = languageSettings.pageTarget;
+    const textTargetLang = languageSettings.textTarget;
+    const favoriteLangs = languageSettings.favorites;
+    const neverLangs = languageSettings.never;
+    const alwaysLangs = languageSettings.always;
     
     const [addFav, setAddFav] = useState('');
     const [addNever, setAddNever] = useState('');
@@ -39,9 +47,9 @@ const LanguageSettings: React.FC = () => {
             } else {
                 defaultTextLang = navigator.language.startsWith('zh') ? 'zh-CN' : (navigator.language.startsWith('en') ? 'en' : 'zh-CN');
             }
-            setTextTargetLang(defaultTextLang);
+            setTextTargetLanguage(defaultTextLang);
         }
-    }, [textTargetLang, favoriteLangs, setTextTargetLang]);
+    }, [textTargetLang, favoriteLangs, setTextTargetLanguage]);
 
     // 偏好语言
     const handleAddFav = async () => {
@@ -50,45 +58,39 @@ const LanguageSettings: React.FC = () => {
             return;
         }
         if (addFav && !favoriteLangs.includes(addFav)) {
-            const next = [...favoriteLangs, addFav];
-            setFavoriteLangs(next);
+            await addFavoriteLanguage(addFav);
             message.success('已保存');
             setAddFav('');
         }
     };
     const handleRemoveFav = async (lang: any) => {
-        const next = favoriteLangs.filter(l => l !== lang);
-        setFavoriteLangs(next);
+        await removeFavoriteLanguage(lang);
         message.success('已保存');
     };
 
     // 永不翻译
     const handleAddNever = async () => {
         if (addNever && !neverLangs.includes(addNever)) {
-            const next = [...neverLangs, addNever];
-            setNeverLangs(next);
+            await addNeverLanguage(addNever);
             message.success('已保存');
             setAddNever('');
         }
     };
     const handleRemoveNever = async (lang: any) => {
-        const next = neverLangs.filter(l => l !== lang);
-        setNeverLangs(next);
+        await removeNeverLanguage(lang);
         message.success('已保存');
     };
 
     // 总是翻译
     const handleAddAlways = async () => {
         if (addAlways && !alwaysLangs.includes(addAlways)) {
-            const next = [...alwaysLangs, addAlways];
-            setAlwaysLangs(next);
+            await addAlwaysLanguage(addAlways);
             message.success('已保存');
             setAddAlways('');
         }
     };
     const handleRemoveAlways = async (lang: any) => {
-        const next = alwaysLangs.filter(l => l !== lang);
-        setAlwaysLangs(next);
+        await removeAlwaysLanguage(lang);
         message.success('已保存');
     };
 
@@ -106,8 +108,8 @@ const LanguageSettings: React.FC = () => {
                         key={i18n.language}
                         value={pageTargetLang}
                         options={LANGUAGES.map(l => ({label: t('lang.' + l.code), value: l.code}))}
-                        onChange={val => {
-                            setPageTargetLang(val);
+                        onChange={async val => {
+                            await setPageTargetLanguage(val);
                             message.success('已保存');
                         }}
                         style={{width: 240}}
@@ -123,8 +125,8 @@ const LanguageSettings: React.FC = () => {
                         key={i18n.language}
                         value={textTargetLang}
                         options={LANGUAGES.map(l => ({label: t('lang.' + l.code), value: l.code}))}
-                        onChange={val => {
-                            setTextTargetLang(val);
+                        onChange={async val => {
+                            await setTextTargetLanguage(val);
                             message.success('已保存');
                         }}
                         style={{width: 240}}

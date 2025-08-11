@@ -1,23 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Switch, List, Modal, Button, Input, message, Checkbox, Tooltip, Segmented, ConfigProvider, Select } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { useStorage } from '~lib/utils/storage';
-import {
-  addAlwaysSite,
-  addNeverSite,
-  removeAlwaysSite,
-  removeNeverSite,
-  getDictConfig,
-  setDictConfig,
-  useDictConfig,
-  useAutoTranslateEnabled,
-  // 新的自定义词库 API
+import { 
+  usePageTranslateSettings,
+  // 自定义词库 API
   getCustomDictEntries,
   addCustomDictEntry,
   deleteCustomDictEntry,
-  deleteCustomDictByHost
-} from '~lib/settings/siteTranslateSettings';
-import type { CustomDictEntry } from '~lib/settings/siteTranslateSettings';
+  type CustomDictEntry
+} from '~lib/utils/globalSettingsHooks';
 import { DeleteOutlined } from '@ant-design/icons';
 import SettingsPageContainer from '../../components/SettingsPageContainer';
 import SettingsGroup from '../../components/SettingsGroup';
@@ -30,15 +21,19 @@ const PageTranslateSettings: React.FC = () => {
   const { t } = useTranslation();
   const { isDark } = useTheme();
   
-  // 站点自动翻译状态
-  const [siteAutoEnabled, setSiteAutoEnabled] = useAutoTranslateEnabled();
-  
-  // 页面翻译模式 - 从dict配置中读取
-  const [pageTranslateMode, setPageTranslateMode] = useState<string>('translated');
-  
-  // 白名单和黑名单管理
-  const [alwaysSites, setAlwaysSites] = useState<string[]>([]);
-  const [neverSites, setNeverSites] = useState<string[]>([]);
+  // 使用新的全局配置系统
+  const { 
+    pageTranslateSettings, 
+    updatePageTranslateSettings, 
+    toggleEnabled,
+    toggleAutoTranslate,
+    addToAlwaysList,
+    addToNeverList,
+    removeFromAlwaysList,
+    removeFromNeverList,
+    setPageTranslateMode: updatePageMode,
+    matchSiteList
+  } = usePageTranslateSettings();
   
   // 添加站点相关状态
   const [addHost, setAddHost] = useState('');
@@ -56,40 +51,16 @@ const PageTranslateSettings: React.FC = () => {
   const [dictEntries, setDictEntries] = useState<CustomDictEntry[]>([]);
   const [dictAddKey, setDictAddKey] = useState('');
   const [dictAddValue, setDictAddValue] = useState('');
-  
-  // 配置hooks
-  const [dictConfig, setDictConfig] = useDictConfig();
 
-  // 加载站点列表
-  useEffect(() => {
-    const loadSites = async () => {
-      try {
-        const dict = await getDictConfig();
-        setAlwaysSites(dict.siteAlwaysList || []);
-        setNeverSites(dict.siteNeverList || []);
-        setPageTranslateMode(dict.pageTranslateMode || 'translated');
-      } catch (error) {
-        console.error('Failed to load sites:', error);
-      }
-    };
-    loadSites();
-  }, [siteAutoEnabled]);
-
-  // 辅助函数 - 获取当前配置
-  const getCurrentDict = async () => {
-    return await getDictConfig();
-  };
+  // 不再需要加载站点列表的useEffect，因为数据来自全局配置
 
   const handleSiteAutoChange = (checked: boolean) => {
-    setSiteAutoEnabled(checked);
+    toggleAutoTranslate();
   };
 
   const handlePageTranslateModeChange = async (value: string) => {
     try {
-      const dict = await getDictConfig();
-      const updatedDict = { ...dict, pageTranslateMode: value };
-      await setDictConfig(updatedDict);
-      setPageTranslateMode(value);
+      await updatePageMode(value);
       message.success(t('翻译模式已更新'));
     } catch (error) {
       message.error(t('保存失败'));
@@ -104,16 +75,10 @@ const PageTranslateSettings: React.FC = () => {
 
     try {
       if (addType === 'always') {
-        await addAlwaysSite(addHost.trim());
-        const dict = await getDictConfig();
-        setAlwaysSites(dict.siteAlwaysList || []);
-        setNeverSites(dict.siteNeverList || []);
+        await addToAlwaysList(addHost.trim());
         message.success(t('已添加到白名单'));
       } else {
-        await addNeverSite(addHost.trim());
-        const dict = await getDictConfig();
-        setAlwaysSites(dict.siteAlwaysList || []);
-        setNeverSites(dict.siteNeverList || []);
+        await addToNeverList(addHost.trim());
         message.success(t('已添加到黑名单'));
       }
       setAddHost('');
@@ -124,9 +89,7 @@ const PageTranslateSettings: React.FC = () => {
 
   const handleRemoveAlways = async (host: string) => {
     try {
-      await removeAlwaysSite(host);
-      const dict = await getDictConfig();
-      setAlwaysSites(dict.siteAlwaysList || []);
+      await removeFromAlwaysList(host);
       message.success(t('已从白名单移除'));
     } catch (error) {
       message.error(t('移除失败'));
@@ -135,9 +98,7 @@ const PageTranslateSettings: React.FC = () => {
 
   const handleRemoveNever = async (host: string) => {
     try {
-      await removeNeverSite(host);
-      const dict = await getDictConfig();
-      setNeverSites(dict.siteNeverList || []);
+      await removeFromNeverList(host);
       message.success(t('已从黑名单移除'));
     } catch (error) {
       message.error(t('移除失败'));
@@ -249,8 +210,8 @@ const PageTranslateSettings: React.FC = () => {
   );
 
   // 显示部分站点列表
-  const alwaysSitesToShow = alwaysSites.slice(0, 5);
-  const neverSitesToShow = neverSites.slice(0, 5);
+  const alwaysSitesToShow = pageTranslateSettings.alwaysList.slice(0, 5);
+  const neverSitesToShow = pageTranslateSettings.neverList.slice(0, 5);
 
   return (
     <SettingsPageContainer title={t('网页翻译')}>
@@ -260,11 +221,11 @@ const PageTranslateSettings: React.FC = () => {
           label={t('网站自动翻译')}
           description={t('开启后，命中列表的网站将自动整页翻译')}
         >
-          <Switch checked={siteAutoEnabled} onChange={handleSiteAutoChange} />
+          <Switch checked={pageTranslateSettings.autoTranslateEnabled} onChange={handleSiteAutoChange} />
         </SettingsItem>
 
         {/* 条件渲染：只有开启网站自动翻译时才显示下面的设置 */}
-        {siteAutoEnabled && (
+        {pageTranslateSettings.autoTranslateEnabled && (
           <>
             <SettingsItem
               label={t('整页翻译模式')}
@@ -285,7 +246,7 @@ const PageTranslateSettings: React.FC = () => {
                 }}
               >
                 <Segmented
-                  value={pageTranslateMode}
+                  value={pageTranslateSettings.pageTranslateMode}
                   onChange={handlePageTranslateModeChange}
                   options={[
                     { label: t('全部译文'), value: 'translated' },
@@ -323,7 +284,7 @@ const PageTranslateSettings: React.FC = () => {
                   size="small"
                   bordered
                   dataSource={alwaysSitesToShow}
-                  renderItem={host => (
+                  renderItem={(host: string) => (
                     <List.Item
                       actions={[
                         <Button size="small" type="link" onClick={() => handleEditDict(host)}>{t('自定义词库')}</Button>,
@@ -343,10 +304,10 @@ const PageTranslateSettings: React.FC = () => {
                   )}
                   style={{ maxHeight: 200, overflow: 'auto' }}
                 />
-                {alwaysSites.length > 5 && (
+                {pageTranslateSettings.alwaysList.length > 5 && (
                   <div style={{ textAlign: 'center', marginTop: 8 }}>
                     <Button size="small" type="link" onClick={() => setShowAllAlways(true)}>
-                      {t('查看全部')} ({alwaysSites.length})
+                      {t('查看全部')} ({pageTranslateSettings.alwaysList.length})
                     </Button>
                   </div>
                 )}
@@ -363,7 +324,7 @@ const PageTranslateSettings: React.FC = () => {
                   size="small"
                   bordered
                   dataSource={neverSitesToShow}
-                  renderItem={host => (
+                  renderItem={(host: string) => (
                     <List.Item
                       actions={[
                         <Button size="small" type="link" danger onClick={() => handleRemoveNever(host)}>{t('移除')}</Button>
@@ -382,10 +343,10 @@ const PageTranslateSettings: React.FC = () => {
                   )}
                   style={{ maxHeight: 200, overflow: 'auto' }}
                 />
-                {neverSites.length > 5 && (
+                {pageTranslateSettings.neverList.length > 5 && (
                   <div style={{ textAlign: 'center', marginTop: 8 }}>
                     <Button size="small" type="link" onClick={() => setShowAllNever(true)}>
-                      {t('查看全部')} ({neverSites.length})
+                      {t('查看全部')} ({pageTranslateSettings.neverList.length})
                     </Button>
                   </div>
                 )}
@@ -399,7 +360,7 @@ const PageTranslateSettings: React.FC = () => {
       <BatchSiteModal
         open={showAllAlways}
         title={t('全部白名单')}
-        sites={alwaysSites}
+        sites={pageTranslateSettings.alwaysList}
         selected={selectedAlways}
         setSelected={setSelectedAlways}
         onClose={() => setShowAllAlways(false)}
@@ -407,7 +368,7 @@ const PageTranslateSettings: React.FC = () => {
           for (const host of hosts) await handleRemoveAlways(host);
         }}
         onBatchTransfer={async (hosts) => {
-          for (const host of hosts) await addNeverSite(host);
+          for (const host of hosts) await addToNeverList(host);
         }}
         transferButtonText={t('批量转移到黑名单')}
       />
@@ -415,7 +376,7 @@ const PageTranslateSettings: React.FC = () => {
       <BatchSiteModal
         open={showAllNever}
         title={t('全部黑名单')}
-        sites={neverSites}
+        sites={pageTranslateSettings.neverList}
         selected={selectedNever}
         setSelected={setSelectedNever}
         onClose={() => setShowAllNever(false)}
@@ -423,7 +384,7 @@ const PageTranslateSettings: React.FC = () => {
           for (const host of hosts) await handleRemoveNever(host);
         }}
         onBatchTransfer={async (hosts) => {
-          for (const host of hosts) await addAlwaysSite(host);
+          for (const host of hosts) await addToAlwaysList(host);
         }}
         transferButtonText={t('批量转移到白名单')}
       />

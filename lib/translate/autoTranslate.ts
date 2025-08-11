@@ -1,5 +1,44 @@
-import { getDictConfig, matchSiteList } from '~lib/settings/siteTranslateSettings';
 import { lazyFullPageTranslate } from '~lib/translate/fullPageTranslate';
+import { GLOBAL_SETTINGS_KEY, DEFAULT_SETTINGS } from '~lib/settings/globalSettings';
+import type { GlobalSettings } from '~lib/settings/globalSettings';
+import { storageApi } from '~lib/utils/storage';
+
+// 获取全局配置
+const getGlobalSettings = async (): Promise<GlobalSettings> => {
+  const settings = await storageApi.get(GLOBAL_SETTINGS_KEY);
+  if (typeof settings === 'string') {
+    try {
+      return JSON.parse(settings);
+    } catch {
+      return DEFAULT_SETTINGS;
+    }
+  }
+  return settings || DEFAULT_SETTINGS;
+};
+
+// 网站匹配逻辑 - 从 siteTranslateSettings 迁移
+const matchSiteList = (list: string[], url: string): boolean => {
+  if (list.includes(url)) {
+    return true;
+  }
+  
+  try {
+    const u = new URL(url.startsWith('http') ? url : 'https://' + url);
+    let path = u.pathname;
+
+    while (path && path !== '/') {
+      const test = u.hostname + path;
+      if (list.includes(test)) {
+        return true;
+      }
+      path = path.substring(0, path.lastIndexOf('/'));
+    }
+    
+    return list.includes(u.hostname);
+  } catch (error) {
+    return list.some(item => url.startsWith(item));
+  }
+};
 
 // 自动翻译逻辑
 export const setupAutoTranslate = (
@@ -14,20 +53,21 @@ export const setupAutoTranslate = (
     const fullUrl = path === '/' ? host : host + path;
     
     try {
-      const dict = await getDictConfig();
+      const settings = await getGlobalSettings();
+      const pageTranslateConfig = settings.pageTranslate;
       
-      if (!dict.autoTranslateEnabled) {
+      if (!pageTranslateConfig.autoTranslateEnabled) {
         return;
       }
       
-      if (matchSiteList(dict.siteNeverList || [], fullUrl)) {
+      if (matchSiteList(pageTranslateConfig.neverList || [], fullUrl)) {
         return;
       }
       
-      if (matchSiteList(dict.siteAlwaysList || [], fullUrl)) {
+      if (matchSiteList(pageTranslateConfig.alwaysList || [], fullUrl)) {
         if (typeof (window as any).__autoFullPageTranslated === 'undefined') {
           (window as any).__autoFullPageTranslated = true;
-          const mode = (dict.pageTranslateMode || 'translated') as 'translated' | 'compare';
+          const mode = (pageTranslateConfig.pageTranslateMode || 'translated') as 'translated' | 'compare';
           
           const result = await lazyFullPageTranslate(pageTargetLang, mode, engine);
           

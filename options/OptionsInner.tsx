@@ -7,7 +7,6 @@ import GeneralSettings from './pages/GeneralSettings';
 import About from './pages/About';
 import LanguageSettings from './pages/LanguageSettings';
 import PluginIcon from '~contents/components/PluginIcon';
-import TranslateSettings from './pages/TranslateSettings';
 import ShortcutSettings from './pages/ShortcutSettings';
 import CacheSettings from './pages/CacheSettings';
 import { useTranslation } from 'react-i18next';
@@ -96,8 +95,6 @@ const OptionsInner = () => {
     content = <GeneralSettings themeMode={themeMode} setThemeMode={setThemeMode} />;
   } else if (selectedKey === 'engine') {
     content = <EngineSettings />;
-  } else if (selectedKey === 'translate') {
-    content = <TranslateSettings />;
   } else if (selectedKey === 'translate-text') {
     content = <TextTranslateSettings />;
   } else if (selectedKey === 'translate-page') {

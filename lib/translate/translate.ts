@@ -6,7 +6,7 @@ import {bingTranslate, bingTranslateBatch} from "~background/translate/bing"
 import {deeplTranslate, deeplTranslateBatch} from "~background/translate/deepl"
 import {yandexTranslate, yandexTranslateBatch} from "~background/translate/yandex"
 import { TRANSLATION_CACHE_CONFIG_KEY } from "~lib/constants/settings"
-import { findCustomTranslation } from "~lib/settings/siteTranslateSettings"
+import { findCustomTranslation } from "~lib/utils/globalSettingsHooks"
 
 export interface TranslateOptions {
   from: string;

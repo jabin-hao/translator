@@ -1,37 +1,34 @@
 // 后台脚本入口文件
-import { CACHE_KEY, THEME_MODE_KEY, UI_LANG_KEY, SHORTCUT_SETTINGS_KEY, TRANSLATION_CACHE_CONFIG_KEY, DEFAULT_CACHE_CONFIG } from '~lib/constants/settings';
-import {storageApi} from "~lib/utils/storage";
+import { DEFAULT_CACHE_CONFIG } from '~lib/constants/settings';
+import { DEFAULT_SETTINGS } from '~lib/settings/globalSettings';
+import { storageApi } from '~lib/utils/storage';
 
 console.log('后台脚本已启动');
-
-const get = async (key: string)=>{
-  return await storageApi.get(key);
-}
-
-const save = async (key: string, val: any)=>{
-  await storageApi.set(key, val);
-}
 
 // 监听扩展安装事件
 chrome.runtime.onInstalled.addListener(async () => {
   console.log('扩展已安装/更新');
-  // 统一初始化所有默认设置
-  if (await get(CACHE_KEY) == null) {
-    await save(CACHE_KEY, true);
+  
+  // 检查是否已有全局设置
+  const existingSettings = await storageApi.get('global_settings') as any;
+  if (!existingSettings) {
+    // 第一次安装，设置默认值
+    await storageApi.set('global_settings', DEFAULT_SETTINGS);
+    console.log('已初始化默认全局设置');
+  } else {
+    // 合并新的默认设置，保留现有的用户设置
+    const mergedSettings = {
+      ...DEFAULT_SETTINGS,
+      ...existingSettings
+    };
+    await storageApi.set('global_settings', mergedSettings);
+    console.log('已更新全局设置');
   }
-  const cacheConfig = await get(TRANSLATION_CACHE_CONFIG_KEY);
+  
+  // 初始化缓存设置（可能需要保持独立）
+  const cacheConfig = await storageApi.get('translation_cache_config');
   if (!cacheConfig) {
-    await save(TRANSLATION_CACHE_CONFIG_KEY, DEFAULT_CACHE_CONFIG);
-  }
-  if (await get(THEME_MODE_KEY) == null) {
-    await save(THEME_MODE_KEY, 'auto');
-  }
-  if (await get(UI_LANG_KEY) == null) {
-    const browserLang = navigator.language || 'zh-CN';
-    await save(UI_LANG_KEY, browserLang);
-  }
-  if (await get(SHORTCUT_SETTINGS_KEY) == null) {
-    await save(SHORTCUT_SETTINGS_KEY, { enabled: true, customShortcut: '' });
+    await storageApi.set('translation_cache_config', DEFAULT_CACHE_CONFIG);
   }
 });
 

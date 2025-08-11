@@ -1,8 +1,10 @@
 import React from 'react';
 import { Switch, Select } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { useStorage } from '~lib/utils/storage';
-import { TRANSLATE_SETTINGS_KEY } from '~lib/constants/settings';
+import { 
+  useTextTranslateSettings,
+  useGlobalSettings 
+} from '~lib/utils/globalSettingsHooks';
 import SettingsPageContainer from '../../components/SettingsPageContainer';
 import SettingsGroup from '../../components/SettingsGroup';
 import SettingsItem from '../../components/SettingsItem';
@@ -14,28 +16,15 @@ const TextTranslateSettings: React.FC = () => {
   const { t } = useTranslation();
   const { isDark } = useTheme();
   
-  // 使用useStorage hooks管理设置
-  const [textTranslateEnabled, setTextTranslateEnabled] = useStorage('textTranslateEnabled', true);
-  const [translateSettings, setTranslateSettings] = useStorage(TRANSLATE_SETTINGS_KEY, {
-    engine: 'google',
-    autoDetectLanguage: true,
-    showOriginal: false,
-    doubleClickTranslate: true,
-    selectTranslate: true,
-    quickTranslate: false,
-    pressKeyTranslate: false,
-    keyCode: 'Space',
-    pressKeyWithCtrl: false,
-    pressKeyWithShift: false,
-    pressKeyWithAlt: false,
-  });
+  // 使用新的全局配置系统
+  const { textTranslateSettings, updateTextTranslate, toggleEnabled } = useTextTranslateSettings();
 
-  const handleSwitchChange = (key: string, checked: boolean) => {
-    setTranslateSettings({ ...translateSettings, [key]: checked });
+  const handleSwitchChange = async (key: string, checked: boolean) => {
+    await updateTextTranslate({ [key]: checked } as any);
   };
 
-  const handleKeyCodeChange = (value: string) => {
-    setTranslateSettings({ ...translateSettings, keyCode: value });
+  const handleKeyCodeChange = async (value: string) => {
+    await updateTextTranslate({ keyCode: value });
   };
 
   return (
@@ -47,14 +36,14 @@ const TextTranslateSettings: React.FC = () => {
           description={t('开启后，选中文本即可进行翻译')}
         >
           <Switch 
-            checked={textTranslateEnabled} 
-            onChange={setTextTranslateEnabled} 
+            checked={textTranslateSettings.enabled} 
+            onChange={toggleEnabled} 
           />
         </SettingsItem>
       </SettingsGroup>
 
       {/* 只有开启划词翻译时才显示其他设置 */}
-      {textTranslateEnabled && (
+      {textTranslateSettings.enabled && (
         <>
           <SettingsGroup title={t('翻译触发方式')}>
         <SettingsItem 
@@ -62,7 +51,7 @@ const TextTranslateSettings: React.FC = () => {
           description={t('选择文本后显示翻译')}
         >
           <Switch
-            checked={translateSettings.selectTranslate}
+            checked={textTranslateSettings.selectTranslate}
             onChange={(checked) => handleSwitchChange('selectTranslate', checked)}
           />
         </SettingsItem>
@@ -72,7 +61,7 @@ const TextTranslateSettings: React.FC = () => {
           description={t('双击单词进行翻译')}
         >
           <Switch
-            checked={translateSettings.doubleClickTranslate}
+            checked={textTranslateSettings.doubleClickTranslate}
             onChange={(checked) => handleSwitchChange('doubleClickTranslate', checked)}
           />
         </SettingsItem>
@@ -82,7 +71,7 @@ const TextTranslateSettings: React.FC = () => {
           description={t('鼠标悬停自动显示翻译')}
         >
           <Switch
-            checked={translateSettings.quickTranslate}
+            checked={textTranslateSettings.quickTranslate}
             onChange={(checked) => handleSwitchChange('quickTranslate', checked)}
           />
         </SettingsItem>
@@ -93,13 +82,13 @@ const TextTranslateSettings: React.FC = () => {
         >
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
             <Switch
-              checked={translateSettings.pressKeyTranslate}
+              checked={textTranslateSettings.pressKeyTranslate}
               onChange={(checked) => handleSwitchChange('pressKeyTranslate', checked)}
             />
-            {translateSettings.pressKeyTranslate && (
+            {textTranslateSettings.pressKeyTranslate && (
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <Select 
-                  value={translateSettings.keyCode} 
+                  value={textTranslateSettings.keyCode} 
                   onChange={handleKeyCodeChange}
                   style={{ width: 100 }}
                 >
@@ -112,7 +101,7 @@ const TextTranslateSettings: React.FC = () => {
                   <label>
                     <input
                       type="checkbox"
-                      checked={translateSettings.pressKeyWithCtrl}
+                      checked={textTranslateSettings.pressKeyWithCtrl}
                       onChange={(e) => handleSwitchChange('pressKeyWithCtrl', e.target.checked)}
                     />
                     Ctrl
@@ -120,7 +109,7 @@ const TextTranslateSettings: React.FC = () => {
                   <label>
                     <input
                       type="checkbox"
-                      checked={translateSettings.pressKeyWithShift}
+                      checked={textTranslateSettings.pressKeyWithShift}
                       onChange={(e) => handleSwitchChange('pressKeyWithShift', e.target.checked)}
                     />
                     Shift
@@ -128,7 +117,7 @@ const TextTranslateSettings: React.FC = () => {
                   <label>
                     <input
                       type="checkbox"
-                      checked={translateSettings.pressKeyWithAlt}
+                      checked={textTranslateSettings.pressKeyWithAlt}
                       onChange={(e) => handleSwitchChange('pressKeyWithAlt', e.target.checked)}
                     />
                     Alt
@@ -146,7 +135,7 @@ const TextTranslateSettings: React.FC = () => {
           description={t('自动检测要翻译的文本语言')}
         >
           <Switch
-            checked={translateSettings.autoDetectLanguage}
+            checked={textTranslateSettings.autoDetectLanguage}
             onChange={(checked) => handleSwitchChange('autoDetectLanguage', checked)}
           />
         </SettingsItem>
@@ -156,7 +145,7 @@ const TextTranslateSettings: React.FC = () => {
           description={t('在翻译结果中显示原文')}
         >
           <Switch
-            checked={translateSettings.showOriginal}
+            checked={textTranslateSettings.showOriginal}
             onChange={(checked) => handleSwitchChange('showOriginal', checked)}
           />
         </SettingsItem>

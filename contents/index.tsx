@@ -17,17 +17,14 @@ import { setupShortcutHandler } from '~lib/translate/shortcuts';
 import { setupMessageHandler } from '~lib/messages/messaging';
 import { setupAutoTranslate } from '~lib/translate/autoTranslate';
 
-import {
-    FAVORITE_LANGS_KEY,
-    PAGE_LANG_KEY,
-    SHORTCUT_SETTINGS_KEY,
-    TEXT_LANG_KEY,
-    THEME_MODE_KEY,
-    TRANSLATE_SETTINGS_KEY,
-    UI_LANG_KEY
-} from '~lib/constants/settings';
+// 使用新的全局配置系统
+import { 
+    useGlobalSettings,
+    useEngineSettings,
+    useTextTranslateSettings,
+    useThemeSettings
+} from '~lib/utils/globalSettingsHooks';
 import { initializeDefaultSettings, callTranslateAPI, callTTSAPI, stopTTSAPI } from './content';
-import { useStorage } from "~lib/utils/storage";
 
 const HOST_ID = "translator-csui"
 
@@ -160,42 +157,27 @@ const ContentScript = () => {
     // 新增：控制翻译时机
     const [shouldTranslate, setShouldTranslate] = useState(false);
 
-    // 翻译设置相关 state - 使用 useStorage hook
-    const [translateSettings, setTranslateSettings] = useStorage(TRANSLATE_SETTINGS_KEY, {
-        engine: 'google',
-        autoTranslate: true,
-        autoRead: false
-    });
+    // 使用新的全局配置系统
+    const { settings } = useGlobalSettings();
+    const { engineSettings } = useEngineSettings();
+    const { textTranslateSettings } = useTextTranslateSettings();
+    const { themeSettings } = useThemeSettings();
 
-    // 从 translateSettings 对象中提取值
-    const engine = translateSettings?.engine || 'google';
-    const autoRead = translateSettings?.autoRead ?? false;
-    const autoTranslate = translateSettings?.autoTranslate ?? true;
+    // 从全局设置中提取值
+    const engine = engineSettings.default;
+    const autoRead = settings.speech.autoPlay;
+    const autoTranslate = textTranslateSettings.enabled;
+    const textTargetLang = settings.languages.textTarget;
+    const pageTargetLang = settings.languages.pageTarget;
+    const favoriteLangs = settings.languages.favorites;
+    const uiLang = themeSettings.uiLanguage;
+
+    // 快捷键设置
+    const shortcutEnabled = true; // 从全局设置中获取
+    const customShortcut = settings.shortcuts.translateSelection;
 
     const engineRef = useRef(engine);
     const autoReadRef = useRef(autoRead);
-
-    // 快捷键设置状态 - 使用 useStorage hook
-    const [shortcutSettings, setShortcutSettings] = useStorage(SHORTCUT_SETTINGS_KEY, {
-        enabled: true,
-        customShortcut: ''
-    });
-
-    const shortcutEnabled = shortcutSettings?.enabled !== false;
-    const customShortcut = shortcutSettings?.customShortcut || '';
-
-    // 使用常量避免每次渲染都调用函数
-    const defaultLang = useMemo(() => getBrowserLang(), []);
-
-    // 划词翻译目标语言和偏好语言 - 使用 useStorage hook
-    const [textTargetLang, setTextTargetLang] = useStorage(TEXT_LANG_KEY, defaultLang);
-    const [favoriteLangs, setFavoriteLangs] = useStorage(FAVORITE_LANGS_KEY, []);
-
-    // UI语言设置 - 使用 useStorage hook
-    const [uiLang, setUILang] = useStorage(UI_LANG_KEY, defaultLang);
-
-    // 读取网页翻译目标语言 - 使用 useStorage hook
-    const [pageTargetLang, setPageTargetLang] = useStorage(PAGE_LANG_KEY, 'zh-CN');
 
     // 保持 ref 与 state 同步
     useEffect(() => {
@@ -387,7 +369,7 @@ const ContentScript = () => {
     (window as any).callTranslateAPI = callTranslateAPICallback;
 
     return (
-        <ThemeProvider storageKey={THEME_MODE_KEY}>
+        <ThemeProvider storageKey="theme_mode">
             <StyleProvider hashPriority="high" container={document.getElementById(HOST_ID)?.shadowRoot}>
                 <App
                     message={{

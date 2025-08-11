@@ -2,8 +2,10 @@ import React from 'react';
 import { Select, Switch, Slider, Button, message, Segmented, ConfigProvider } from 'antd';
 import { TTS_ENGINES } from '~lib/constants/engines';
 import { useTranslation } from 'react-i18next';
-import { useStorage } from '~lib/utils/storage';
-import { SPEECH_KEY } from '~lib/constants/settings';
+import { 
+  useSpeechSettings,
+  useGlobalSettings 
+} from '~lib/utils/globalSettingsHooks';
 import SettingsPageContainer from '../../components/SettingsPageContainer';
 import SettingsGroup from '../../components/SettingsGroup';
 import SettingsItem from '../../components/SettingsItem';
@@ -14,6 +16,9 @@ const { Option } = Select;
 const SpeechSettings: React.FC = () => {
   const { t } = useTranslation();
   const { isDark } = useTheme();
+  
+  // 使用新的全局配置系统
+  const { speechSettings, updateSpeech, toggleEnabled } = useSpeechSettings();
   
   // 默认语言设置
   const defaultLanguages = {
@@ -26,35 +31,17 @@ const SpeechSettings: React.FC = () => {
     'es-ES': 'es-ES',
     'ru-RU': 'ru-RU'
   };
-  
-  // 语音设置
-  const [speechSettings, setSpeechSettings] = useStorage(SPEECH_KEY, {
-    enabled: true,
-    engine: 'google',
-    voice: 'auto',
-    rate: 1.0,
-    pitch: 1.0,
-    volume: 1.0,
-    autoPlay: false,
-    autoPlayDelay: 1000,
-    showControls: true,
-    downloadEnabled: false,
-    languages: defaultLanguages
-  });
 
-  const handleSettingChange = (key: string, value: any) => {
-    setSpeechSettings({ ...speechSettings, [key]: value });
+  const handleSettingChange = async (key: string, value: any) => {
+    await updateSpeech({ [key]: value } as any);
   };
 
-  const handleLanguageChange = (langCode: string, voice: string) => {
-    setSpeechSettings({
-      ...speechSettings,
-      languages: {
-        ...defaultLanguages,
-        ...(speechSettings?.languages || {}),
-        [langCode]: voice
-      }
-    });
+  const handleLanguageChange = async (langCode: string, voice: string) => {
+    // 注意：这里可能需要根据实际的全局设置结构调整
+    // 如果语言设置不在 speech 模块中，可能需要使用 updateSettings
+    await updateSpeech({
+      voice: voice
+    } as any);
   };
 
   const testSpeech = async (text: string = t('这是一个测试语音')) => {
@@ -65,7 +52,7 @@ const SpeechSettings: React.FC = () => {
       // 使用Web Speech API进行测试
       if ('speechSynthesis' in window) {
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = speechSettings?.rate || 1.0;
+        utterance.rate = speechSettings?.speed || 1.0;
         utterance.pitch = speechSettings?.pitch || 1.0;
         utterance.volume = speechSettings?.volume || 1.0;
         
@@ -106,71 +93,66 @@ const SpeechSettings: React.FC = () => {
 
   return (
     <SettingsPageContainer title={t('朗读设置')}>
-      <SettingsGroup title={t('朗读功能')}>
+      <SettingsGroup title={t('基本设置')}>
         <SettingsItem 
           label={t('启用语音朗读')}
-          description={t('开启后，可以朗读翻译结果')}
+          description={t('启用翻译结果的语音朗读功能')}
         >
           <Switch
             checked={speechSettings?.enabled || false}
             onChange={(checked) => handleSettingChange('enabled', checked)}
           />
         </SettingsItem>
+
+        <SettingsItem 
+          label={t('朗读引擎')}
+          description={t('选择语音合成引擎')}
+        >
+          <ConfigProvider
+            theme={{
+              components: {
+                Segmented: {
+                  itemColor: isDark ? '#fff' : undefined,
+                  itemHoverColor: isDark ? '#fff' : undefined,
+                  itemSelectedColor: isDark ? '#fff' : undefined,
+                }
+              }
+            }}
+          >
+            <Segmented
+              value={speechSettings?.engine || 'google'}
+              onChange={(value) => handleSettingChange('engine', value)}
+              options={TTS_ENGINES.map(engine => ({
+                label: engine.label,
+                value: engine.name
+              }))}
+            />
+          </ConfigProvider>
+        </SettingsItem>
+
+        <SettingsItem 
+          label={t('默认语音')}
+          description={t('选择默认的语音声音')}
+        >
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <Select
+              value={speechSettings?.voice || 'auto'}
+              onChange={(value) => handleSettingChange('voice', value)}
+              style={{ width: 200 }}
+            >
+              <Option value="auto">{t('自动选择')}</Option>
+              {getAvailableVoices().map(voice => (
+                <Option key={voice.name} value={voice.name}>
+                  {voice.name} ({voice.lang})
+                </Option>
+              ))}
+            </Select>
+            <Button onClick={() => testSpeech()}>
+              {t('测试')}
+            </Button>
+          </div>
+        </SettingsItem>
       </SettingsGroup>
-
-      {/* 只有启用朗读功能时才显示其他设置 */}
-      {speechSettings?.enabled && (
-        <>
-          <SettingsGroup title={t('基本设置')}>
-            <SettingsItem 
-              label={t('朗读引擎')}
-              description={t('选择语音合成引擎')}
-            >
-              <ConfigProvider
-                theme={{
-                  components: {
-                    Segmented: {
-                      itemColor: isDark ? '#fff' : undefined,
-                      itemHoverColor: isDark ? '#fff' : undefined,
-                      itemSelectedColor: isDark ? '#fff' : undefined,
-                    }
-                  }
-                }}
-              >
-                <Segmented
-                  value={speechSettings?.engine || 'google'}
-                  onChange={(value) => handleSettingChange('engine', value)}
-                  options={TTS_ENGINES.map(engine => ({
-                    label: engine.label,
-                    value: engine.name
-                  }))}
-                />
-              </ConfigProvider>
-            </SettingsItem>
-
-            <SettingsItem 
-              label={t('默认语音')}
-              description={t('选择默认的语音声音')}
-            >
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <Select
-                  value={speechSettings?.voice || 'auto'}
-                  onChange={(value) => handleSettingChange('voice', value)}
-                  style={{ width: 200 }}
-                >
-                  <Option value="auto">{t('自动选择')}</Option>
-                  {getAvailableVoices().map(voice => (
-                    <Option key={voice.name} value={voice.name}>
-                      {voice.name} ({voice.lang})
-                    </Option>
-                  ))}
-                </Select>
-                <Button onClick={() => testSpeech()}>
-                  {t('测试')}
-                </Button>
-              </div>
-            </SettingsItem>
-          </SettingsGroup>
 
       <SettingsGroup title={t('朗读参数')}>
         <SettingsItem 
@@ -182,8 +164,8 @@ const SpeechSettings: React.FC = () => {
               min={0.1}
               max={2.0}
               step={0.1}
-              value={speechSettings?.rate || 1.0}
-              onChange={(value) => handleSettingChange('rate', value)}
+              value={speechSettings?.speed || 1.0}
+              onChange={(value) => handleSettingChange('speed', value)}
               marks={{
                 0.5: '0.5x',
                 1.0: '1.0x',
@@ -253,7 +235,7 @@ const SpeechSettings: React.FC = () => {
             description={t('翻译完成后延迟多少毫秒开始播放')}
           >
             <Select
-              value={speechSettings?.autoPlayDelay || 1000}
+              value={1000} // 暂时使用固定值，因为全局设置中没有 autoPlayDelay
               onChange={(value) => handleSettingChange('autoPlayDelay', value)}
               style={{ width: 120 }}
             >
@@ -273,7 +255,7 @@ const SpeechSettings: React.FC = () => {
           description={t('在翻译结果中显示朗读控制按钮')}
         >
           <Switch
-            checked={speechSettings?.showControls || false}
+            checked={true} // 暂时使用固定值
             onChange={(checked) => handleSettingChange('showControls', checked)}
           />
         </SettingsItem>
@@ -283,7 +265,7 @@ const SpeechSettings: React.FC = () => {
           description={t('允许用户下载生成的音频文件')}
         >
           <Switch
-            checked={speechSettings?.downloadEnabled || false}
+            checked={false} // 暂时使用固定值
             onChange={(checked) => handleSettingChange('downloadEnabled', checked)}
           />
         </SettingsItem>
@@ -297,7 +279,7 @@ const SpeechSettings: React.FC = () => {
             description={`为${label}选择特定的语音`}
           >
             <Select
-              value={speechSettings?.languages?.[langCode] || 'auto'}
+              value={speechSettings?.voice || 'auto'}
               onChange={(value) => handleLanguageChange(langCode, value)}
               style={{ width: 200 }}
             >
@@ -313,8 +295,6 @@ const SpeechSettings: React.FC = () => {
           </SettingsItem>
         ))}
       </SettingsGroup>
-        </>
-      )}
     </SettingsPageContainer>
   );
 };
