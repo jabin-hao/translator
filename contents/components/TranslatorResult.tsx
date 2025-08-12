@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Card, Button, Divider, Spin } from 'antd';
 import { CopyOutlined, SoundOutlined, LoadingOutlined, StarOutlined, StarFilled } from '@ant-design/icons';
+import { produce } from 'immer';
 import '../index.css';
 import { getEngineLangCode, getLangAbbr, getTTSLang, getBrowserLang } from '~lib/constants/languages';
 import { useTranslation } from 'react-i18next';
@@ -134,15 +135,15 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
     // 直接传递 targetLang，让 callTranslateAPI 处理语言映射
     props.callTranslateAPI(srcText, 'auto', targetLang, props.engine)
       .then(res => {
-        setTranslatedText(res.result ?? '');
-        setUsedEngine(res.engine || props.engine);
+        setTranslatedText(produce(() => res.result ?? ''));
+        setUsedEngine(produce(() => res.engine || props.engine));
         isLanguageSwitchingRef.current = false; // 翻译完成后重置语言切换标志
         props.onTranslationComplete?.(); // 翻译成功时调用回调
       })
       .catch(err => {
         console.error('翻译失败:', err);
-        setTranslatedText(t('翻译失败'));
-        setUsedEngine('');
+        setTranslatedText(produce(() => t('翻译失败')));
+        setUsedEngine(produce(() => ''));
         isLanguageSwitchingRef.current = false; // 翻译失败后也重置语言切换标志
         props.onTranslationComplete?.(); // 翻译失败时也调用回调
       })
@@ -169,7 +170,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
       targetLang !== lastTargetLangRef.current
     ) {
       hasTranslatedRef.current = false;
-      setTranslatedText('');
+      setTranslatedText(produce(() => ''));
       originalTextRef.current = srcText;
       lastTargetLangRef.current = targetLang;
     }

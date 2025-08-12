@@ -1,4 +1,5 @@
 // 翻译缓存管理模块
+import { produce } from 'immer';
 import { storageApi } from '~lib/utils/storage';
 import { DEFAULT_CACHE_CONFIG, TRANSLATION_CACHE_CONFIG_KEY } from '../constants/settings';
 
@@ -116,7 +117,10 @@ export class TranslationCacheManager {
   private isCleanupRunning = false; // 防止重复清理
 
   constructor(config: Partial<CacheConfig> = {}) {
-    this.config = { ...DEFAULT_CACHE_CONFIG, ...config };
+    // 使用 immer 进行配置合并
+    this.config = produce(DEFAULT_CACHE_CONFIG, (draft) => {
+      Object.assign(draft, config);
+    });
     
     // 从storage中读取用户配置
     this.loadConfig().catch(error => {
@@ -211,8 +215,10 @@ export class TranslationCacheManager {
       const config = await storageApi.get(TRANSLATION_CACHE_CONFIG_KEY);
 
       if (config && typeof config === 'object') {
-        // @ts-ignore
-        this.config = { ...this.config, ...config };
+        // 使用 immer 进行配置更新
+        this.config = produce(this.config, (draft) => {
+          Object.assign(draft, config);
+        });
       }
     } catch (error) {
       console.error('加载缓存配置失败:', error);
@@ -236,8 +242,10 @@ export class TranslationCacheManager {
         }
         
         // 更新访问统计
-        translation.accessCount = (translation.accessCount || 0) + 1;
-        translation.lastAccessed = Date.now();
+        translation = produce(translation, (draft) => {
+          draft.accessCount = (draft.accessCount || 0) + 1;
+          draft.lastAccessed = Date.now();
+        });
         this.cache.set(hash, translation);
         this.hitCount++;
         
@@ -628,7 +636,10 @@ export class TranslationCacheManager {
 
   // 更新配置
   async updateConfig(newConfig: Partial<CacheConfig>): Promise<void> {
-    this.config = { ...this.config, ...newConfig };
+    // 使用 immer 进行配置更新
+    this.config = produce(this.config, (draft) => {
+      Object.assign(draft, newConfig);
+    });
     await storageApi.set(TRANSLATION_CACHE_CONFIG_KEY, this.config);
     
     // 配置更新后立即检查是否需要清理缓存

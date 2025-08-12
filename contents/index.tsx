@@ -1,6 +1,7 @@
 import { StyleProvider } from "@ant-design/cssinjs"
 import { useEffect, useState, useCallback, useRef } from "react"
 import { App } from 'antd';
+import { produce } from 'immer';
 import { mapUiLangToI18nKey } from '~lib/constants/languages';
 import './index.css';
 import antdResetCssText from "data-text:antd/dist/reset.css"
@@ -206,11 +207,11 @@ const ContentScript = () => {
             // 如果开启了选择时自动翻译，直接触发翻译
             if (selectTranslateEnabled) {
                 // 将翻译结果显示在选中文字的正下方
-                setResult({
+                setResult(produce((draft) => ({
                     x: rect.left + window.scrollX, // 左对齐
                     y: rect.bottom + window.scrollY, // 正下方
                     originalText: text
-                });
+                })));
                 setShouldTranslate(true);
                 return;
             }
@@ -245,11 +246,11 @@ const ContentScript = () => {
                 iconY = window.innerHeight - iconHeight - margin;
             }
 
-            setIcon({
+            setIcon(produce((draft) => ({
                 x: iconX,
                 y: iconY,
                 text
-            });
+            })));
         }
     };
 
@@ -269,11 +270,11 @@ const ContentScript = () => {
             const selectionRect = rect || range.getBoundingClientRect();
 
             // 将翻译结果显示在选中文字的正下方
-            setResult({
+            setResult(produce((draft) => ({
                 x: selectionRect.left + window.scrollX, // 左对齐
                 y: selectionRect.bottom + window.scrollY, // 正下方
                 originalText: selectionText
-            });
+            })));
             setShouldTranslate(true);
         }
     }, []);
@@ -287,21 +288,22 @@ const ContentScript = () => {
                 const range = selection.getRangeAt(0);
                 const rect = range.getBoundingClientRect();
 
-                setResult({
+                setResult(produce((draft) => ({
                     x: rect.left, // 使用视窗相对坐标，因为结果组件也使用fixed定位
                     y: rect.bottom + 5, // 选中文字的正下方
                     originalText: icon.text
-                });
+                })));
             } else {
                 // 如果没有选中文字，则使用图标位置作为备选
-                setResult({
+                setResult(produce((draft) => ({
                     x: icon.x,
                     y: icon.y + 30, // 在图标下方偏移30px
                     originalText: icon.text
-                });
+                })));
             }
             setShouldTranslate(true);
         }
+        setIcon(null); // 清除图标
     };
 
     // 初始化默认设置

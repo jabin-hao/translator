@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import '../index.css';
+import { produce } from 'immer';
 import { 
   Card, 
   Input, 
@@ -76,12 +77,12 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage,
     setIsTranslating(true);
     try {
       const { result, engine: realEngine } = await callTranslateAPI(inputText, sourceLang, targetLang, engine);
-      setTranslatedText(result);
-      setUsedEngine(realEngine || engine);
+      setTranslatedText(produce(() => result));
+      setUsedEngine(produce(() => realEngine || engine));
       showMessage('success', t('翻译完成'));
     } catch (error) {
-      setTranslatedText('翻译失败，请重试');
-      setUsedEngine(engine);
+      setTranslatedText(produce(() => '翻译失败，请重试'));
+      setUsedEngine(produce(() => engine));
       showMessage('error', typeof error === 'string' ? error : t('翻译失败，请重试'));
     } finally {
       setIsTranslating(false);
@@ -90,16 +91,16 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage,
 
   const handleSwapLanguages = useCallback(() => {
     if (sourceLang !== 'auto') {
-      setSourceLang(targetLang);
-      setTargetLang(sourceLang);
+      setSourceLang(produce(() => targetLang));
+      setTargetLang(produce(() => sourceLang));
       showMessage('success', t('已交换语言'));
     }
   }, [sourceLang, targetLang, showMessage, t]);
 
   const handleClear = useCallback(() => {
-    setInputText('');
-    setTranslatedText('');
-    setUsedEngine(defaultEngine);
+    setInputText(produce(() => ''));
+    setTranslatedText(produce(() => ''));
+    setUsedEngine(produce(() => defaultEngine));
     showMessage('success', t('已清空内容'));
   }, [defaultEngine, showMessage, t]);
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button, Typography, Modal, Switch, InputNumber, App } from 'antd';
 import { Icon } from '@iconify/react';
 import { useTranslation } from 'react-i18next';
+import { produce } from 'immer';
 import { useCacheSettings } from '~lib/utils/globalSettingsHooks';
 import { cacheManager } from '~lib/cache/cache';
 import { sendToBackground } from '@plasmohq/messaging';
@@ -36,7 +37,7 @@ const CacheSettings: React.FC = () => {
         size: isNaN(stats.size) ? 0 : stats.size
       };
       
-      setStats(validStats);
+      setStats(produce(() => validStats));
       message.success(t('统计已刷新'));
     } catch (error) {
       console.error('加载缓存统计失败:', error);
@@ -80,10 +81,10 @@ const CacheSettings: React.FC = () => {
 
   // 加载配置时同步到 pendingConfig
   useEffect(() => {
-    setPendingConfig({
+    setPendingConfig(produce((draft) => ({
       maxAge: cacheSettings.maxAge,
       maxSize: cacheSettings.maxSize,
-    });
+    })));
   }, [cacheSettings.maxAge, cacheSettings.maxSize]);
 
   const formatSize = (bytes: number) => {
@@ -164,7 +165,7 @@ const CacheSettings: React.FC = () => {
                     onChange={value => {
                       if (value !== null) {
                         const newMaxAge = value * MS_PER_MONTH + days * MS_PER_DAY + hours * MS_PER_HOUR;
-                        setPendingConfig(pc => ({ ...pc, maxAge: newMaxAge }));
+                        setPendingConfig(produce(draft => ({ ...draft, maxAge: newMaxAge })));
                       }
                     }}
                     addonAfter={t('月')}
@@ -177,7 +178,7 @@ const CacheSettings: React.FC = () => {
                     onChange={value => {
                       if (value !== null) {
                         const newMaxAge = months * MS_PER_MONTH + value * MS_PER_DAY + hours * MS_PER_HOUR;
-                        setPendingConfig(pc => ({ ...pc, maxAge: newMaxAge }));
+                        setPendingConfig(produce(draft => ({ ...draft, maxAge: newMaxAge })));
                       }
                     }}
                     addonAfter={t('天')}
@@ -190,7 +191,7 @@ const CacheSettings: React.FC = () => {
                     onChange={value => {
                       if (value !== null) {
                         const newMaxAge = months * MS_PER_MONTH + days * MS_PER_DAY + value * MS_PER_HOUR;
-                        setPendingConfig(pc => ({ ...pc, maxAge: newMaxAge }));
+                        setPendingConfig(produce(draft => ({ ...draft, maxAge: newMaxAge })));
                       }
                     }}
                     addonAfter={t('小时')}
@@ -223,7 +224,7 @@ const CacheSettings: React.FC = () => {
             max={10000}
             value={pendingConfig.maxSize}
             onChange={value => {
-              if (value) setPendingConfig(pc => ({ ...pc, maxSize: value }));
+              if (value) setPendingConfig(produce(draft => ({ ...draft, maxSize: value })));
             }}
             style={{ width: 120 }}
           />

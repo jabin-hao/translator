@@ -9,8 +9,10 @@ import { GLOBAL_SETTINGS_KEY } from '~lib/settings/globalSettings';
 import SettingsPageContainer from '../components/SettingsPageContainer';
 import SettingsGroup from '../components/SettingsGroup';
 import SettingsItem from '../components/SettingsItem';
+import { produce } from 'immer';
 
 const { Title, Paragraph } = Typography;
+
 
 // 新增 props 类型
 interface GeneralSettingsProps {
@@ -60,7 +62,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
 
   // 主题切换时同步 localStorage，保证多标签页同步
   const handleThemeChange = async (e: import('antd').RadioChangeEvent) => {
-    setThemeMode(e.target.value);
+    setThemeMode(e.target.value); // Directly set the value as immer is unnecessary here
     await updateTheme({ mode: e.target.value });
   };
 
@@ -79,24 +81,29 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
     message.success('配置已导出');
   }, [settings]);
 
-  const handleImportConfig = useCallback(async (file: File) => {
-    try {
-      const text = await file.text();
-      const json = JSON.parse(text);
-      
-      // 导入全局设置
-      if (json[GLOBAL_SETTINGS_KEY]) {
-        await updateSettings(json[GLOBAL_SETTINGS_KEY]);
-        message.success('配置已导入，页面将刷新以应用新设置');
-        setTimeout(() => window.location.reload(), 1000);
-      } else {
-        message.error('无效的配置文件格式');
+  const handleImportConfig = useCallback(
+    async (file: File) => {
+      try {
+        const text = await file.text();
+        const json = JSON.parse(text);
+
+        if (json[GLOBAL_SETTINGS_KEY]) {
+          const updatedSettings = produce(settings, (draft) => {
+            Object.assign(draft, json[GLOBAL_SETTINGS_KEY]);
+          });
+          await updateSettings(updatedSettings);
+          message.success('配置已导入，页面将刷新以应用新设置');
+          setTimeout(() => window.location.reload(), 1000);
+        } else {
+          message.error('无效的配置文件格式');
+        }
+      } catch (error) {
+        message.error('配置文件格式错误');
       }
-    } catch (error) {
-      message.error('配置文件格式错误');
-    }
-    return false; // 阻止自动上传
-  }, [updateSettings]);
+      return false; // 阻止自动上传
+    },
+    [settings, updateSettings]
+  );
 
   const handleClearConfig = useCallback(async () => {
     try {
@@ -111,12 +118,11 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
 
   return (
     <SettingsPageContainer 
-      title={t('通用设置')}
-      description={t('配置插件的基本设置和外观')}
-    >
+      title={t('通用设置')} 
+      description={t('配置插件的基本设置和外观')}>
       <SettingsGroup title={t('界面设置')} first>
         <SettingsItem 
-          label={t('设置页面语言')}
+          label={t('设置页面语言')} 
           description={t('控制插件界面显示的语言')}
         >
           <Select

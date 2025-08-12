@@ -1,3 +1,4 @@
+import { produce } from 'immer';
 import { useFavoritesSettings, useGlobalSettings } from './globalSettingsHooks';
 import { message } from 'antd';
 import type { GlobalSettings } from '../settings/globalSettings';
@@ -24,49 +25,43 @@ export class FavoritesManager {
       
       if (!globalSettings) return;
       
-      const favorites = globalSettings.favorites.words || [];
-      
-      // 检查是否已存在相同的收藏
-      const existingIndex = favorites.findIndex(
-        item => item.word === word && 
-                item.sourceLanguage === sourceLanguage && 
-                item.targetLanguage === targetLanguage
-      );
-      
-      if (existingIndex >= 0) {
-        // 如果已存在，更新翻译结果和时间戳
-        favorites[existingIndex] = {
-          ...favorites[existingIndex],
-          translation,
-          timestamp: Date.now(),
-          notes: notes || favorites[existingIndex].notes,
-          tags: tags || favorites[existingIndex].tags
-        };
-        message.info('已更新收藏');
-      } else {
-        // 添加新收藏
-        const newFavorite: FavoriteWord = {
-          id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          word,
-          translation,
-          sourceLanguage,
-          targetLanguage,
-          timestamp: Date.now(),
-          notes,
-          tags
-        };
-        favorites.unshift(newFavorite); // 添加到开头
-        message.success('已添加到收藏');
-      }
-      
-      // 更新全局设置
-      const updatedSettings = {
-        ...globalSettings,
-        favorites: {
-          ...globalSettings.favorites,
-          words: favorites
+      // 使用 immer 进行不可变更新
+      const updatedSettings = produce(globalSettings, (draft) => {
+        if (!draft.favorites.words) {
+          draft.favorites.words = [];
         }
-      };
+        
+        // 检查是否已存在相同的收藏
+        const existingIndex = draft.favorites.words.findIndex(
+          item => item.word === word && 
+                  item.sourceLanguage === sourceLanguage && 
+                  item.targetLanguage === targetLanguage
+        );
+        
+        if (existingIndex >= 0) {
+          // 如果已存在，更新翻译结果和时间戳
+          draft.favorites.words[existingIndex].translation = translation;
+          draft.favorites.words[existingIndex].timestamp = Date.now();
+          draft.favorites.words[existingIndex].notes = notes || draft.favorites.words[existingIndex].notes;
+          draft.favorites.words[existingIndex].tags = tags || draft.favorites.words[existingIndex].tags;
+          message.info('已更新收藏');
+        } else {
+          // 添加新收藏
+          const newFavorite: FavoriteWord = {
+            id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            word,
+            translation,
+            sourceLanguage,
+            targetLanguage,
+            timestamp: Date.now(),
+            notes,
+            tags
+          };
+          draft.favorites.words.unshift(newFavorite); // 添加到开头
+          message.success('已添加到收藏');
+        }
+      });
+      
       await storage.set('global_settings', updatedSettings);
     } catch (error) {
       console.error('添加收藏失败:', error);
@@ -83,21 +78,98 @@ export class FavoritesManager {
       
       if (!globalSettings) return;
       
-      const favorites = globalSettings.favorites.words || [];
-      const newFavorites = favorites.filter(item => item.id !== id);
-      
-      const updatedSettings = {
-        ...globalSettings,
-        favorites: {
-          ...globalSettings.favorites,
-          words: newFavorites
+      // 使用 immer 进行不可变更新
+      const updatedSettings = produce(globalSettings, (draft) => {
+        if (draft.favorites.words) {
+          draft.favorites.words = draft.favorites.words.filter(item => item.id !== id);
         }
-      };
+      });
+      
       await storage.set('global_settings', updatedSettings);
       message.success('已移除收藏');
     } catch (error) {
       console.error('移除收藏失败:', error);
       message.error('移除收藏失败');
+    }
+  }
+  
+  // 批量移除收藏
+  static async removeFavorites(ids: string[]): Promise<void> {
+    try {
+      const { Storage } = await import('@plasmohq/storage');
+      const storage = new Storage();
+      const globalSettings = await storage.get('global_settings') as GlobalSettings | undefined;
+      
+      if (!globalSettings) return;
+      
+      // 使用 immer 进行不可变更新
+      const updatedSettings = produce(globalSettings, (draft) => {
+        if (draft.favorites.words) {
+          draft.favorites.words = draft.favorites.words.filter(item => !ids.includes(item.id));
+        }
+      });
+      
+      await storage.set('global_settings', updatedSettings);
+      message.success(`已移除 ${ids.length} 个收藏`);
+    } catch (error) {
+      console.error('批量移除收藏失败:', error);
+      message.error('批量移除收藏失败');
+    }
+  }
+  
+  // 更新收藏笔记
+  static async updateFavoriteNotes(id: string, notes: string): Promise<void> {
+    try {
+      const { Storage } = await import('@plasmohq/storage');
+      const storage = new Storage();
+      const globalSettings = await storage.get('global_settings') as GlobalSettings | undefined;
+      
+      if (!globalSettings) return;
+      
+      // 使用 immer 进行不可变更新
+      const updatedSettings = produce(globalSettings, (draft) => {
+        if (draft.favorites.words) {
+          const favorite = draft.favorites.words.find(item => item.id === id);
+          if (favorite) {
+            favorite.notes = notes;
+            favorite.timestamp = Date.now(); // 更新时间戳
+          }
+        }
+      });
+      
+      await storage.set('global_settings', updatedSettings);
+      message.success('已更新笔记');
+    } catch (error) {
+      console.error('更新笔记失败:', error);
+      message.error('更新笔记失败');
+    }
+  }
+  
+  // 更新收藏标签
+  static async updateFavoriteTags(id: string, tags: string[]): Promise<void> {
+    try {
+      const { Storage } = await import('@plasmohq/storage');
+      const storage = new Storage();
+      const globalSettings = await storage.get('global_settings') as GlobalSettings | undefined;
+      
+      if (!globalSettings) return;
+      
+      // 使用 immer 进行不可变更新
+      const updatedSettings = produce(globalSettings, (draft) => {
+        if (draft.favorites.words) {
+          const favorite = draft.favorites.words.find(item => item.id === id);
+          if (favorite) {
+            favorite.tags = tags;
+            favorite.timestamp = Date.now(); // 更新时间戳
+          }
+        }
+      });
+      
+      await storage.set('global_settings', updatedSettings);
+      message.success('已更新标签');
+    } catch (error) {
+      console.error('更新标签失败:', error);
+      message.error('更新标签失败');
     }
   }
   

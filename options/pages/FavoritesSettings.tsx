@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { produce } from 'immer';
 import { List, Button, Input, message, Modal, Card, Tag, Space, Tooltip, Popconfirm, Select, Empty, Switch } from 'antd';
 import { DeleteOutlined, EditOutlined, SearchOutlined, ExportOutlined, ImportOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
@@ -65,7 +66,10 @@ const FavoritesSettings: React.FC = () => {
 
   // 删除收藏
   const handleDelete = async (id: string) => {
-    const newFavorites = favorites.filter(item => item.id !== id);
+    // 使用 immer 优化数组过滤
+    const newFavorites = produce(favorites, (draft) => {
+      return draft.filter(item => item.id !== id);
+    });
     await updateFavorites({ words: newFavorites });
     message.success(t('已删除收藏'));
   };
@@ -88,11 +92,14 @@ const FavoritesSettings: React.FC = () => {
   const handleSaveEdit = async () => {
     if (!editingWord) return;
     
-    const newFavorites = favorites.map(item => 
-      item.id === editingWord.id 
-        ? { ...item, notes: editNote, tags: editTags }
-        : item
-    );
+    // 使用 immer 优化对象更新
+    const newFavorites = produce(favorites, (draft) => {
+      const index = draft.findIndex(item => item.id === editingWord.id);
+      if (index >= 0) {
+        draft[index].notes = editNote;
+        draft[index].tags = editTags;
+      }
+    });
     await updateFavorites({ words: newFavorites });
     setEditModalVisible(false);
     setEditingWord(null);
@@ -120,7 +127,13 @@ const FavoritesSettings: React.FC = () => {
         const validData = importedData.filter(item => 
           item.id && item.word && item.translation
         );
-        await updateFavorites({ words: [...favorites, ...validData] });
+        
+        // 使用 immer 优化数组合并
+        const newFavorites = produce(favorites, (draft) => {
+          draft.push(...validData);
+        });
+        
+        await updateFavorites({ words: newFavorites });
         setImportModalVisible(false);
         setImportText('');
         message.success(t(`成功导入 ${validData.length} 个收藏`));

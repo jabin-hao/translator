@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { produce } from 'immer';
 import { Select, Switch, Divider, message, Button, Tooltip, Space, Typography } from 'antd';
 import { TRANSLATE_ENGINES } from '~lib/constants/engines';
 import { LANGUAGES } from '~lib/constants/languages';
@@ -75,16 +76,16 @@ const PopupInner: React.FC = () => {
           const path = u.pathname;
           const key = path === '/' ? host : host + path;
           
-          setSiteKey(key);
+          setSiteKey(produce(() => key));
           
           // 使用全局配置中的网站列表来检查匹配
           const isAlways = matchSiteList(pageTranslateSettings.alwaysList || [], key);
           const isNever = matchSiteList(pageTranslateSettings.neverList || [], key);
           
-          setSiteSettings({
+          setSiteSettings(produce((draft) => ({
             always: isAlways,
             never: isNever
-          });
+          })));
         } catch (error) {
           console.error('[Popup] URL解析失败:', error);
         }
@@ -99,7 +100,7 @@ const PopupInner: React.FC = () => {
         const tabId = tabs[0]?.id;
         if (!tabId) return;
         chrome.tabs.sendMessage(tabId, { type: 'CHECK_PAGE_TRANSLATED' }, (res) => {
-          setIsPageTranslated(res?.translated === true);
+          setIsPageTranslated(produce(() => res?.translated === true));
         });
       });
     };
@@ -119,11 +120,11 @@ const PopupInner: React.FC = () => {
       const handler = (msg, sender, sendResponse) => {
         if (msg.type === 'FULL_PAGE_TRANSLATE_DONE') {
           setIsPageTranslating(false);
-          setIsPageTranslated(true);
+          setIsPageTranslated(produce(() => true));
         }
         if (msg.type === 'RESTORE_ORIGINAL_PAGE_DONE') {
           setIsPageTranslating(false);
-          setIsPageTranslated(false);
+          setIsPageTranslated(produce(() => false));
         }
       };
       chrome.runtime.onMessage.addListener(handler);

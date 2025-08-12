@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { produce } from 'immer';
 import { Switch, Select, Radio, Space, Card, Divider, Alert, Button, Input, Modal, Form, message } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
@@ -151,15 +152,21 @@ const EngineSettings: React.FC = () => {
       };
 
       if (editingEngine) {
-        // 编辑现有引擎
-        const newEngines = customEngines.map(engine => 
-          engine.id === editingEngine.id ? newEngine : engine
-        );
+        // 使用 immer 优化引擎编辑
+        const newEngines = produce(customEngines, (draft) => {
+          const index = draft.findIndex(engine => engine.id === editingEngine.id);
+          if (index >= 0) {
+            draft[index] = newEngine;
+          }
+        });
         await updateEngines({ customEngines: newEngines });
         message.success('引擎已更新');
       } else {
-        // 添加新引擎
-        await updateEngines({ customEngines: [...customEngines, newEngine] });
+        // 使用 immer 优化引擎添加
+        const newEngines = produce(customEngines, (draft) => {
+          draft.push(newEngine);
+        });
+        await updateEngines({ customEngines: newEngines });
         message.success('引擎已添加');
       }
       
@@ -171,7 +178,10 @@ const EngineSettings: React.FC = () => {
   };
 
   const handleDeleteEngine = async (engineId: string) => {
-    const newEngines = customEngines.filter(engine => engine.id !== engineId);
+    // 使用 immer 优化引擎删除
+    const newEngines = produce(customEngines, (draft) => {
+      return draft.filter(engine => engine.id !== engineId);
+    });
     await updateEngines({ customEngines: newEngines });
     
     // 如果删除的是当前选中的引擎，切换到Google

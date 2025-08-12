@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { produce } from 'immer';
 import { useStorage } from './storage';
 import type { 
   GlobalSettings, 
@@ -19,10 +20,13 @@ export function useGlobalSettings() {
     DEFAULT_SETTINGS
   );
 
-  // 深度合并设置更新
+  // 使用 immer 进行不可变更新
   const updateSettings = useCallback(async (updates: PartialDeep<GlobalSettings>) => {
-    const mergedSettings = deepMerge(settings, updates);
-    await setStorageSettings(mergedSettings);
+    const newSettings = produce(settings, (draft) => {
+      // 递归合并更新
+      Object.assign(draft, deepMergeWithImmer(draft, updates));
+    });
+    await setStorageSettings(newSettings);
   }, [settings, setStorageSettings]);
 
   // 重置设置到默认值
@@ -37,13 +41,16 @@ export function useGlobalSettings() {
     return settings[module];
   }, [settings]);
 
-  // 更新特定模块的设置
+  // 使用 immer 更新特定模块的设置
   const updateModuleSettings = useCallback(async <K extends keyof GlobalSettings>(
     module: K,
     updates: PartialDeep<GlobalSettings[K]>
   ) => {
-    await updateSettings({ [module]: updates } as PartialDeep<GlobalSettings>);
-  }, [updateSettings]);
+    const newSettings = produce(settings, (draft) => {
+      Object.assign(draft[module], updates);
+    });
+    await setStorageSettings(newSettings);
+  }, [settings, setStorageSettings]);
 
   return {
     settings,
@@ -54,21 +61,47 @@ export function useGlobalSettings() {
   };
 }
 
+// 辅助函数：使用 immer 进行深度合并
+function deepMergeWithImmer<T>(target: T, source: any): T {
+  return produce(target, (draft: any) => {
+    for (const key in source) {
+      if (source[key] !== null && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+        if (!draft[key]) {
+          draft[key] = {};
+        }
+        draft[key] = deepMergeWithImmer(draft[key], source[key]);
+      } else {
+        draft[key] = source[key];
+      }
+    }
+  });
+}
+
 /**
  * 专门用于主题设置的 Hook
  */
 export function useThemeSettings() {
-  const { getModuleSettings, updateModuleSettings } = useGlobalSettings();
+  const { settings, updateModuleSettings } = useGlobalSettings();
   
-  const themeSettings = getModuleSettings('theme');
+  const themeSettings = settings.theme;
   
   const updateTheme = useCallback((updates: PartialDeep<GlobalSettings['theme']>) => {
     updateModuleSettings('theme', updates);
   }, [updateModuleSettings]);
 
+  const setThemeMode = useCallback((mode: 'light' | 'dark' | 'auto') => {
+    updateTheme({ mode });
+  }, [updateTheme]);
+
+  const setUiLanguage = useCallback((uiLanguage: string) => {
+    updateTheme({ uiLanguage });
+  }, [updateTheme]);
+
   return {
     themeSettings,
     updateTheme,
+    setThemeMode,
+    setUiLanguage,
   };
 }
 
@@ -76,9 +109,9 @@ export function useThemeSettings() {
  * 专门用于翻译引擎设置的 Hook
  */
 export function useEngineSettings() {
-  const { getModuleSettings, updateModuleSettings } = useGlobalSettings();
+  const { settings, updateModuleSettings } = useGlobalSettings();
   
-  const engineSettings = getModuleSettings('engines');
+  const engineSettings = settings.engines;
   
   const updateEngines = useCallback((updates: PartialDeep<GlobalSettings['engines']>) => {
     updateModuleSettings('engines', updates);
@@ -99,11 +132,42 @@ export function useEngineSettings() {
     });
   }, [updateEngines]);
 
+  // 添加自定义引擎
+  const addCustomEngine = useCallback((engine: GlobalSettings['engines']['customEngines'][0]) => {
+    updateEngines({
+      customEngines: [...engineSettings.customEngines, engine]
+    });
+  }, [updateEngines, engineSettings.customEngines]);
+
+  // 移除自定义引擎
+  const removeCustomEngine = useCallback((engineId: string) => {
+    updateEngines(
+      produce(engineSettings, (draft) => {
+        draft.customEngines = draft.customEngines.filter(e => e.id !== engineId);
+      })
+    );
+  }, [updateEngines, engineSettings]);
+
+  // 更新自定义引擎
+  const updateCustomEngine = useCallback((engineId: string, updates: Partial<GlobalSettings['engines']['customEngines'][0]>) => {
+    updateEngines(
+      produce(engineSettings, (draft) => {
+        const engineIndex = draft.customEngines.findIndex(e => e.id === engineId);
+        if (engineIndex !== -1) {
+          Object.assign(draft.customEngines[engineIndex], updates);
+        }
+      })
+    );
+  }, [updateEngines, engineSettings]);
+
   return {
     engineSettings,
     updateEngines,
     setDefaultEngine,
     updateApiKey,
+    addCustomEngine,
+    removeCustomEngine,
+    updateCustomEngine,
   };
 }
 
@@ -111,9 +175,9 @@ export function useEngineSettings() {
  * 专门用于文本翻译设置的 Hook
  */
 export function useTextTranslateSettings() {
-  const { getModuleSettings, updateModuleSettings } = useGlobalSettings();
+  const { settings, updateModuleSettings } = useGlobalSettings();
   
-  const textTranslateSettings = getModuleSettings('textTranslate');
+  const textTranslateSettings = settings.textTranslate;
   
   const updateTextTranslate = useCallback((updates: PartialDeep<GlobalSettings['textTranslate']>) => {
     updateModuleSettings('textTranslate', updates);
@@ -123,10 +187,15 @@ export function useTextTranslateSettings() {
     updateTextTranslate({ enabled: !textTranslateSettings.enabled });
   }, [textTranslateSettings.enabled, updateTextTranslate]);
 
+  const setTriggerMode = useCallback((mode: keyof Pick<GlobalSettings['textTranslate'], 'doubleClickTranslate' | 'selectTranslate' | 'quickTranslate' | 'pressKeyTranslate'>, enabled: boolean) => {
+    updateTextTranslate({ [mode]: enabled });
+  }, [updateTextTranslate]);
+
   return {
     textTranslateSettings,
     updateTextTranslate,
     toggleEnabled,
+    setTriggerMode,
   };
 }
 
@@ -134,9 +203,9 @@ export function useTextTranslateSettings() {
  * 专门用于语言设置的 Hook
  */
 export function useLanguageSettings() {
-  const { getModuleSettings, updateModuleSettings } = useGlobalSettings();
+  const { settings, updateModuleSettings } = useGlobalSettings();
   
-  const languageSettings = getModuleSettings('languages');
+  const languageSettings = settings.languages;
   
   const updateLanguages = useCallback((updates: PartialDeep<GlobalSettings['languages']>) => {
     updateModuleSettings('languages', updates);
@@ -150,41 +219,60 @@ export function useLanguageSettings() {
     updateLanguages({ textTarget });
   }, [updateLanguages]);
 
+  // 使用 immer 简化数组操作
   const addFavoriteLanguage = useCallback((langCode: string) => {
-    if (!languageSettings.favorites.includes(langCode)) {
-      const newFavorites = [...languageSettings.favorites, langCode];
-      updateLanguages({ favorites: newFavorites });
-    }
-  }, [languageSettings.favorites, updateLanguages]);
+    updateLanguages(
+      produce(languageSettings, (draft) => {
+        if (!draft.favorites.includes(langCode)) {
+          draft.favorites.push(langCode);
+        }
+      })
+    );
+  }, [languageSettings, updateLanguages]);
 
   const removeFavoriteLanguage = useCallback((langCode: string) => {
-    const newFavorites = languageSettings.favorites.filter(code => code !== langCode);
-    updateLanguages({ favorites: newFavorites });
-  }, [languageSettings.favorites, updateLanguages]);
+    updateLanguages(
+      produce(languageSettings, (draft) => {
+        draft.favorites = draft.favorites.filter(code => code !== langCode);
+      })
+    );
+  }, [languageSettings, updateLanguages]);
 
   const addNeverLanguage = useCallback((langCode: string) => {
-    if (!languageSettings.never.includes(langCode)) {
-      const newNever = [...languageSettings.never, langCode];
-      updateLanguages({ never: newNever });
-    }
-  }, [languageSettings.never, updateLanguages]);
+    updateLanguages(
+      produce(languageSettings, (draft) => {
+        if (!draft.never.includes(langCode)) {
+          draft.never.push(langCode);
+        }
+      })
+    );
+  }, [languageSettings, updateLanguages]);
 
   const removeNeverLanguage = useCallback((langCode: string) => {
-    const newNever = languageSettings.never.filter(code => code !== langCode);
-    updateLanguages({ never: newNever });
-  }, [languageSettings.never, updateLanguages]);
+    updateLanguages(
+      produce(languageSettings, (draft) => {
+        draft.never = draft.never.filter(code => code !== langCode);
+      })
+    );
+  }, [languageSettings, updateLanguages]);
 
   const addAlwaysLanguage = useCallback((langCode: string) => {
-    if (!languageSettings.always.includes(langCode)) {
-      const newAlways = [...languageSettings.always, langCode];
-      updateLanguages({ always: newAlways });
-    }
-  }, [languageSettings.always, updateLanguages]);
+    updateLanguages(
+      produce(languageSettings, (draft) => {
+        if (!draft.always.includes(langCode)) {
+          draft.always.push(langCode);
+        }
+      })
+    );
+  }, [languageSettings, updateLanguages]);
 
   const removeAlwaysLanguage = useCallback((langCode: string) => {
-    const newAlways = languageSettings.always.filter(code => code !== langCode);
-    updateLanguages({ always: newAlways });
-  }, [languageSettings.always, updateLanguages]);
+    updateLanguages(
+      produce(languageSettings, (draft) => {
+        draft.always = draft.always.filter(code => code !== langCode);
+      })
+    );
+  }, [languageSettings, updateLanguages]);
 
   return {
     languageSettings,
@@ -227,9 +315,9 @@ export function useInputTranslateSettings() {
  * 专门用于语音设置的 Hook
  */
 export function useSpeechSettings() {
-  const { getModuleSettings, updateModuleSettings } = useGlobalSettings();
+  const { settings, updateModuleSettings } = useGlobalSettings();
   
-  const speechSettings = getModuleSettings('speech');
+  const speechSettings = settings.speech;
   
   const updateSpeech = useCallback((updates: PartialDeep<GlobalSettings['speech']>) => {
     updateModuleSettings('speech', updates);
@@ -239,10 +327,20 @@ export function useSpeechSettings() {
     updateSpeech({ enabled: !speechSettings.enabled });
   }, [speechSettings.enabled, updateSpeech]);
 
+  const setEngine = useCallback((engine: GlobalSettings['speech']['engine']) => {
+    updateSpeech({ engine });
+  }, [updateSpeech]);
+
+  const setVoiceSettings = useCallback((settings: { speed?: number; pitch?: number; volume?: number; }) => {
+    updateSpeech(settings);
+  }, [updateSpeech]);
+
   return {
     speechSettings,
     updateSpeech,
     toggleEnabled,
+    setEngine,
+    setVoiceSettings,
   };
 }
 
@@ -301,9 +399,9 @@ export function useShortcutSettings() {
  * 专门用于收藏夹设置的 Hook
  */
 export function useFavoritesSettings() {
-  const { getModuleSettings, updateModuleSettings } = useGlobalSettings();
+  const { settings, updateModuleSettings } = useGlobalSettings();
   
-  const favoritesSettings = getModuleSettings('favorites');
+  const favoritesSettings = settings.favorites;
   
   const updateFavorites = useCallback((updates: PartialDeep<GlobalSettings['favorites']>) => {
     updateModuleSettings('favorites', updates);
@@ -313,10 +411,46 @@ export function useFavoritesSettings() {
     updateFavorites({ enabled: !favoritesSettings.enabled });
   }, [favoritesSettings.enabled, updateFavorites]);
 
+  // 使用 immer 优化收藏夹操作
+  const addFavoriteWord = useCallback((word: GlobalSettings['favorites']['words'][0]) => {
+    updateFavorites(
+      produce(favoritesSettings, (draft) => {
+        draft.words.push(word);
+      })
+    );
+  }, [favoritesSettings, updateFavorites]);
+
+  const removeFavoriteWord = useCallback((wordId: string) => {
+    updateFavorites(
+      produce(favoritesSettings, (draft) => {
+        draft.words = draft.words.filter(w => w.id !== wordId);
+      })
+    );
+  }, [favoritesSettings, updateFavorites]);
+
+  const updateFavoriteWord = useCallback((wordId: string, updates: Partial<GlobalSettings['favorites']['words'][0]>) => {
+    updateFavorites(
+      produce(favoritesSettings, (draft) => {
+        const wordIndex = draft.words.findIndex(w => w.id === wordId);
+        if (wordIndex !== -1) {
+          Object.assign(draft.words[wordIndex], updates);
+        }
+      })
+    );
+  }, [favoritesSettings, updateFavorites]);
+
+  const clearAllFavorites = useCallback(() => {
+    updateFavorites({ words: [] });
+  }, [updateFavorites]);
+
   return {
     favoritesSettings,
     updateFavorites,
     toggleEnabled,
+    addFavoriteWord,
+    removeFavoriteWord,
+    updateFavoriteWord,
+    clearAllFavorites,
   };
 }
 
@@ -351,42 +485,50 @@ export function usePageTranslateSettings() {
 
   // 网站列表管理（从 siteTranslateSettings 迁移的功能）
   const addToAlwaysList = useCallback(async (domain: string) => {
-    const currentAlwaysList = pageTranslateSettings.alwaysList || [];
-    const currentNeverList = pageTranslateSettings.neverList || [];
-    
-    if (!currentAlwaysList.includes(domain)) {
-      await updatePageTranslateSettings({
-        alwaysList: [...currentAlwaysList, domain],
-        neverList: currentNeverList.filter(d => d !== domain)
-      });
-    }
-  }, [pageTranslateSettings.alwaysList, pageTranslateSettings.neverList, updatePageTranslateSettings]);
+    await updatePageTranslateSettings(
+      produce(pageTranslateSettings, (draft) => {
+        const currentAlwaysList = draft.alwaysList || [];
+        const currentNeverList = draft.neverList || [];
+        
+        if (!currentAlwaysList.includes(domain)) {
+          draft.alwaysList = [...currentAlwaysList, domain];
+          draft.neverList = currentNeverList.filter(d => d !== domain);
+        }
+      })
+    );
+  }, [pageTranslateSettings, updatePageTranslateSettings]);
 
   const addToNeverList = useCallback(async (domain: string) => {
-    const currentAlwaysList = pageTranslateSettings.alwaysList || [];
-    const currentNeverList = pageTranslateSettings.neverList || [];
-    
-    if (!currentNeverList.includes(domain)) {
-      await updatePageTranslateSettings({
-        neverList: [...currentNeverList, domain],
-        alwaysList: currentAlwaysList.filter(d => d !== domain)
-      });
-    }
-  }, [pageTranslateSettings.alwaysList, pageTranslateSettings.neverList, updatePageTranslateSettings]);
+    await updatePageTranslateSettings(
+      produce(pageTranslateSettings, (draft) => {
+        const currentAlwaysList = draft.alwaysList || [];
+        const currentNeverList = draft.neverList || [];
+        
+        if (!currentNeverList.includes(domain)) {
+          draft.neverList = [...currentNeverList, domain];
+          draft.alwaysList = currentAlwaysList.filter(d => d !== domain);
+        }
+      })
+    );
+  }, [pageTranslateSettings, updatePageTranslateSettings]);
 
   const removeFromAlwaysList = useCallback(async (domain: string) => {
-    const currentAlwaysList = pageTranslateSettings.alwaysList || [];
-    await updatePageTranslateSettings({
-      alwaysList: currentAlwaysList.filter(d => d !== domain)
-    });
-  }, [pageTranslateSettings.alwaysList, updatePageTranslateSettings]);
+    await updatePageTranslateSettings(
+      produce(pageTranslateSettings, (draft) => {
+        const currentAlwaysList = draft.alwaysList || [];
+        draft.alwaysList = currentAlwaysList.filter(d => d !== domain);
+      })
+    );
+  }, [pageTranslateSettings, updatePageTranslateSettings]);
 
   const removeFromNeverList = useCallback(async (domain: string) => {
-    const currentNeverList = pageTranslateSettings.neverList || [];
-    await updatePageTranslateSettings({
-      neverList: currentNeverList.filter(d => d !== domain)
-    });
-  }, [pageTranslateSettings.neverList, updatePageTranslateSettings]);
+    await updatePageTranslateSettings(
+      produce(pageTranslateSettings, (draft) => {
+        const currentNeverList = draft.neverList || [];
+        draft.neverList = currentNeverList.filter(d => d !== domain);
+      })
+    );
+  }, [pageTranslateSettings, updatePageTranslateSettings]);
 
   const setPageTranslateMode = useCallback(async (mode: string) => {
     await updatePageTranslateSettings({ pageTranslateMode: mode });

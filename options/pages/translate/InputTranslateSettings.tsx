@@ -1,4 +1,5 @@
 import React from 'react';
+import { produce } from 'immer';
 import { Switch, Select, Radio, Input, InputNumber, Button, message, Tag, Space } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { PlusOutlined, MinusOutlined } from '@ant-design/icons';
@@ -63,28 +64,40 @@ const InputTranslateSettings: React.FC = () => {
     await updateInputTranslate({ replaceOriginalText });
   };
 
-  const handleAddInputType = (inputType: string) => {
+  const handleAddInputType = async (inputType: string) => {
     if (inputType && !inputTranslateSettings.enabledInputTypes.includes(inputType)) {
-      const newTypes = [...inputTranslateSettings.enabledInputTypes, inputType];
-      updateInputTranslate({ enabledInputTypes: newTypes });
+      // 使用 immer 优化数组添加
+      const newTypes = produce(inputTranslateSettings.enabledInputTypes, (draft) => {
+        draft.push(inputType);
+      });
+      await updateInputTranslate({ enabledInputTypes: newTypes });
     }
   };
 
-  const handleRemoveInputType = (inputType: string) => {
-    const newTypes = inputTranslateSettings.enabledInputTypes.filter(type => type !== inputType);
-    updateInputTranslate({ enabledInputTypes: newTypes });
+  const handleRemoveInputType = async (inputType: string) => {
+    // 使用 immer 优化数组过滤
+    const newTypes = produce(inputTranslateSettings.enabledInputTypes, (draft) => {
+      return draft.filter(type => type !== inputType);
+    });
+    await updateInputTranslate({ enabledInputTypes: newTypes });
   };
 
-  const handleAddExcludeSelector = (selector: string) => {
+  const handleAddExcludeSelector = async (selector: string) => {
     if (selector && !inputTranslateSettings.excludeSelectors.includes(selector)) {
-      const newSelectors = [...inputTranslateSettings.excludeSelectors, selector];
-      updateInputTranslate({ excludeSelectors: newSelectors });
+      // 使用 immer 优化数组添加
+      const newSelectors = produce(inputTranslateSettings.excludeSelectors, (draft) => {
+        draft.push(selector);
+      });
+      await updateInputTranslate({ excludeSelectors: newSelectors });
     }
   };
 
-  const handleRemoveExcludeSelector = (selector: string) => {
-    const newSelectors = inputTranslateSettings.excludeSelectors.filter(s => s !== selector);
-    updateInputTranslate({ excludeSelectors: newSelectors });
+  const handleRemoveExcludeSelector = async (selector: string) => {
+    // 使用 immer 优化数组过滤
+    const newSelectors = produce(inputTranslateSettings.excludeSelectors, (draft) => {
+      return draft.filter(s => s !== selector);
+    });
+    await updateInputTranslate({ excludeSelectors: newSelectors });
   };
 
   const testHotkey = () => {
