@@ -26,9 +26,9 @@ const themeIconMap = {
   dark: <Icon icon="material-symbols:dark-mode-outline" width={16} height={16} />,
 };
 const themeTextMap = {
-  auto: '自动',
-  light: '日间',
-  dark: '夜间',
+  auto: '跟随系统',
+  light: '浅色',
+  dark: '深色',
 };
 const themeOrder = ['auto', 'light', 'dark'];
 
@@ -48,7 +48,6 @@ const PopupInner: React.FC = () => {
     removeFromNeverList,
     matchSiteList
   } = usePageTranslateSettings();
-  const { themeSettings, updateTheme } = useThemeSettings();
   const { textTranslateSettings, toggleEnabled: toggleTextTranslate } = useTextTranslateSettings();
   const { speechSettings, toggleEnabled: toggleSpeech } = useSpeechSettings();
   

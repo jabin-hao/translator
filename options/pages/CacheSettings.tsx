@@ -81,10 +81,10 @@ const CacheSettings: React.FC = () => {
 
   // 加载配置时同步到 pendingConfig
   useEffect(() => {
-    setPendingConfig(produce((draft) => ({
+    setPendingConfig({
       maxAge: cacheSettings.maxAge,
       maxSize: cacheSettings.maxSize,
-    })));
+    });
   }, [cacheSettings.maxAge, cacheSettings.maxSize]);
 
   const formatSize = (bytes: number) => {

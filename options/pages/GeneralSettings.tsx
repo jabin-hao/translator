@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Select, Radio, Button, message, Upload, Typography, Modal } from 'antd';
+import { Select, Radio, Button, message, Upload, Typography, Modal, ConfigProvider, Segmented } from 'antd';
 import { storageApi } from '~/lib/utils/storage';
 import { UI_LANGUAGES } from '~/lib/constants/languages';
 import { UploadOutlined, DownloadOutlined } from '@ant-design/icons';
@@ -10,14 +10,12 @@ import SettingsPageContainer from '../components/SettingsPageContainer';
 import SettingsGroup from '../components/SettingsGroup';
 import SettingsItem from '../components/SettingsItem';
 import { produce } from 'immer';
-
-const { Title, Paragraph } = Typography;
-
+import {THEME_OPTIONS} from '~/lib/constants/settings'
 
 // 新增 props 类型
 interface GeneralSettingsProps {
-  themeMode: string;
-  setThemeMode: (val: string) => void;
+  themeMode: "light" | "dark" | "auto";
+  setThemeMode: (val: "light" | "dark" | "auto") => void;
 }
 
 const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMode }) => {
@@ -61,9 +59,9 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
   };
 
   // 主题切换时同步 localStorage，保证多标签页同步
-  const handleThemeChange = async (e: import('antd').RadioChangeEvent) => {
-    setThemeMode(e.target.value); // Directly set the value as immer is unnecessary here
-    await updateTheme({ mode: e.target.value });
+  const handleThemeChange = async (value: "light" | "dark" | "auto") => {
+      setThemeMode(value); // Directly set the value as immer is unnecessary here
+      updateTheme({ mode: value });
   };
 
   const handleExportConfig = useCallback(async () => {
@@ -142,11 +140,26 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
           label={t('设置页面主题')}
           description={t('控制设置页面的主题样式')}
         >
-          <Radio.Group value={themeMode} onChange={handleThemeChange}>
-            <Radio.Button value="auto">{t('自动')}</Radio.Button>
-            <Radio.Button value="light">{t('日间')}</Radio.Button>
-            <Radio.Button value="dark">{t('夜间')}</Radio.Button>
-          </Radio.Group>
+          <ConfigProvider
+                theme={{
+                  components: {
+                    Segmented: {
+                      itemSelectedBg: 'transparent',
+                      itemSelectedColor: 'var(--ant-color-primary)',
+                      itemColor: 'var(--ant-color-text)',
+                      itemHoverBg: 'var(--ant-color-primary-bg)',
+                      itemHoverColor: 'var(--ant-color-primary)',
+                      trackBg: 'var(--ant-color-fill-quaternary)',
+                    },
+                  },
+                }}
+              >
+                <Segmented
+                  value={themeMode}
+                  onChange={handleThemeChange}
+                  options={[...THEME_OPTIONS]}
+                />
+              </ConfigProvider>
         </SettingsItem>
 
       </SettingsGroup>

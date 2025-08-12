@@ -3,9 +3,7 @@ import { Select, Switch, Slider, Button, message, Segmented, ConfigProvider } fr
 import { TTS_ENGINES } from '~lib/constants/engines';
 import { useTranslation } from 'react-i18next';
 import { 
-  useSpeechSettings,
-  useGlobalSettings 
-} from '~lib/utils/globalSettingsHooks';
+  useSpeechSettings} from '~lib/utils/globalSettingsHooks';
 import SettingsPageContainer from '../../components/SettingsPageContainer';
 import SettingsGroup from '../../components/SettingsGroup';
 import SettingsItem from '../../components/SettingsItem';
@@ -18,20 +16,8 @@ const SpeechSettings: React.FC = () => {
   const { isDark } = useTheme();
   
   // 使用新的全局配置系统
-  const { speechSettings, updateSpeech, toggleEnabled } = useSpeechSettings();
+  const { speechSettings, updateSpeech } = useSpeechSettings();
   
-  // 默认语言设置
-  const defaultLanguages = {
-    'zh-CN': 'zh-CN',
-    'en-US': 'en-US',
-    'ja-JP': 'ja-JP',
-    'ko-KR': 'ko-KR',
-    'fr-FR': 'fr-FR',
-    'de-DE': 'de-DE',
-    'es-ES': 'es-ES',
-    'ru-RU': 'ru-RU'
-  };
-
   const handleSettingChange = async (key: string, value: any) => {
     await updateSpeech({ [key]: value } as any);
   };
@@ -92,7 +78,7 @@ const SpeechSettings: React.FC = () => {
   };
 
   return (
-    <SettingsPageContainer title={t('朗读设置')}>
+    <SettingsPageContainer title={t('朗读设置')} description={t('配置语音朗读的相关设置')}>
       {/* 语音朗读总开关 */}
       <SettingsGroup title={t('基本设置')} first>
         <SettingsItem 
@@ -130,7 +116,7 @@ const SpeechSettings: React.FC = () => {
                   onChange={(value) => handleSettingChange('engine', value)}
                   options={TTS_ENGINES.map(engine => ({
                     label: engine.label,
-                    value: engine.name
+                    value: engine.value,
                   }))}
                 />
               </ConfigProvider>
@@ -253,28 +239,6 @@ const SpeechSettings: React.FC = () => {
                 </Select>
               </SettingsItem>
             )}
-          </SettingsGroup>
-
-          <SettingsGroup title={t('界面设置')}>
-            <SettingsItem 
-              label={t('显示朗读控件')}
-              description={t('在翻译结果中显示朗读控制按钮')}
-            >
-              <Switch
-                checked={true} // 暂时使用固定值
-                onChange={(checked) => handleSettingChange('showControls', checked)}
-              />
-            </SettingsItem>
-
-            <SettingsItem 
-              label={t('启用音频下载')}
-              description={t('允许用户下载生成的音频文件')}
-            >
-              <Switch
-                checked={false} // 暂时使用固定值
-                onChange={(checked) => handleSettingChange('downloadEnabled', checked)}
-              />
-            </SettingsItem>
           </SettingsGroup>
 
           <SettingsGroup title={t('语言特定设置')}>

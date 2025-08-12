@@ -27,3 +27,10 @@ export const DEFAULT_CACHE_CONFIG = {
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30天（1个月）
     maxSize: 2000
 };
+
+// 主题
+export const THEME_OPTIONS = [
+    { label: '浅色', value: 'light' },
+    { label: '深色', value: 'dark' },
+    { label: '跟随系统', value: 'auto' }
+]

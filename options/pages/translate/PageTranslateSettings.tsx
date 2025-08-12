@@ -14,26 +14,20 @@ import { DeleteOutlined } from '@ant-design/icons';
 import SettingsPageContainer from '../../components/SettingsPageContainer';
 import SettingsGroup from '../../components/SettingsGroup';
 import SettingsItem from '../../components/SettingsItem';
-import { useTheme } from '~lib/utils/theme';
-
 const { Option } = Select;
 
 const PageTranslateSettings: React.FC = () => {
   const { t } = useTranslation();
-  const { isDark } = useTheme();
   
   // 使用新的全局配置系统
   const { 
     pageTranslateSettings, 
-    updatePageTranslateSettings, 
-    toggleEnabled,
     toggleAutoTranslate,
     addToAlwaysList,
     addToNeverList,
     removeFromAlwaysList,
     removeFromNeverList,
     setPageTranslateMode: updatePageMode,
-    matchSiteList
   } = usePageTranslateSettings();
   
   // 添加站点相关状态
@@ -215,9 +209,9 @@ const PageTranslateSettings: React.FC = () => {
   const neverSitesToShow = (pageTranslateSettings.neverList || []).slice(0, 5);
 
   return (
-    <SettingsPageContainer title={t('网页翻译')}>
+    <SettingsPageContainer title={t('网页翻译')} description={t('配置网页翻译的相关设置')}>
       {/* 网站自动翻译设置 */}
-      <SettingsGroup title={t('网站自动翻译')}>
+      <SettingsGroup title={t('网站自动翻译')} first>
         <SettingsItem
           label={t('网站自动翻译')}
           description={t('开启后，命中列表的网站将自动整页翻译')}

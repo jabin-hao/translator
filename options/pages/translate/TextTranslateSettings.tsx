@@ -3,18 +3,15 @@ import { Switch, Select } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { 
   useTextTranslateSettings,
-  useGlobalSettings 
 } from '~lib/utils/globalSettingsHooks';
 import SettingsPageContainer from '../../components/SettingsPageContainer';
 import SettingsGroup from '../../components/SettingsGroup';
 import SettingsItem from '../../components/SettingsItem';
-import { useTheme } from '~lib/utils/theme';
 
 const { Option } = Select;
 
 const TextTranslateSettings: React.FC = () => {
   const { t } = useTranslation();
-  const { isDark } = useTheme();
   
   // 使用新的全局配置系统
   const { textTranslateSettings, updateTextTranslate, toggleEnabled } = useTextTranslateSettings();
@@ -30,7 +27,7 @@ const TextTranslateSettings: React.FC = () => {
   return (
     <SettingsPageContainer title={t('划词翻译设置')}>
       {/* 划词翻译总开关 */}
-      <SettingsGroup title={t('划词翻译')}>
+      <SettingsGroup title={t('划词翻译')} first>
         <SettingsItem 
           label={t('启用划词翻译')}
           description={t('开启后，选中文本即可进行翻译')}

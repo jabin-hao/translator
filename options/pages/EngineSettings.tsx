@@ -1,12 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { produce } from 'immer';
-import { Switch, Select, Radio, Space, Card, Divider, Alert, Button, Input, Modal, Form, message } from 'antd';
+import { Switch, Select, Radio, Space, Card, Divider, Alert, Button, Input, Modal, Form, message, ConfigProvider, Segmented } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import {
   useGlobalSettings,
   useEngineSettings,
-  useTextTranslateSettings
 } from '~lib/utils/globalSettingsHooks';
 import SettingsPageContainer from '../components/SettingsPageContainer';
 import SettingsGroup from '../components/SettingsGroup';
@@ -16,7 +15,8 @@ import { useTheme } from '~lib/utils/theme';
 const { Option } = Select;
 
 // 使用全局设置中的自定义引擎类型
-import type { CustomEngine } from '~lib/settings/globalSettings';
+import type { CustomEngine, TTSEngine } from '~lib/settings/globalSettings';
+import { TRANSLATE_ENGINES, TTS_ENGINES } from '~lib/constants/engines';
 
 const EngineSettings: React.FC = () => {
   const { t } = useTranslation();
@@ -25,8 +25,7 @@ const EngineSettings: React.FC = () => {
   // 使用新的全局配置系统
   const { settings, updateSettings } = useGlobalSettings();
   const { engineSettings, setDefaultEngine, updateApiKey, updateEngines } = useEngineSettings();
-  const { textTranslateSettings, updateTextTranslate } = useTextTranslateSettings();
-  
+
   // 从全局设置中提取值
   const engine = engineSettings.default;
   const customEngines = engineSettings.customEngines;
@@ -42,10 +41,7 @@ const EngineSettings: React.FC = () => {
   const [form] = Form.useForm();
 
   const translateEngineOptions = [
-    { value: 'google', label: 'Google 翻译', icon: '🔵', description: '免费，支持多语言' },
-    { value: 'deepl', label: 'DeepL', icon: '🟦', description: '高质量翻译，需要API密钥' },
-    { value: 'bing', label: 'Bing 翻译', icon: '🟢', description: '微软翻译服务' },
-    { value: 'yandex', label: 'Yandex 翻译', icon: '🟡', description: '俄语翻译效果好' },
+    ...TRANSLATE_ENGINES,
     ...customEngines.filter(engine => engine.enabled).map(engine => ({
       value: engine.id,
       label: engine.name,
@@ -152,7 +148,6 @@ const EngineSettings: React.FC = () => {
       };
 
       if (editingEngine) {
-        // 使用 immer 优化引擎编辑
         const newEngines = produce(customEngines, (draft) => {
           const index = draft.findIndex(engine => engine.id === editingEngine.id);
           if (index >= 0) {
@@ -162,7 +157,6 @@ const EngineSettings: React.FC = () => {
         await updateEngines({ customEngines: newEngines });
         message.success('引擎已更新');
       } else {
-        // 使用 immer 优化引擎添加
         const newEngines = produce(customEngines, (draft) => {
           draft.push(newEngine);
         });
@@ -200,9 +194,9 @@ const EngineSettings: React.FC = () => {
   };
 
   return (
-    <SettingsPageContainer title={t('引擎设置')}>
+    <SettingsPageContainer title={t('引擎设置')} description={t('配置翻译引擎的相关设置')}>
       {/* 全局翻译引擎设置 */}
-      <SettingsGroup title={t('翻译引擎')}>
+      <SettingsGroup title={t('翻译引擎')} first>
         <SettingsItem
           label={t('默认翻译引擎')}
           description={t('选择全局默认的翻译服务提供商')}
@@ -211,25 +205,23 @@ const EngineSettings: React.FC = () => {
             value={engine}
             onChange={handleEngineChange}
             style={{ width: 250 }}
-          >
-            {translateEngineOptions.map(option => (
-              <Option key={option.value} value={option.value}>
+            options={translateEngineOptions.map(option => ({
+              value: option.value,
+              label: (
                 <Space>
-                  <span>{option.icon}</span>
-                  <div>
-                    <div>{option.label}</div>
-                    <div style={{ fontSize: 12, color: '#999' }}>{option.description}</div>
-                  </div>
+                  {option.icon && <img src={option.icon} alt={option.label} style={{ width: 16, height: 16 }} />}
+                  <span>{option.label}</span>
+                  <span style={{ fontSize: 12, color: '#999' }}>{option.description}</span>
                 </Space>
-              </Option>
-            ))}
-          </Select>
+              ),
+            }))}
+          />
         </SettingsItem>
 
         {engine === 'deepl' && (
           <SettingsItem
             label={t('DeepL API 密钥')}
-            description={t('输入您的 DeepL API 密钥以使用 DeepL 服务')}
+            description={t('输入您的 DeepL API 密钥以使用稳定的 DeepL 服务')}
           >
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <Input.Password
@@ -283,13 +275,6 @@ const EngineSettings: React.FC = () => {
           </SettingsItem>
         )}
 
-        <Alert
-          message={t('引擎选择提示')}
-          description={t('Google 翻译免费但可能受网络限制；DeepL 翻译质量更高但需要API密钥；Bing 翻译稳定可靠；自定义引擎支持大模型和私有API')}
-          type="info"
-          showIcon
-          style={{ marginTop: 16 }}
-        />
       </SettingsGroup>
 
       {/* TTS 引擎设置（简化版） */}
@@ -298,21 +283,30 @@ const EngineSettings: React.FC = () => {
           label={t('语音合成引擎')}
           description={t('选择用于朗读的语音合成引擎，详细参数请在朗读设置中配置')}
         >
-          <Radio.Group
-            value={ttsEngine}
-            onChange={async (e) => {
-              await updateSettings({ speech: { engine: e.target.value } });
-            }}
-          >
-            {ttsEngineOptions.map(option => (
-              <Radio key={option.value} value={option.value}>
-                <div>
-                  <div>{option.label}</div>
-                  <div style={{ fontSize: 12, color: '#999' }}>{option.description}</div>
-                </div>
-              </Radio>
-            ))}
-          </Radio.Group>
+          <ConfigProvider
+                theme={{
+                  components: {
+                    Segmented: {
+                      itemSelectedBg: 'transparent',
+                      itemSelectedColor: 'var(--ant-color-primary)',
+                      itemColor: 'var(--ant-color-text)',
+                      itemHoverBg: 'var(--ant-color-primary-bg)',
+                      itemHoverColor: 'var(--ant-color-primary)',
+                      trackBg: 'var(--ant-color-fill-quaternary)',
+                    },
+                  },
+                }}
+              >
+                <Segmented
+                  value={ttsEngine}
+                  onChange={async (value) => {
+                    console.log('Selected TTS Engine:', value);
+                    await updateSettings({ speech: { engine: value as TTSEngine } });
+                    message.success(t('语音合成引擎已切换到 {{engine}}', { engine: value }));
+                  }}
+                  options={[...TTS_ENGINES]}
+                />
+              </ConfigProvider>
         </SettingsItem>
       </SettingsGroup>
 

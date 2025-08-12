@@ -26,9 +26,9 @@ const themeIconMap = {
   dark: <Icon icon="material-symbols:dark-mode-outline" width={20} height={20} />,
 };
 const themeTextMap = {
-  auto: '自动',
-  light: '日间',
-  dark: '夜间',
+  auto: '跟随系统',
+  light: '浅色',
+  dark: '深色',
 };
 const themeOrder = ['auto', 'light', 'dark'];
 

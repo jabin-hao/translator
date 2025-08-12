@@ -2,7 +2,6 @@ import React from 'react';
 import { produce } from 'immer';
 import { Switch, Select, Radio, Input, InputNumber, Button, message, Tag, Space } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { PlusOutlined, MinusOutlined } from '@ant-design/icons';
 import { useInputTranslateSettings } from '~lib/utils/globalSettingsHooks';
 import { LANGUAGES } from '~lib/constants/languages';
 import SettingsPageContainer from '../../components/SettingsPageContainer';
