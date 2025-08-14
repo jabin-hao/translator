@@ -6,10 +6,10 @@ import {LANGUAGES} from '~lib/constants/languages';
 import {useTranslation} from 'react-i18next';
 import {
     useLanguageSettings
-} from '~lib/utils/globalSettingsHooks';
-import SettingsPageContainer from '../components/SettingsPageContainer';
-import SettingsGroup from '../components/SettingsGroup';
-import SettingsItem from '../components/SettingsItem';
+} from '~lib/settings/globalSettingsHooks';
+import SettingsPageContainer from '../../components/SettingsPageContainer';
+import SettingsGroup from '../../components/SettingsGroup';
+import SettingsItem from '../../components/SettingsItem';
 
 const LanguageSettings: React.FC = () => {
     const {t, i18n} = useTranslation();

@@ -1,7 +1,9 @@
 import { lazyFullPageTranslate } from '~lib/translate/fullPageTranslate';
 import { GLOBAL_SETTINGS_KEY, DEFAULT_SETTINGS } from '~lib/settings/globalSettings';
 import type { GlobalSettings } from '~lib/settings/globalSettings';
-import { storageApi } from '~lib/utils/storage';
+import { storageApi } from '~lib/storage/storage';
+import { IndexedDBManager, DATABASE_CONFIGS } from '~lib/storage/indexedDB';
+import type { DomainSetting } from '~lib/storage/indexedHooks';
 
 // 获取全局配置
 const getGlobalSettings = async (): Promise<GlobalSettings> => {
@@ -16,28 +18,42 @@ const getGlobalSettings = async (): Promise<GlobalSettings> => {
   return settings || DEFAULT_SETTINGS;
 };
 
+// 获取域名设置
+const getDomainSettings = async (): Promise<DomainSetting[]> => {
+  try {
+    const dbManager = new IndexedDBManager(DATABASE_CONFIGS.USER_DATA);
+    await dbManager.init();
+    return await dbManager.getAll<DomainSetting>('domainSettings');
+  } catch (error) {
+    console.error('获取域名设置失败:', error);
+    return [];
+  }
+};
+
 // 网站匹配逻辑 - 从 siteTranslateSettings 迁移
 const matchSiteList = (list: string[], url: string): boolean => {
-  if (list.includes(url)) {
-    return true;
-  }
+  console.log('[AutoTranslate] matchSiteList 检查:', { list, url });
   
-  try {
-    const u = new URL(url.startsWith('http') ? url : 'https://' + url);
-    let path = u.pathname;
-
-    while (path && path !== '/') {
-      const test = u.hostname + path;
-      if (list.includes(test)) {
-        return true;
-      }
-      path = path.substring(0, path.lastIndexOf('/'));
+  return list.some(item => {
+    if (item === url) {
+      console.log('[AutoTranslate] 精确匹配:', item);
+      return true;
+    }
+    if (item.includes('*')) {
+      const regex = new RegExp(item.replace(/\*/g, '.*'));
+      const match = regex.test(url);
+      console.log('[AutoTranslate] 通配符匹配:', { item, url, match });
+      return match;
     }
     
-    return list.includes(u.hostname);
-  } catch (error) {
-    return list.some(item => url.startsWith(item));
-  }
+    // 简单的域名匹配
+    if (url.startsWith(item)) {
+      console.log('[AutoTranslate] 前缀匹配:', item);
+      return true;
+    }
+    
+    return false;
+  });
 };
 
 // 自动翻译逻辑
@@ -52,23 +68,44 @@ export const setupAutoTranslate = (
     const path = window.location.pathname;
     const fullUrl = path === '/' ? host : host + path;
     
+    console.log('[AutoTranslate] 检查自动翻译:', { host, path, fullUrl });
+    
     try {
       const settings = await getGlobalSettings();
       const pageTranslateConfig = settings.pageTranslate;
       
-      if (!pageTranslateConfig.autoTranslateEnabled) {
+      console.log('[AutoTranslate] 页面翻译配置:', pageTranslateConfig);
+      
+      if (!pageTranslateConfig.autoTranslate) {
+        console.log('[AutoTranslate] 自动翻译已禁用');
         return;
       }
       
-      if (matchSiteList(pageTranslateConfig.neverList || [], fullUrl)) {
+      // 获取域名设置
+      const domainSettings = await getDomainSettings();
+      console.log('[AutoTranslate] 域名设置:', domainSettings);
+      
+      const neverList = domainSettings
+        .filter(setting => setting.type === 'blacklist' && setting.enabled)
+        .map(setting => setting.domain);
+      const alwaysList = domainSettings
+        .filter(setting => setting.type === 'whitelist' && setting.enabled)
+        .map(setting => setting.domain);
+        
+      console.log('[AutoTranslate] 黑白名单:', { neverList, alwaysList });
+      
+      if (matchSiteList(neverList, fullUrl)) {
+        console.log('[AutoTranslate] 网站在黑名单中，跳过翻译');
         return;
       }
       
-      if (matchSiteList(pageTranslateConfig.alwaysList || [], fullUrl)) {
+      if (matchSiteList(alwaysList, fullUrl)) {
+        console.log('[AutoTranslate] 网站在白名单中，开始自动翻译');
         if (typeof (window as any).__autoFullPageTranslated === 'undefined') {
           (window as any).__autoFullPageTranslated = true;
-          const mode = (pageTranslateConfig.pageTranslateMode || 'translated') as 'translated' | 'compare';
+          const mode = (pageTranslateConfig.mode || 'translated') as 'translated' | 'compare';
           
+          console.log('[AutoTranslate] 执行全页翻译:', { mode, pageTargetLang, engine });
           const result = await lazyFullPageTranslate(pageTargetLang, mode, engine);
           
           // 更新全局状态

@@ -4,12 +4,13 @@ import { Switch, List, Modal, Button, Input, message, Checkbox, Tooltip, Segment
 import { useTranslation } from 'react-i18next';
 import { 
   usePageTranslateSettings,
-  // 自定义词库 API
-  getCustomDictEntries,
-  addCustomDictEntry,
-  deleteCustomDictEntry,
-  type CustomDictEntry
-} from '~lib/utils/globalSettingsHooks';
+} from '~lib/settings/globalSettingsHooks';
+import { 
+  useCustomDictionary,
+  useDomainSettings,
+  type CustomDictionaryEntry,
+  type DomainSetting
+} from '~lib/storage/indexedHooks';
 import { DeleteOutlined } from '@ant-design/icons';
 import SettingsPageContainer from '../../components/SettingsPageContainer';
 import SettingsGroup from '../../components/SettingsGroup';
@@ -23,12 +24,23 @@ const PageTranslateSettings: React.FC = () => {
   const { 
     pageTranslateSettings, 
     toggleAutoTranslate,
-    addToAlwaysList,
-    addToNeverList,
-    removeFromAlwaysList,
-    removeFromNeverList,
-    setPageTranslateMode: updatePageMode,
+    updatePageTranslateSettings,
   } = usePageTranslateSettings();
+  
+  // 使用新的IndexedDB hooks
+  const { 
+    domainSettings, 
+    setDomainSetting, 
+    deleteDomainSetting 
+  } = useDomainSettings();
+  
+  const { 
+    dictionary, 
+    addDictionaryEntry, 
+    updateDictionaryEntry, 
+    deleteDictionaryEntry,
+    getDictionaryByDomain 
+  } = useCustomDictionary();
   
   // 添加站点相关状态
   const [addHost, setAddHost] = useState('');
@@ -43,9 +55,40 @@ const PageTranslateSettings: React.FC = () => {
   // 自定义词库相关状态
   const [dictModalOpen, setDictModalOpen] = useState(false);
   const [dictHost, setDictHost] = useState<string>('');
-  const [dictEntries, setDictEntries] = useState<CustomDictEntry[]>([]);
+  const [dictEntries, setDictEntries] = useState<CustomDictionaryEntry[]>([]);
   const [dictAddKey, setDictAddKey] = useState('');
   const [dictAddValue, setDictAddValue] = useState('');
+
+  // 获取黑白名单数据
+  const alwaysList = domainSettings.filter(setting => setting.type === 'whitelist' && setting.enabled);
+  const neverList = domainSettings.filter(setting => setting.type === 'blacklist' && setting.enabled);
+
+  // 黑白名单操作函数
+  const addToAlwaysList = async (domain: string) => {
+    await setDomainSetting({
+      domain,
+      type: 'whitelist',
+      enabled: true,
+      notes: '用户手动添加'
+    });
+  };
+
+  const addToNeverList = async (domain: string) => {
+    await setDomainSetting({
+      domain,
+      type: 'blacklist',
+      enabled: true,
+      notes: '用户手动添加'
+    });
+  };
+
+  const removeFromAlwaysList = async (domain: string) => {
+    await deleteDomainSetting(domain);
+  };
+
+  const removeFromNeverList = async (domain: string) => {
+    await deleteDomainSetting(domain);
+  };
 
   // 不再需要加载站点列表的useEffect，因为数据来自全局配置
 
@@ -55,7 +98,7 @@ const PageTranslateSettings: React.FC = () => {
 
   const handlePageTranslateModeChange = async (value: string) => {
     try {
-      await updatePageMode(value);
+      await updatePageTranslateSettings({ mode: value as 'translated' | 'compare' });
       message.success(t('翻译模式已更新'));
     } catch (error) {
       message.error(t('保存失败'));
@@ -104,7 +147,7 @@ const PageTranslateSettings: React.FC = () => {
     setDictHost(host);
     setDictModalOpen(true);
     try {
-      const entries = await getCustomDictEntries(host);
+      const entries = await getDictionaryByDomain(host);
       setDictEntries(entries);
     } catch (error) {
       console.error('Failed to load dict entries:', error);
@@ -119,8 +162,15 @@ const PageTranslateSettings: React.FC = () => {
     }
 
     try {
-      await addCustomDictEntry(dictHost, dictAddKey.trim(), dictAddValue.trim());
-      const entries = await getCustomDictEntries(dictHost);
+      await addDictionaryEntry({
+        domain: dictHost,
+        original: dictAddKey.trim(),
+        translation: dictAddValue.trim(),
+        sourceLanguage: 'auto',
+        targetLanguage: 'zh',
+        isActive: true
+      });
+      const entries = await getDictionaryByDomain(dictHost);
       setDictEntries(entries);
       setDictAddKey('');
       setDictAddValue('');
@@ -205,22 +255,22 @@ const PageTranslateSettings: React.FC = () => {
   );
 
   // 显示部分站点列表
-  const alwaysSitesToShow = (pageTranslateSettings.alwaysList || []).slice(0, 5);
-  const neverSitesToShow = (pageTranslateSettings.neverList || []).slice(0, 5);
+  const alwaysSitesToShow = alwaysList.map(setting => setting.domain).slice(0, 5);
+  const neverSitesToShow = neverList.map(setting => setting.domain).slice(0, 5);
 
   return (
     <SettingsPageContainer title={t('网页翻译')} description={t('配置网页翻译的相关设置')}>
       {/* 网站自动翻译设置 */}
-      <SettingsGroup title={t('网站自动翻译')} first>
+      <SettingsGroup title={t('基础设置')} first>
         <SettingsItem
           label={t('网站自动翻译')}
           description={t('开启后，命中列表的网站将自动整页翻译')}
         >
-          <Switch checked={pageTranslateSettings.autoTranslateEnabled} onChange={handleSiteAutoChange} />
+          <Switch checked={pageTranslateSettings.autoTranslate} onChange={handleSiteAutoChange} />
         </SettingsItem>
 
         {/* 条件渲染：只有开启网站自动翻译时才显示下面的设置 */}
-        {pageTranslateSettings.autoTranslateEnabled && (
+        {pageTranslateSettings.autoTranslate && (
           <>
             <SettingsItem
               label={t('整页翻译模式')}
@@ -241,7 +291,7 @@ const PageTranslateSettings: React.FC = () => {
                 }}
               >
                 <Segmented
-                  value={pageTranslateSettings.pageTranslateMode}
+                  value={pageTranslateSettings.mode}
                   onChange={handlePageTranslateModeChange}
                   options={[
                     { label: t('全部译文'), value: 'translated' },
@@ -299,10 +349,10 @@ const PageTranslateSettings: React.FC = () => {
                   )}
                   style={{ maxHeight: 200, overflow: 'auto' }}
                 />
-                {(pageTranslateSettings.alwaysList || []).length > 5 && (
+                {alwaysList.length > 5 && (
                   <div style={{ textAlign: 'center', marginTop: 8 }}>
                     <Button size="small" type="link" onClick={() => setShowAllAlways(true)}>
-                      {t('查看全部')} ({(pageTranslateSettings.alwaysList || []).length})
+                      {t('查看全部')} ({alwaysList.length})
                     </Button>
                   </div>
                 )}
@@ -338,10 +388,10 @@ const PageTranslateSettings: React.FC = () => {
                   )}
                   style={{ maxHeight: 200, overflow: 'auto' }}
                 />
-                {(pageTranslateSettings.neverList || []).length > 5 && (
+                {neverList.length > 5 && (
                   <div style={{ textAlign: 'center', marginTop: 8 }}>
                     <Button size="small" type="link" onClick={() => setShowAllNever(true)}>
-                      {t('查看全部')} ({(pageTranslateSettings.neverList || []).length})
+                      {t('查看全部')} ({neverList.length})
                     </Button>
                   </div>
                 )}
@@ -355,7 +405,7 @@ const PageTranslateSettings: React.FC = () => {
       <BatchSiteModal
         open={showAllAlways}
         title={t('全部白名单')}
-        sites={pageTranslateSettings.alwaysList || []}
+        sites={alwaysList.map(setting => setting.domain)}
         selected={selectedAlways}
         setSelected={setSelectedAlways}
         onClose={() => setShowAllAlways(false)}
@@ -371,7 +421,7 @@ const PageTranslateSettings: React.FC = () => {
       <BatchSiteModal
         open={showAllNever}
         title={t('全部黑名单')}
-        sites={pageTranslateSettings.neverList || []}
+        sites={neverList.map(setting => setting.domain)}
         selected={selectedNever}
         setSelected={setSelectedNever}
         onClose={() => setShowAllNever(false)}
@@ -412,10 +462,10 @@ const PageTranslateSettings: React.FC = () => {
                     danger
                     onClick={async () => {
                       try {
-                        await deleteCustomDictEntry(entry.id!);
+                        await deleteDictionaryEntry(entry.id);
                         // 重新加载词库条目
                         if (dictHost) {
-                          const entries = await getCustomDictEntries(dictHost);
+                          const entries = await getDictionaryByDomain(dictHost);
                           setDictEntries(entries);
                         }
                         message.success('词条已删除');
@@ -428,20 +478,23 @@ const PageTranslateSettings: React.FC = () => {
               ]}
             >
               <Input
-                value={entry.originalText}
+                value={entry.original}
                 disabled
                 style={{ width: 120, marginRight: 8 }}
               />
               <Input
-                value={entry.customTranslation}
+                value={entry.translation}
                 onChange={async (e) => {
                   const newTranslation = e.target.value;
                   try {
                     // 更新词条
-                    await addCustomDictEntry(entry.host, entry.originalText, newTranslation);
+                    await updateDictionaryEntry({
+                      ...entry,
+                      translation: newTranslation
+                    });
                     // 重新加载词库条目
                     if (dictHost) {
-                      const entries = await getCustomDictEntries(dictHost);
+                      const entries = await getDictionaryByDomain(dictHost);
                       setDictEntries(entries);
                     }
                   } catch (error) {

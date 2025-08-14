@@ -1,6 +1,6 @@
 import React from 'react';
 import { Typography, Space } from 'antd';
-import { useTheme } from '~lib/utils/theme';
+import { useTheme } from '~lib/theme/theme';
 
 const { Text } = Typography;
 

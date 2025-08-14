@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { Switch, Typography, message, Input, Button } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { produce } from 'immer';
-import { useShortcutSettings } from '~lib/utils/globalSettingsHooks';
-import SettingsPageContainer from '../components/SettingsPageContainer';
-import SettingsGroup from '../components/SettingsGroup';
-import SettingsItem from '../components/SettingsItem';
+import { useShortcutSettings } from '~lib/settings/globalSettingsHooks';
+import SettingsPageContainer from '../../components/SettingsPageContainer';
+import SettingsGroup from '../../components/SettingsGroup';
+import SettingsItem from '../../components/SettingsItem';
 
 const { Title, Paragraph } = Typography;
 
@@ -13,7 +13,22 @@ const ShortcutSettings: React.FC = () => {
   const { t } = useTranslation();
   
   // 使用新的快捷键设置 Hook
-  const { shortcutSettings, updateShortcuts, toggleEnabled, updateShortcut } = useShortcutSettings();
+  // Ensure shortcutSettings type includes all keys in shortcutItems
+  const { shortcutSettings, updateShortcuts, toggleEnabled, updateShortcut } = useShortcutSettings() as {
+    shortcutSettings: {
+      enabled: boolean;
+      toggleTranslate?: string;
+      translateSelection?: string;
+      translateInput?: string;
+      translatePage?: string;
+      openPopup?: string;
+      openInput?: string;
+      [key: string]: any;
+    };
+    updateShortcuts: any;
+    toggleEnabled: any;
+    updateShortcut: any;
+  };
   
   const [isRecording, setIsRecording] = useState(false);
   const [recordedKeys, setRecordedKeys] = useState<string[]>([]);
@@ -104,6 +119,11 @@ const ShortcutSettings: React.FC = () => {
       description: t('翻译当前选中的文本')
     },
     {
+      key: 'translateInput' as const,
+      label: t('翻译输入框内容'),
+      description: t('翻译当前输入框的内容')
+    },
+    {
       key: 'translatePage' as const,
       label: t('翻译整个页面'),
       description: t('翻译当前页面的所有内容')
@@ -112,6 +132,11 @@ const ShortcutSettings: React.FC = () => {
       key: 'openPopup' as const,
       label: t('打开弹窗'),
       description: t('打开翻译器弹窗')
+    },
+    {
+      key: 'openInput' as const,
+      label: t('打开输入翻译'),
+      description: t('打开输入翻译器')
     }
   ];
 
@@ -121,7 +146,7 @@ const ShortcutSettings: React.FC = () => {
       description={t('配置翻译器的全局快捷键')}
     >
       {/* 快捷键总开关 */}
-      <SettingsGroup title={t('快捷键功能')} first>
+      <SettingsGroup title={t('基础设置')} first>
         <SettingsItem
           label={t('启用快捷键')}
           description={t('开启后，可以使用快捷键快速访问翻译功能')}

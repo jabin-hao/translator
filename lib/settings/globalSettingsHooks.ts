@@ -1,14 +1,14 @@
 import { useCallback } from 'react';
 import { produce } from 'immer';
-import { useStorage } from './storage';
+import { useStorage } from '../storage/storage';
 import type { 
   GlobalSettings, 
   PartialDeep 
-} from '../settings/globalSettings';
+} from './globalSettings';
 import { 
   DEFAULT_SETTINGS, 
   GLOBAL_SETTINGS_KEY
-} from '../settings/globalSettings';
+} from './globalSettings';
 
 /**
  * 统一的全局设置管理 Hook
@@ -472,91 +472,16 @@ export function usePageTranslateSettings() {
   }, [pageTranslateSettings.enabled, updatePageTranslateSettings]);
 
   const toggleAutoTranslate = useCallback(async () => {
-    await updatePageTranslateSettings({ autoTranslateEnabled: !pageTranslateSettings.autoTranslateEnabled });
-  }, [pageTranslateSettings.autoTranslateEnabled, updatePageTranslateSettings]);
+    await updatePageTranslateSettings({ autoTranslate: !pageTranslateSettings.autoTranslate });
+  }, [pageTranslateSettings.autoTranslate, updatePageTranslateSettings]);
 
-  const setMode = useCallback(async (mode: 'never' | 'always' | 'ask') => {
+  const setMode = useCallback(async (mode: 'translated' | 'compare') => {
     await updatePageTranslateSettings({ mode });
   }, [updatePageTranslateSettings]);
 
   const setTargetLanguage = useCallback(async (targetLanguage: string) => {
     await updatePageTranslateSettings({ targetLanguage });
   }, [updatePageTranslateSettings]);
-
-  // 网站列表管理（从 siteTranslateSettings 迁移的功能）
-  const addToAlwaysList = useCallback(async (domain: string) => {
-    await updatePageTranslateSettings(
-      produce(pageTranslateSettings, (draft) => {
-        const currentAlwaysList = draft.alwaysList || [];
-        const currentNeverList = draft.neverList || [];
-        
-        if (!currentAlwaysList.includes(domain)) {
-          draft.alwaysList = [...currentAlwaysList, domain];
-          draft.neverList = currentNeverList.filter(d => d !== domain);
-        }
-      })
-    );
-  }, [pageTranslateSettings, updatePageTranslateSettings]);
-
-  const addToNeverList = useCallback(async (domain: string) => {
-    await updatePageTranslateSettings(
-      produce(pageTranslateSettings, (draft) => {
-        const currentAlwaysList = draft.alwaysList || [];
-        const currentNeverList = draft.neverList || [];
-        
-        if (!currentNeverList.includes(domain)) {
-          draft.neverList = [...currentNeverList, domain];
-          draft.alwaysList = currentAlwaysList.filter(d => d !== domain);
-        }
-      })
-    );
-  }, [pageTranslateSettings, updatePageTranslateSettings]);
-
-  const removeFromAlwaysList = useCallback(async (domain: string) => {
-    await updatePageTranslateSettings(
-      produce(pageTranslateSettings, (draft) => {
-        const currentAlwaysList = draft.alwaysList || [];
-        draft.alwaysList = currentAlwaysList.filter(d => d !== domain);
-      })
-    );
-  }, [pageTranslateSettings, updatePageTranslateSettings]);
-
-  const removeFromNeverList = useCallback(async (domain: string) => {
-    await updatePageTranslateSettings(
-      produce(pageTranslateSettings, (draft) => {
-        const currentNeverList = draft.neverList || [];
-        draft.neverList = currentNeverList.filter(d => d !== domain);
-      })
-    );
-  }, [pageTranslateSettings, updatePageTranslateSettings]);
-
-  const setPageTranslateMode = useCallback(async (mode: string) => {
-    await updatePageTranslateSettings({ pageTranslateMode: mode });
-  }, [updatePageTranslateSettings]);
-
-  // 网站匹配逻辑 - 从 siteTranslateSettings 迁移
-  const matchSiteList = useCallback((list: string[], url: string): boolean => {
-    if (list.includes(url)) {
-      return true;
-    }
-    
-    try {
-      const u = new URL(url.startsWith('http') ? url : 'https://' + url);
-      let path = u.pathname;
-
-      while (path && path !== '/') {
-        const test = u.hostname + path;
-        if (list.includes(test)) {
-          return true;
-        }
-        path = path.substring(0, path.lastIndexOf('/'));
-      }
-      
-      return list.includes(u.hostname);
-    } catch (error) {
-      return list.some(item => url.startsWith(item));
-    }
-  }, []);
 
   return {
     pageTranslateSettings,
@@ -566,13 +491,6 @@ export function usePageTranslateSettings() {
     toggleAutoTranslate,
     setMode,
     setTargetLanguage,
-    // 网站列表管理
-    addToAlwaysList,
-    addToNeverList,
-    removeFromAlwaysList,
-    removeFromNeverList,
-    setPageTranslateMode,
-    matchSiteList,
   };
 }
 

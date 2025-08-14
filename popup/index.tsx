@@ -1,13 +1,12 @@
 import React from "react";
-import PopupInner from "./components/PopupInner";
-import "./index.css";
+import PopupInner from "./PopupInner";
+import "./styles/index.css";
 
-import { ThemeProvider } from "~lib/utils/theme";
-import { THEME_MODE_KEY } from "~lib/constants/settings";
+import { ThemeProvider } from "~lib/theme/theme";
 
 function Popup() {
   return (
-    <ThemeProvider storageKey={THEME_MODE_KEY}>
+    <ThemeProvider>
       <div style={{
         width: '100%',
         height: 'auto',

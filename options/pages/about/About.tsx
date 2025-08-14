@@ -1,8 +1,8 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import SettingsPageContainer from '../components/SettingsPageContainer';
-import SettingsGroup from '../components/SettingsGroup';
-import SettingsItem from '../components/SettingsItem';
+import SettingsPageContainer from '../../components/SettingsPageContainer';
+import SettingsGroup from '../../components/SettingsGroup';
+import SettingsItem from '../../components/SettingsItem';
 
 const About: React.FC = () => {
   const { t } = useTranslation();

@@ -3,9 +3,8 @@ import { App } from 'antd';
 import { I18nextProvider } from 'react-i18next';
 import { initI18n } from '~i18n';
 import i18n from '../i18n';
-import { ThemeProvider } from '~lib/utils/theme';
+import { ThemeProvider } from '~lib/theme/theme';
 import OptionsInner from './OptionsInner';
-import { THEME_MODE_KEY } from '~lib/constants/settings';
 
 const OptionsRoot = () => {
   const [i18nReady, setI18nReady] = useState(false);
@@ -24,7 +23,7 @@ const OptionsRoot = () => {
   }
   
   return (
-    <ThemeProvider storageKey={THEME_MODE_KEY}>
+    <ThemeProvider>
       <I18nextProvider i18n={i18n}>
         <App>
           <OptionsInner />

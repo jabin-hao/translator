@@ -1,20 +1,8 @@
 import {sendToBackground} from '@plasmohq/messaging';
 import {getEngineLangCode, getTTSLang} from '~lib/constants/languages';
-import {CACHE_KEY} from '~lib/constants/settings';
-import {storageApi} from "~lib/utils/storage";
-
-// 初始化默认设置
-export async function initializeDefaultSettings() {
-    try {
-        // 检查并设置缓存默认值
-        const cacheEnabled = await storageApi.get(CACHE_KEY);
-        if (cacheEnabled === null || cacheEnabled === undefined) {
-            await storageApi.set(CACHE_KEY, true);
-        }
-    } catch (error) {
-        console.error('初始化默认设置失败:', error);
-    }
-}
+import { GLOBAL_SETTINGS_KEY } from '~lib/settings/globalSettings';
+import type { GlobalSettings } from '~lib/settings/globalSettings';
+import {storageApi} from "~lib/storage/storage";
 
 // 修改翻译API调用，集成缓存功能
 export async function callTranslateAPI(
@@ -27,8 +15,17 @@ export async function callTranslateAPI(
     const toMapped = getEngineLangCode(to, engine);
 
     try {
-        // 读取用户的缓存设置
-        const cacheEnabled = await storageApi.get(CACHE_KEY) ?? true; // 默认启用缓存
+        // 读取用户的缓存设置 - 从全局配置获取
+        let cacheEnabled = true; // 默认启用缓存
+        try {
+            const globalSettings = await storageApi.get(GLOBAL_SETTINGS_KEY) as unknown as GlobalSettings;
+            if (globalSettings?.cache?.enabled !== undefined) {
+                cacheEnabled = globalSettings.cache.enabled;
+            }
+        } catch (error) {
+            console.error('获取缓存设置失败:', error);
+            // 保持默认值 true
+        }
 
         // 使用通用消息处理器
         const response = await sendToBackground({

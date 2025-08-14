@@ -1,16 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Typography, Modal, Switch, InputNumber, App } from 'antd';
+import { Button, Modal, Switch, InputNumber, App } from 'antd';
 import { Icon } from '@iconify/react';
 import { useTranslation } from 'react-i18next';
 import { produce } from 'immer';
-import { useCacheSettings } from '~lib/utils/globalSettingsHooks';
+import { useCacheSettings } from '~lib/settings/globalSettingsHooks';
 import { cacheManager } from '~lib/cache/cache';
 import { sendToBackground } from '@plasmohq/messaging';
-import SettingsPageContainer from '../components/SettingsPageContainer';
-import SettingsGroup from '../components/SettingsGroup';
-import SettingsItem from '../components/SettingsItem';
-
-const { Text } = Typography;
+import SettingsPageContainer from '../../components/SettingsPageContainer';
+import SettingsGroup from '../../components/SettingsGroup';
+import SettingsItem from '../../components/SettingsItem';
 
 const CacheSettings: React.FC = () => {
   const { t } = useTranslation();
@@ -70,13 +68,13 @@ const CacheSettings: React.FC = () => {
 
   // 切换缓存开关
   const handleCacheToggle = async (enabled: boolean) => {
-    await updateCache({ enabled });
+    await toggleEnabled();
     message.success(enabled ? t('已启用翻译缓存') : t('已禁用翻译缓存'));
   };
 
   useEffect(() => {
     // 只需要加载统计信息，配置由全局设置自动处理
-    loadStats().then(() => {});
+    loadStats().then();
   }, []);
 
   // 加载配置时同步到 pendingConfig
@@ -104,7 +102,7 @@ const CacheSettings: React.FC = () => {
       description={t('管理翻译缓存以提高翻译速度')}
     >
       {/* 缓存总开关 */}
-      <SettingsGroup title={t('缓存功能')} first>
+      <SettingsGroup title={t('基础设置')} first>
         <SettingsItem
           label={t('启用缓存')}
           description={t('启用缓存可以加快重复翻译的速度')}

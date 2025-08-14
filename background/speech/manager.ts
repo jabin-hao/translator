@@ -2,7 +2,7 @@ import type {SpeechOptions, SpeechResult, SpeechService} from '~lib/translate/sp
 import {LocalSpeechService} from './local';
 import {GoogleSpeechService} from './google';
 import {SPEECH_KEY} from '~lib/constants/settings';
-import {storageApi} from "~lib/utils/storage";
+import {storageApi} from "~lib/storage/storage";
 
 // 基础朗读服务接口
 interface BaseSpeechService {

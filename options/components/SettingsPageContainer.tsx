@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, Typography } from 'antd';
-import { useTheme } from '~lib/utils/theme';
+import { useTheme } from '~lib/theme/theme';
 
 const { Title } = Typography;
 

@@ -1,26 +1,43 @@
 // 处理缓存清理和定时任务
 import { cacheManager } from '~lib/cache/cache';
 import {DEFAULT_CACHE_CONFIG, TRANSLATION_CACHE_CONFIG_KEY} from '~lib/constants/settings';
-import {storageApi} from "~lib/utils/storage";
+import { GLOBAL_SETTINGS_KEY } from '~lib/settings/globalSettings';
+import type { GlobalSettings } from '~lib/settings/globalSettings';
+import {storageApi} from "~lib/storage/storage";
 
 let cleanupTimer: ReturnType<typeof setInterval> | null = null;
 
 async function getCleanupInterval() {
-  // 从配置中获取清理间隔
-  let raw = await storageApi.get(TRANSLATION_CACHE_CONFIG_KEY);
-  let config: any = raw;
-  if (typeof raw === 'string') {
-    try {
-      config = JSON.parse(raw);
-    } catch (e) {
+  try {
+    // 首先尝试从全局配置获取缓存设置
+    const globalSettings = await storageApi.get(GLOBAL_SETTINGS_KEY) as unknown as GlobalSettings;
+    
+    if (globalSettings?.cache?.maxAge !== undefined) {
+      // 取 maxAge/2，最小1分钟，最大12小时
+      return Math.max(Math.min(globalSettings.cache.maxAge / 2, 12 * 60 * 60 * 1000), 60 * 1000);
+    }
+
+    // 兼容性：如果全局配置不存在，尝试从旧的缓存配置获取
+    let raw = await storageApi.get(TRANSLATION_CACHE_CONFIG_KEY);
+    let config: any = raw;
+    if (typeof raw === 'string') {
+      try {
+        config = JSON.parse(raw);
+      } catch (e) {
+        config = DEFAULT_CACHE_CONFIG;
+      }
+    }
+    if (!config || typeof config.maxAge !== 'number') {
       config = DEFAULT_CACHE_CONFIG;
     }
+    
+    // 取 maxAge/2，最小1分钟，最大12小时
+    return Math.max(Math.min(config.maxAge / 2, 12 * 60 * 60 * 1000), 60 * 1000);
+  } catch (error) {
+    console.error('获取清理间隔失败:', error);
+    // 使用默认配置
+    return Math.max(Math.min(DEFAULT_CACHE_CONFIG.maxAge / 2, 12 * 60 * 60 * 1000), 60 * 1000);
   }
-  if (!config || typeof config.maxAge !== 'number') {
-    config = DEFAULT_CACHE_CONFIG;
-  }
-  // 取 maxAge/2，最小1分钟，最大12小时
-  return Math.max(Math.min(config.maxAge / 2, 12 * 60 * 60 * 1000), 60 * 1000);
 }
 
 export async function scheduleCacheCleanup() {

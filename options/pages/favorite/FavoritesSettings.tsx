@@ -3,11 +3,11 @@ import { produce } from 'immer';
 import { List, Button, Input, message, Modal, Card, Tag, Space, Tooltip, Popconfirm, Select, Empty, Switch } from 'antd';
 import { DeleteOutlined, EditOutlined, SearchOutlined, ExportOutlined, ImportOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import { useFavoritesSettings } from '~lib/utils/globalSettingsHooks';
-import SettingsPageContainer from '../components/SettingsPageContainer';
-import SettingsGroup from '../components/SettingsGroup';
-import SettingsItem from '../components/SettingsItem';
-import { useTheme } from '~lib/utils/theme';
+import { useFavoritesSettings } from '~lib/settings/globalSettingsHooks';
+import SettingsPageContainer from '../../components/SettingsPageContainer';
+import SettingsGroup from '../../components/SettingsGroup';
+import SettingsItem from '../../components/SettingsItem';
+import { useTheme } from '~lib/theme/theme';
 
 const { Search } = Input;
 const { Option } = Select;
@@ -160,7 +160,7 @@ const FavoritesSettings: React.FC = () => {
   return (
     <SettingsPageContainer title={t('收藏管理')}>
       {/* 收藏夹总开关 */}
-      <SettingsGroup title={t('收藏夹功能')} first>
+      <SettingsGroup title={t('基础设置')} first>
         <SettingsItem
           label={t('启用收藏夹')}
           description={t('开启后，可以收藏翻译的单词和短语')}

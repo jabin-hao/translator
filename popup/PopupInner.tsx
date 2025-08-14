@@ -8,7 +8,7 @@ import { ReloadOutlined, TranslationOutlined } from '@ant-design/icons';
 import { Icon } from '@iconify/react';
 
 // 使用新的全局配置系统
-import { useTheme } from '~lib/utils/theme';
+import { useTheme } from '~lib/theme/theme';
 import {
   useGlobalSettings,
   useEngineSettings,
@@ -16,7 +16,8 @@ import {
   useThemeSettings,
   useTextTranslateSettings,
   useSpeechSettings
-} from '~lib/utils/globalSettingsHooks';
+} from '~lib/settings/globalSettingsHooks';
+import { useDomainSettings } from '~lib/storage/indexedHooks';
 
 const { Text, Title } = Typography;
 
@@ -42,14 +43,69 @@ const PopupInner: React.FC = () => {
   const { 
     pageTranslateSettings, 
     updatePageTranslateSettings,
-    addToAlwaysList,
-    addToNeverList,
-    removeFromAlwaysList,
-    removeFromNeverList,
-    matchSiteList
   } = usePageTranslateSettings();
   const { textTranslateSettings, toggleEnabled: toggleTextTranslate } = useTextTranslateSettings();
   const { speechSettings, toggleEnabled: toggleSpeech } = useSpeechSettings();
+  
+  // 使用新的域名设置 Hook
+  const { 
+    domainSettings, 
+    setDomainSetting, 
+    deleteDomainSetting  
+  } = useDomainSettings();
+  
+  // 创建黑白名单操作函数
+  const addToAlwaysList = async (domain: string) => {
+    await setDomainSetting({
+      domain,
+      type: 'whitelist',
+      enabled: true,
+      notes: '用户手动添加'
+    });
+  };
+
+  const addToNeverList = async (domain: string) => {
+    await setDomainSetting({
+      domain,
+      type: 'blacklist',
+      enabled: true,
+      notes: '用户手动添加'
+    });
+  };
+
+  const removeFromAlwaysList = async (domain: string) => {
+    await deleteDomainSetting(domain);
+  };
+
+  const removeFromNeverList = async (domain: string) => {
+    await deleteDomainSetting(domain);
+  };
+
+  // 匹配站点列表函数
+  const matchSiteList = (list: string[], siteKey: string) => {
+    console.log('[Popup] matchSiteList 检查:', { list, siteKey });
+    
+    return list.some(item => {
+      if (item === siteKey) {
+        console.log('[Popup] 精确匹配:', item);
+        return true;
+      }
+      if (item.includes('*')) {
+        const regex = new RegExp(item.replace(/\*/g, '.*'));
+        const match = regex.test(siteKey);
+        console.log('[Popup] 通配符匹配:', { item, siteKey, match });
+        return match;
+      }
+      
+      // 简单的域名匹配
+      if (siteKey.startsWith(item)) {
+        console.log('[Popup] 前缀匹配:', item);
+        return true;
+      }
+      
+      return false;
+    });
+  };
   
   // 从全局设置中提取值
   const engine = engineSettings.default;
@@ -75,22 +131,33 @@ const PopupInner: React.FC = () => {
           const path = u.pathname;
           const key = path === '/' ? host : host + path;
           
-          setSiteKey(produce(() => key));
-          
-          // 使用全局配置中的网站列表来检查匹配
-          const isAlways = matchSiteList(pageTranslateSettings.alwaysList || [], key);
-          const isNever = matchSiteList(pageTranslateSettings.neverList || [], key);
-          
-          setSiteSettings(produce((draft) => ({
-            always: isAlways,
-            never: isNever
-          })));
+          setSiteKey(key);
         } catch (error) {
           console.error('[Popup] URL解析失败:', error);
         }
       }
     });
   }, []);
+
+  // 监听域名设置变化，重新计算站点设置
+  useEffect(() => {
+    if (siteKey && domainSettings.length >= 0) {
+      const alwaysList = domainSettings.filter(setting => setting.type === 'whitelist' && setting.enabled).map(s => s.domain);
+      const neverList = domainSettings.filter(setting => setting.type === 'blacklist' && setting.enabled).map(s => s.domain);
+      
+      console.log('[Popup] 域名设置更新:', { siteKey, domainSettings, alwaysList, neverList });
+      
+      const isAlways = matchSiteList(alwaysList, siteKey);
+      const isNever = matchSiteList(neverList, siteKey);
+      
+      console.log('[Popup] 站点匹配结果:', { siteKey, isAlways, isNever });
+      
+      setSiteSettings({
+        always: isAlways,
+        never: isNever
+      });
+    }
+  }, [domainSettings, siteKey]);
 
   // 检查当前页面是否已翻译
   useEffect(() => {
@@ -116,7 +183,7 @@ const PopupInner: React.FC = () => {
   // 监听 content-script 的翻译完成/还原完成消息
   useEffect(() => {
     if (chrome?.runtime?.onMessage) {
-      const handler = (msg, sender, sendResponse) => {
+      const handler = (msg) => {
         if (msg.type === 'FULL_PAGE_TRANSLATE_DONE') {
           setIsPageTranslating(false);
           setIsPageTranslated(produce(() => true));
@@ -173,7 +240,7 @@ const PopupInner: React.FC = () => {
   // 新增：网站自动翻译开关处理
   const handleSiteAutoTranslateChange = async (checked: boolean) => {
     // 使用全局配置的toggleAutoTranslate
-    await updatePageTranslateSettings({ autoTranslateEnabled: checked });
+    await updatePageTranslateSettings({ autoTranslate: checked });
     message.success(checked ? t('已开启网站自动翻译') : t('已关闭网站自动翻译'));
   };
 
@@ -186,8 +253,11 @@ const PopupInner: React.FC = () => {
     }
     
     // 重新检查匹配状态
-    const isAlways = matchSiteList(pageTranslateSettings.alwaysList || [], siteKey);
-    const isNever = matchSiteList(pageTranslateSettings.neverList || [], siteKey);
+    const alwaysList = domainSettings.filter(setting => setting.type === 'whitelist' && setting.enabled).map(s => s.domain);
+    const neverList = domainSettings.filter(setting => setting.type === 'blacklist' && setting.enabled).map(s => s.domain);
+    
+    const isAlways = matchSiteList(alwaysList, siteKey);
+    const isNever = matchSiteList(neverList, siteKey);
     
     setSiteSettings({
       always: isAlways,
@@ -204,8 +274,11 @@ const PopupInner: React.FC = () => {
     }
     
     // 重新检查匹配状态
-    const isAlways = matchSiteList(pageTranslateSettings.alwaysList || [], siteKey);
-    const isNever = matchSiteList(pageTranslateSettings.neverList || [], siteKey);
+    const alwaysList = domainSettings.filter(setting => setting.type === 'whitelist' && setting.enabled).map(s => s.domain);
+    const neverList = domainSettings.filter(setting => setting.type === 'blacklist' && setting.enabled).map(s => s.domain);
+    
+    const isAlways = matchSiteList(alwaysList, siteKey);
+    const isNever = matchSiteList(neverList, siteKey);
     
     setSiteSettings({
       always: isAlways,
@@ -404,7 +477,7 @@ const PopupInner: React.FC = () => {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text>{t('网站自动翻译')}</Text>
-                <Switch checked={pageTranslateSettings.autoTranslateEnabled} onChange={handleSiteAutoTranslateChange} />
+                <Switch checked={pageTranslateSettings.autoTranslate} onChange={handleSiteAutoTranslateChange} />
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text>{t('启用朗读')}</Text>
@@ -418,7 +491,7 @@ const PopupInner: React.FC = () => {
           </div>
 
           {/* 网站管理按钮 */}
-          {pageTranslateSettings.autoTranslateEnabled && (
+          {pageTranslateSettings.autoTranslate && (
             <>
               <Divider style={{ margin: 0 }} />
               <div>

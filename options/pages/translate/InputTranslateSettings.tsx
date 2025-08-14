@@ -2,7 +2,7 @@ import React from 'react';
 import { produce } from 'immer';
 import { Switch, Select, Radio, Input, InputNumber, Button, message, Tag, Space } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { useInputTranslateSettings } from '~lib/utils/globalSettingsHooks';
+import { useInputTranslateSettings } from '~lib/settings/globalSettingsHooks';
 import { LANGUAGES } from '~lib/constants/languages';
 import SettingsPageContainer from '../../components/SettingsPageContainer';
 import SettingsGroup from '../../components/SettingsGroup';
@@ -104,13 +104,13 @@ const InputTranslateSettings: React.FC = () => {
   };
 
   return (
-    <SettingsPageContainer 
+    <SettingsPageContainer
       title={t('输入框翻译设置')}
       description={t('配置网页输入框的翻译功能')}
     >
       {/* 基础设置 */}
       <SettingsGroup title={t('基础设置')} first>
-        <SettingsItem 
+        <SettingsItem
           label={t('启用输入框翻译')}
           description={t('在网页的输入框中启用翻译功能')}
         >
@@ -122,7 +122,17 @@ const InputTranslateSettings: React.FC = () => {
 
         {inputTranslateSettings.enabled && (
           <>
-            <SettingsItem 
+            <SettingsItem
+              label={t('自动检测语言')}
+              description={t('自动检测输入文本的语言')}
+            >
+              <Switch
+                checked={inputTranslateSettings.autoDetectLanguage}
+                onChange={handleAutoDetectLanguageChange}
+              />
+            </SettingsItem>
+
+            <SettingsItem
               label={t('目标语言')}
               description={t('输入框翻译的目标语言')}
             >
@@ -141,74 +151,14 @@ const InputTranslateSettings: React.FC = () => {
                 ))}
               </Select>
             </SettingsItem>
-
-            <SettingsItem 
-              label={t('自动检测语言')}
-              description={t('自动检测输入文本的语言')}
-            >
-              <Switch
-                checked={inputTranslateSettings.autoDetectLanguage}
-                onChange={handleAutoDetectLanguageChange}
-              />
-            </SettingsItem>
           </>
         )}
       </SettingsGroup>
 
-      {/* 界面设置 */}
-      {inputTranslateSettings.enabled && (
-        <SettingsGroup title={t('界面设置')}>
-          <SettingsItem 
-            label={t('显示翻译按钮')}
-            description={t('在输入框附近显示翻译按钮')}
-          >
-            <Switch
-              checked={inputTranslateSettings.showTranslateButton}
-              onChange={handleShowTranslateButtonChange}
-            />
-          </SettingsItem>
-
-          {inputTranslateSettings.showTranslateButton && (
-            <SettingsItem 
-              label={t('按钮位置')}
-              description={t('翻译按钮的显示位置')}
-            >
-              <Radio.Group
-                value={inputTranslateSettings.buttonPosition}
-                onChange={handleButtonPositionChange}
-              >
-                <Radio value="inside">{t('输入框内部')}</Radio>
-                <Radio value="outside">{t('输入框外部')}</Radio>
-              </Radio.Group>
-            </SettingsItem>
-          )}
-
-          <SettingsItem 
-            label={t('显示原文')}
-            description={t('翻译时保留并显示原文')}
-          >
-            <Switch
-              checked={inputTranslateSettings.showOriginalText}
-              onChange={handleShowOriginalTextChange}
-            />
-          </SettingsItem>
-
-          <SettingsItem 
-            label={t('替换原文')}
-            description={t('用翻译结果替换输入框中的原文')}
-          >
-            <Switch
-              checked={inputTranslateSettings.replaceOriginalText}
-              onChange={handleReplaceOriginalTextChange}
-            />
-          </SettingsItem>
-        </SettingsGroup>
-      )}
-
       {/* 触发设置 */}
       {inputTranslateSettings.enabled && (
         <SettingsGroup title={t('触发设置')}>
-          <SettingsItem 
+          <SettingsItem
             label={t('触发模式')}
             description={t('选择如何触发翻译')}
           >
@@ -216,34 +166,14 @@ const InputTranslateSettings: React.FC = () => {
               value={inputTranslateSettings.triggerMode}
               onChange={handleTriggerModeChange}
             >
-              <Radio value="manual">{t('手动触发')}</Radio>
               <Radio value="auto">{t('自动触发')}</Radio>
               <Radio value="hotkey">{t('快捷键触发')}</Radio>
             </Radio.Group>
           </SettingsItem>
 
-          {inputTranslateSettings.triggerMode === 'hotkey' && (
-            <SettingsItem 
-              label={t('快捷键')}
-              description={t('触发翻译的快捷键组合')}
-            >
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <Input
-                  value={inputTranslateSettings.hotkey}
-                  onChange={(e) => handleHotkeyChange(e.target.value)}
-                  placeholder="Ctrl+T"
-                  style={{ width: 120 }}
-                />
-                <Button size="small" onClick={testHotkey}>
-                  {t('测试')}
-                </Button>
-              </div>
-            </SettingsItem>
-          )}
-
           {inputTranslateSettings.triggerMode === 'auto' && (
             <>
-              <SettingsItem 
+              <SettingsItem
                 label={t('自动翻译延迟')}
                 description={t('停止输入后多长时间自动翻译（毫秒）')}
               >
@@ -257,7 +187,7 @@ const InputTranslateSettings: React.FC = () => {
                 />
               </SettingsItem>
 
-              <SettingsItem 
+              <SettingsItem
                 label={t('最小文本长度')}
                 description={t('触发自动翻译的最小文本长度')}
               >
@@ -277,16 +207,16 @@ const InputTranslateSettings: React.FC = () => {
       {/* 高级设置 */}
       {inputTranslateSettings.enabled && (
         <SettingsGroup title={t('高级设置')}>
-          <SettingsItem 
+          <SettingsItem
             label={t('支持的输入类型')}
             description={t('选择哪些类型的输入框启用翻译')}
           >
             <div>
               <Space wrap style={{ marginBottom: 8 }}>
                 {inputTranslateSettings.enabledInputTypes.map(type => (
-                  <Tag 
-                    key={type} 
-                    closable 
+                  <Tag
+                    key={type}
+                    closable
                     onClose={() => handleRemoveInputType(type)}
                   >
                     {type}
@@ -308,16 +238,16 @@ const InputTranslateSettings: React.FC = () => {
             </div>
           </SettingsItem>
 
-          <SettingsItem 
+          <SettingsItem
             label={t('排除选择器')}
             description={t('匹配这些CSS选择器的输入框将不启用翻译')}
           >
             <div>
               <Space wrap style={{ marginBottom: 8 }}>
                 {inputTranslateSettings.excludeSelectors.map(selector => (
-                  <Tag 
-                    key={selector} 
-                    closable 
+                  <Tag
+                    key={selector}
+                    closable
                     onClose={() => handleRemoveExcludeSelector(selector)}
                   >
                     {selector}

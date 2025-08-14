@@ -1,12 +1,13 @@
 // 统一翻译服务
 import {cacheManager} from "../cache/cache"
-import {storageApi} from "~lib/utils/storage"
+import {storageApi} from "~lib/storage/storage"
 import {googleTranslate, googleTranslateBatch} from "~background/translate/google"
 import {bingTranslate, bingTranslateBatch} from "~background/translate/bing"
 import {deeplTranslate, deeplTranslateBatch} from "~background/translate/deepl"
 import {yandexTranslate, yandexTranslateBatch} from "~background/translate/yandex"
-import { TRANSLATION_CACHE_CONFIG_KEY } from "~lib/constants/settings"
-import { findCustomTranslation } from "~lib/utils/globalSettingsHooks"
+import { GLOBAL_SETTINGS_KEY } from "../settings/globalSettings"
+import type { GlobalSettings } from "../settings/globalSettings"
+import { findCustomTranslation } from "~lib/settings/globalSettingsHooks"
 
 export interface TranslateOptions {
   from: string;
@@ -35,16 +36,16 @@ const TRANSLATE_ENGINES = {
 // 检查缓存是否启用
 async function isCacheEnabled(): Promise<boolean> {
   try {
-    const enabled = await storageApi.get(TRANSLATION_CACHE_CONFIG_KEY);
+    // 从全局配置获取缓存启用状态
+    const globalSettings = await storageApi.get(GLOBAL_SETTINGS_KEY) as unknown as GlobalSettings;
     
-    // 如果值为 null 或 undefined，设置默认值为 true 并返回
-    if (enabled === null || enabled === undefined) {
-      await storageApi.set(TRANSLATION_CACHE_CONFIG_KEY, true);
-      return true;
+    if (globalSettings?.cache?.enabled !== undefined) {
+      return globalSettings.cache.enabled;
     }
 
-    return Boolean(enabled);
+    return Boolean(true);
   } catch (error) {
+    console.error('检查缓存启用状态失败:', error);
     return true; // 默认启用
   }
 }

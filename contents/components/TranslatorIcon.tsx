@@ -1,7 +1,7 @@
 import React from 'react';
 import '../index.css';
 import PluginIcon from './PluginIcon';
-import { useTheme } from '~lib/utils/theme';
+import { useTheme } from '~lib/theme/theme';
 
 interface TranslatorIconProps {
   x: number;

@@ -1,6 +1,6 @@
 import {getEngineLangCode} from '~lib/constants/languages';
 import {DEEPL_API_KEY} from '~lib/constants/settings';
-import {storageApi} from "~lib/utils/storage";
+import {storageApi} from "~lib/storage/storage";
 
 // DeepL 免费网页接口（基于开源项目最佳实践优化）
 async function deeplTranslateFree(text: string, from: string, to: string, retryCount = 0): Promise<string> {

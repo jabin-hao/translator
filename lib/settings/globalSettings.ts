@@ -74,16 +74,11 @@ export interface GlobalSettings {
   // 网页翻译设置
   pageTranslate: {
     enabled: boolean;
-    mode: 'never' | 'always' | 'ask';
+    mode: 'translated' | 'compare';
     targetLanguage: string;
-    autoTranslate: boolean;
+    autoTranslate: boolean; // 统一的自动翻译开关
     excludeDomains: string[];
     includeDomains: string[];
-    // 从 siteTranslateSettings 迁移的配置
-    alwaysList: string[];
-    neverList: string[];
-    pageTranslateMode: string;
-    autoTranslateEnabled: boolean;
   };
 
   // 语音朗读设置
@@ -189,16 +184,11 @@ export const DEFAULT_SETTINGS: GlobalSettings = {
 
   pageTranslate: {
     enabled: true,
-    mode: 'ask',
+    mode: 'translated',
     targetLanguage: 'zh-CN',
-    autoTranslate: false,
+    autoTranslate: false, // 默认关闭自动翻译
     excludeDomains: [],
     includeDomains: [],
-    // 从 siteTranslateSettings 迁移的配置
-    alwaysList: [],
-    neverList: [],
-    pageTranslateMode: 'translated',
-    autoTranslateEnabled: false,
   },
 
   speech: {

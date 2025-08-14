@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { ConfigProvider, theme } from 'antd';
-import { useStorage } from './storage';
+import { useThemeSettings } from '../settings/globalSettingsHooks';
 
 type ThemeMode = 'light' | 'dark' | 'auto';
 
@@ -22,12 +22,12 @@ export const useTheme = () => {
 
 interface ThemeProviderProps {
   children: React.ReactNode;
-  storageKey: string;
 }
 
-export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children, storageKey }) => {
-  // 使用 useStorage hook 替换手动的存储操作
-  const [themeMode, setThemeMode] = useStorage<ThemeMode>(storageKey, 'auto');
+export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
+  // 使用全局配置中的主题设置
+  const { themeSettings, setThemeMode: updateThemeMode } = useThemeSettings();
+  const themeMode = themeSettings.mode;
   
   const [isDark, setIsDark] = useState(() => {
     // 初始化时计算一次
@@ -36,6 +36,18 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children, storageK
     }
     return themeMode === 'dark';
   });
+
+  // 监听主题模式变化
+  useEffect(() => {
+    if (themeMode === 'auto') {
+      // 自动模式：根据系统偏好设置
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      setIsDark(mediaQuery.matches);
+    } else {
+      // 手动模式：直接设置
+      setIsDark(themeMode === 'dark');
+    }
+  }, [themeMode]);
 
   // 使用 useMemo 来避免重复计算主题配置
   const themeConfig = React.useMemo(() => ({
@@ -159,9 +171,9 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children, storageK
 
   const value: ThemeContextType = React.useMemo(() => ({
     themeMode,
-    setThemeMode,
+    setThemeMode: updateThemeMode,
     isDark,
-  }), [themeMode, setThemeMode, isDark]);
+  }), [themeMode, updateThemeMode, isDark]);
 
   return (
     <ThemeContext.Provider value={value}>

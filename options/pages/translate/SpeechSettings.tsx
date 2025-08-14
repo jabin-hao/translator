@@ -3,11 +3,11 @@ import { Select, Switch, Slider, Button, message, Segmented, ConfigProvider } fr
 import { TTS_ENGINES } from '~lib/constants/engines';
 import { useTranslation } from 'react-i18next';
 import { 
-  useSpeechSettings} from '~lib/utils/globalSettingsHooks';
+  useSpeechSettings} from '~lib/settings/globalSettingsHooks';
 import SettingsPageContainer from '../../components/SettingsPageContainer';
 import SettingsGroup from '../../components/SettingsGroup';
 import SettingsItem from '../../components/SettingsItem';
-import { useTheme } from '~lib/utils/theme';
+import { useTheme } from '~lib/theme/theme';
 
 const { Option } = Select;
 
@@ -80,7 +80,7 @@ const SpeechSettings: React.FC = () => {
   return (
     <SettingsPageContainer title={t('朗读设置')} description={t('配置语音朗读的相关设置')}>
       {/* 语音朗读总开关 */}
-      <SettingsGroup title={t('基本设置')} first>
+      <SettingsGroup title={t('基础设置')} first>
         <SettingsItem 
           label={t('启用语音朗读')}
           description={t('启用翻译结果的语音朗读功能')}

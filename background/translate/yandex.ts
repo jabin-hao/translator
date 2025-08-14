@@ -1,6 +1,6 @@
 import {getEngineLangCode} from '~lib/constants/languages';
 import {YANDEX_API_KEY} from '~lib/constants/settings';
-import {storageApi} from "~lib/utils/storage";
+import {storageApi} from "~lib/storage/storage";
 
 // Yandex 免费网页接口（基于开源项目最佳实践优化）
 async function yandexTranslateFree(text: string, from: string, to: string): Promise<string> {

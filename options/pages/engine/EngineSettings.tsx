@@ -6,11 +6,11 @@ import { useTranslation } from 'react-i18next';
 import {
   useGlobalSettings,
   useEngineSettings,
-} from '~lib/utils/globalSettingsHooks';
-import SettingsPageContainer from '../components/SettingsPageContainer';
-import SettingsGroup from '../components/SettingsGroup';
-import SettingsItem from '../components/SettingsItem';
-import { useTheme } from '~lib/utils/theme';
+} from '~lib/settings/globalSettingsHooks';
+import SettingsPageContainer from '../../components/SettingsPageContainer';
+import SettingsGroup from '../../components/SettingsGroup';
+import SettingsItem from '../../components/SettingsItem';
+import { useTheme } from '~lib/theme/theme';
 
 const { Option } = Select;
 

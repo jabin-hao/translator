@@ -3,7 +3,7 @@ import { Switch, Select } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { 
   useTextTranslateSettings,
-} from '~lib/utils/globalSettingsHooks';
+} from '~lib/settings/globalSettingsHooks';
 import SettingsPageContainer from '../../components/SettingsPageContainer';
 import SettingsGroup from '../../components/SettingsGroup';
 import SettingsItem from '../../components/SettingsItem';
@@ -20,14 +20,10 @@ const TextTranslateSettings: React.FC = () => {
     await updateTextTranslate({ [key]: checked } as any);
   };
 
-  const handleKeyCodeChange = async (value: string) => {
-    await updateTextTranslate({ keyCode: value });
-  };
-
   return (
-    <SettingsPageContainer title={t('划词翻译设置')}>
+    <SettingsPageContainer title={t('划词翻译设置')} description={t('配置划词翻译的相关设置')}>
       {/* 划词翻译总开关 */}
-      <SettingsGroup title={t('划词翻译')} first>
+      <SettingsGroup title={t('基础设置')} first>
         <SettingsItem 
           label={t('启用划词翻译')}
           description={t('开启后，选中文本即可进行翻译')}
@@ -71,58 +67,6 @@ const TextTranslateSettings: React.FC = () => {
             checked={textTranslateSettings.quickTranslate}
             onChange={(checked) => handleSwitchChange('quickTranslate', checked)}
           />
-        </SettingsItem>
-
-        <SettingsItem 
-          label={t('按键翻译')}
-          description={t('按下指定按键进行翻译')}
-        >
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <Switch
-              checked={textTranslateSettings.pressKeyTranslate}
-              onChange={(checked) => handleSwitchChange('pressKeyTranslate', checked)}
-            />
-            {textTranslateSettings.pressKeyTranslate && (
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <Select 
-                  value={textTranslateSettings.keyCode} 
-                  onChange={handleKeyCodeChange}
-                  style={{ width: 100 }}
-                >
-                  <Option value="Space">{t('空格')}</Option>
-                  <Option value="Enter">{t('回车')}</Option>
-                  <Option value="Tab">{t('Tab')}</Option>
-                  <Option value="Escape">{t('Esc')}</Option>
-                </Select>
-                <div style={{ display: 'flex', gap: 4 }}>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={textTranslateSettings.pressKeyWithCtrl}
-                      onChange={(e) => handleSwitchChange('pressKeyWithCtrl', e.target.checked)}
-                    />
-                    Ctrl
-                  </label>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={textTranslateSettings.pressKeyWithShift}
-                      onChange={(e) => handleSwitchChange('pressKeyWithShift', e.target.checked)}
-                    />
-                    Shift
-                  </label>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={textTranslateSettings.pressKeyWithAlt}
-                      onChange={(e) => handleSwitchChange('pressKeyWithAlt', e.target.checked)}
-                    />
-                    Alt
-                  </label>
-                </div>
-              </div>
-            )}
-          </div>
         </SettingsItem>
       </SettingsGroup>
 

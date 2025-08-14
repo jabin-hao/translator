@@ -1,14 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Select, Radio, Button, message, Upload, Typography, Modal, ConfigProvider, Segmented } from 'antd';
-import { storageApi } from '~/lib/utils/storage';
+import { Select, Button, message, Upload, Modal, ConfigProvider, Segmented } from 'antd';
 import { UI_LANGUAGES } from '~/lib/constants/languages';
 import { UploadOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import { useGlobalSettings, useThemeSettings } from '~lib/utils/globalSettingsHooks';
+import { useGlobalSettings, useThemeSettings } from '~lib/settings/globalSettingsHooks';
 import { GLOBAL_SETTINGS_KEY } from '~lib/settings/globalSettings';
-import SettingsPageContainer from '../components/SettingsPageContainer';
-import SettingsGroup from '../components/SettingsGroup';
-import SettingsItem from '../components/SettingsItem';
+import SettingsPageContainer from '../../components/SettingsPageContainer';
+import SettingsGroup from '../../components/SettingsGroup';
+import SettingsItem from '../../components/SettingsItem';
 import { produce } from 'immer';
 import {THEME_OPTIONS} from '~/lib/constants/settings'
 
@@ -22,7 +21,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
   const { t, i18n } = useTranslation();
   
   // 使用新的全局配置系统
-  const { settings, updateSettings } = useGlobalSettings();
+  const { settings, updateSettings, resetSettings } = useGlobalSettings();
   const { themeSettings, updateTheme } = useThemeSettings();
   
   // 从全局设置中提取值
@@ -36,7 +35,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
       if (!uiLang) {
         // 自动检测浏览器语言
         const browserLang = navigator.language;
-        const { mapUiLangToI18nKey } = await import('../../lib/constants/languages');
+        const { mapUiLangToI18nKey } = await import('../../../lib/constants/languages');
         const detectedLang = mapUiLangToI18nKey(browserLang);
         await updateTheme({ uiLanguage: detectedLang });
       } else {
@@ -106,13 +105,13 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
   const handleClearConfig = useCallback(async () => {
     try {
       // 重置为默认设置
-      await storageApi.set(GLOBAL_SETTINGS_KEY, null);
+      await resetSettings();
       message.success('配置已清除，页面将刷新');
       setTimeout(() => window.location.reload(), 1000);
     } catch (error) {
       message.error('清除配置失败');
     }
-  }, []);
+  }, [resetSettings]);
 
   return (
     <SettingsPageContainer 

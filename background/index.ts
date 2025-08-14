@@ -1,7 +1,6 @@
 // 后台脚本入口文件
-import { DEFAULT_CACHE_CONFIG } from '~lib/constants/settings';
 import { DEFAULT_SETTINGS } from '~lib/settings/globalSettings';
-import { storageApi } from '~lib/utils/storage';
+import { storageApi } from '~lib/storage/storage';
 
 console.log('后台脚本已启动');
 
@@ -23,12 +22,6 @@ chrome.runtime.onInstalled.addListener(async () => {
     };
     await storageApi.set('global_settings', mergedSettings);
     console.log('已更新全局设置');
-  }
-  
-  // 初始化缓存设置（可能需要保持独立）
-  const cacheConfig = await storageApi.get('translation_cache_config');
-  if (!cacheConfig) {
-    await storageApi.set('translation_cache_config', DEFAULT_CACHE_CONFIG);
   }
 });
 

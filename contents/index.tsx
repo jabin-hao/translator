@@ -10,7 +10,7 @@ import TranslatorIcon from './components/TranslatorIcon';
 import TranslatorResult from './components/TranslatorResult';
 import InputTranslator from './components/InputTranslator';
 import i18n, { initI18n } from '../i18n';
-import { ThemeProvider } from '~lib/utils/theme';
+import { ThemeProvider } from '~lib/theme/theme';
 
 // 引入拆分后的模块
 import { setupSelectionHandler } from '~lib/translate/selection';
@@ -25,8 +25,8 @@ import {
     useTextTranslateSettings,
     useThemeSettings,
     useShortcutSettings
-} from '~lib/utils/globalSettingsHooks';
-import { initializeDefaultSettings, callTranslateAPI, callTTSAPI, stopTTSAPI } from './content';
+} from '~lib/settings/globalSettingsHooks';
+import { callTranslateAPI, callTTSAPI, stopTTSAPI } from './content';
 
 const HOST_ID = "translator-csui"
 
@@ -308,9 +308,6 @@ const ContentScript = () => {
 
     // 初始化默认设置
     useEffect(() => {
-        initializeDefaultSettings().then(() => {
-        });
-
         // 获取Shadow Root
         const hostElement = document.getElementById(HOST_ID);
         if (hostElement?.shadowRoot) {
@@ -373,7 +370,7 @@ const ContentScript = () => {
     (window as any).callTranslateAPI = callTranslateAPICallback;
 
     return (
-        <ThemeProvider storageKey="theme_mode">
+        <ThemeProvider>
             <StyleProvider hashPriority="high" container={document.getElementById(HOST_ID)?.shadowRoot}>
                 <App
                     message={{
