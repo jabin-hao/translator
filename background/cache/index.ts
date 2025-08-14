@@ -57,5 +57,5 @@ export async function handleCacheMessage(action: string, body: any) {
 }
 
 // 启动时立即清理并定时
-cleanCache().then(() => {});
-scheduleCacheCleanup().then(() => {});
+cleanCache().then();
+scheduleCacheCleanup().then();

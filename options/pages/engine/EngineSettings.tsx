@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import {useImmer} from 'use-immer';
+import React from 'react';
 import { produce } from 'immer';
-import { Switch, Select, Radio, Space, Card, Divider, Alert, Button, Input, Modal, Form, message, ConfigProvider, Segmented } from 'antd';
+import { Switch, Select, Radio, Space, Card, Divider, Button, Input, Modal, Form, message, ConfigProvider, Segmented } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import {
@@ -36,8 +37,8 @@ const EngineSettings: React.FC = () => {
   const ttsEngine = settings.speech.engine;
   
   // 模态框状态
-  const [engineModalVisible, setEngineModalVisible] = useState(false);
-  const [editingEngine, setEditingEngine] = useState<CustomEngine | null>(null);
+  const [engineModalVisible, setEngineModalVisible] = useImmer(false);
+  const [editingEngine, setEditingEngine] = useImmer<CustomEngine | null>(null);
   const [form] = Form.useForm();
 
   const translateEngineOptions = [
@@ -50,10 +51,6 @@ const EngineSettings: React.FC = () => {
     }))
   ];
 
-  const ttsEngineOptions = [
-    { value: 'google', label: 'Google TTS', description: '在线语音合成' },
-    { value: 'local', label: '本地 TTS', description: '使用系统语音' },
-  ];
 
   const llmEngineTemplates = [
     {
@@ -94,7 +91,7 @@ const EngineSettings: React.FC = () => {
     await setDefaultEngine(value);
   };
 
-  const testApiKey = async (engine: string) => {
+  const testApiKey = async (str) => {
     message.info(t('API密钥测试功能正在开发中'));
   };
 

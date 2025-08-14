@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect } from 'react';
 import { ConfigProvider, theme } from 'antd';
 import { useThemeSettings } from '../settings/settingsHooks';
+import { useImmer } from 'use-immer';
 
 type ThemeMode = 'light' | 'dark' | 'auto';
 
@@ -29,7 +30,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const { themeSettings, setThemeMode: updateThemeMode } = useThemeSettings();
   const themeMode = themeSettings.mode;
   
-  const [isDark, setIsDark] = useState(() => {
+  const [isDark, setIsDark] = useImmer(() => {
     // 初始化时计算一次
     if (themeMode === 'auto') {
       return typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;

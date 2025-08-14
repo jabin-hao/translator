@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { produce } from 'immer';
+import React, { useEffect } from 'react';
+import { useImmer } from 'use-immer';
 import { List, Button, Input, message, Modal, Card, Tag, Space, Tooltip, Popconfirm, Select, Empty, Switch } from 'antd';
-import { DeleteOutlined, EditOutlined, SearchOutlined, ExportOutlined, ImportOutlined } from '@ant-design/icons';
+import { DeleteOutlined, EditOutlined, ExportOutlined, ImportOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { useFavoritesSettings } from '~lib/settings/settingsHooks';
 import SettingsPageContainer from '../../components/SettingsPageContainer';
@@ -24,19 +24,19 @@ const FavoritesSettings: React.FC = () => {
   const { favoritesSettings, updateFavorites, toggleEnabled } = useFavoritesSettings();
   const favorites = favoritesSettings.words;
   
-  const [filteredFavorites, setFilteredFavorites] = useState<FavoriteWord[]>([]);
-  const [searchText, setSearchText] = useState('');
-  const [selectedLanguage, setSelectedLanguage] = useState<string>('all');
+  const [filteredFavorites, setFilteredFavorites] = useImmer<FavoriteWord[]>([]);
+  const [searchText, setSearchText] = useImmer('');
+  const [selectedLanguage, setSelectedLanguage] = useImmer<string>('all');
   
   // 编辑模态框状态
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const [editingWord, setEditingWord] = useState<FavoriteWord | null>(null);
-  const [editNote, setEditNote] = useState('');
-  const [editTags, setEditTags] = useState<string[]>([]);
+  const [editModalVisible, setEditModalVisible] = useImmer(false);
+  const [editingWord, setEditingWord] = useImmer<FavoriteWord | null>(null);
+  const [editNote, setEditNote] = useImmer('');
+  const [editTags, setEditTags] = useImmer<string[]>([]);
 
   // 导入导出状态
-  const [importModalVisible, setImportModalVisible] = useState(false);
-  const [importText, setImportText] = useState('');
+  const [importModalVisible, setImportModalVisible] = useImmer(false);
+  const [importText, setImportText] = useImmer('');
 
   // 过滤收藏列表
   useEffect(() => {
@@ -67,9 +67,7 @@ const FavoritesSettings: React.FC = () => {
   // 删除收藏
   const handleDelete = async (id: string) => {
     // 使用 immer 优化数组过滤
-    const newFavorites = produce(favorites, (draft) => {
-      return draft.filter(item => item.id !== id);
-    });
+    const newFavorites = favorites.filter(item => item.id !== id);
     await updateFavorites({ words: newFavorites });
     message.success(t('已删除收藏'));
   };
@@ -93,13 +91,11 @@ const FavoritesSettings: React.FC = () => {
     if (!editingWord) return;
     
     // 使用 immer 优化对象更新
-    const newFavorites = produce(favorites, (draft) => {
-      const index = draft.findIndex(item => item.id === editingWord.id);
-      if (index >= 0) {
-        draft[index].notes = editNote;
-        draft[index].tags = editTags;
-      }
-    });
+    const newFavorites = favorites.map(item =>
+      item.id === editingWord.id
+      ? { ...item, notes: editNote, tags: editTags }
+      : item
+    );
     await updateFavorites({ words: newFavorites });
     setEditModalVisible(false);
     setEditingWord(null);
@@ -128,11 +124,7 @@ const FavoritesSettings: React.FC = () => {
           item.id && item.word && item.translation
         );
         
-        // 使用 immer 优化数组合并
-        const newFavorites = produce(favorites, (draft) => {
-          draft.push(...validData);
-        });
-        
+        const newFavorites = [...favorites, ...validData];
         await updateFavorites({ words: newFavorites });
         setImportModalVisible(false);
         setImportText('');

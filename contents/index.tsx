@@ -1,7 +1,7 @@
 import { StyleProvider } from "@ant-design/cssinjs"
-import { useEffect, useState, useCallback, useRef } from "react"
+import { useEffect, useCallback, useRef } from "react"
 import { App } from 'antd';
-import { produce } from 'immer';
+import { useImmer } from 'use-immer';
 import { mapUiLangToI18nKey } from '~lib/constants/languages';
 import './index.css';
 import antdResetCssText from "data-text:antd/dist/reset.css"
@@ -19,7 +19,7 @@ import { setupMessageHandler } from '~lib/messages/messaging';
 import { setupAutoTranslate } from '~lib/translate/autoTranslate';
 
 // 使用新的全局配置系统
-import { 
+import {
     useGlobalSettings,
     useEngineSettings,
     useTextTranslateSettings,
@@ -142,20 +142,20 @@ const AppContent = ({
 };
 
 const ContentScript = () => {
-    const [icon, setIcon] = useState<{
+    const [icon, setIcon] = useImmer<{
         x: number
         y: number
         text: string
     } | null>(null);
-    const [result, setResult] = useState<{
+    const [result, setResult] = useImmer<{
         x: number;
         y: number;
         originalText: string;
     } | null>(null);
-    const [showInputTranslator, setShowInputTranslator] = useState(false);
+    const [showInputTranslator, setShowInputTranslator] = useImmer(false);
 
     // 新增：控制翻译时机
-    const [shouldTranslate, setShouldTranslate] = useState(false);
+    const [shouldTranslate, setShouldTranslate] = useImmer(false);
 
     // 使用新的全局配置系统
     const { settings } = useGlobalSettings();
@@ -207,11 +207,11 @@ const ContentScript = () => {
             // 如果开启了选择时自动翻译，直接触发翻译
             if (selectTranslateEnabled) {
                 // 将翻译结果显示在选中文字的正下方
-                setResult(produce((draft) => ({
-                    x: rect.left + window.scrollX, // 左对齐
-                    y: rect.bottom + window.scrollY, // 正下方
-                    originalText: text
-                })));
+                setResult(draft => {
+                    draft.x = rect.left + window.scrollX;
+                    draft.y = rect.bottom + window.scrollY;
+                    draft.originalText = text;
+                });
                 setShouldTranslate(true);
                 return;
             }
@@ -246,11 +246,11 @@ const ContentScript = () => {
                 iconY = window.innerHeight - iconHeight - margin;
             }
 
-            setIcon(produce((draft) => ({
-                x: iconX,
-                y: iconY,
-                text
-            })));
+            setIcon(draft => {
+                draft.x = iconX;
+                draft.y = iconY;
+                draft.text = text;
+            });
         }
     };
 
@@ -270,11 +270,11 @@ const ContentScript = () => {
             const selectionRect = rect || range.getBoundingClientRect();
 
             // 将翻译结果显示在选中文字的正下方
-            setResult(produce((draft) => ({
-                x: selectionRect.left + window.scrollX, // 左对齐
-                y: selectionRect.bottom + window.scrollY, // 正下方
-                originalText: selectionText
-            })));
+            setResult(draft => {
+                draft.x = selectionRect.left + window.scrollX; // 左对齐
+                draft.y = selectionRect.bottom + window.scrollY; // 正下方
+                draft.originalText = selectionText;
+            });
             setShouldTranslate(true);
         }
     }, []);
@@ -288,18 +288,17 @@ const ContentScript = () => {
                 const range = selection.getRangeAt(0);
                 const rect = range.getBoundingClientRect();
 
-                setResult(produce((draft) => ({
-                    x: rect.left, // 使用视窗相对坐标，因为结果组件也使用fixed定位
-                    y: rect.bottom + 5, // 选中文字的正下方
-                    originalText: icon.text
-                })));
+                setResult(draft => {
+                    draft.x = rect.left; // 使用视窗相对坐标，因为结果组件也使用fixed定位
+                    draft.y = rect.bottom + 5; // 选中文字的
+                });
             } else {
                 // 如果没有选中文字，则使用图标位置作为备选
-                setResult(produce((draft) => ({
-                    x: icon.x,
-                    y: icon.y + 30, // 在图标下方偏移30px
-                    originalText: icon.text
-                })));
+                setResult(draft => {
+                    draft.x = icon.x;
+                    draft.y = icon.y + 30; // 在图标下方偏移30
+                    draft.originalText = icon.text;
+                });
             }
             setShouldTranslate(true);
         }
@@ -436,7 +435,7 @@ const ContentScript = () => {
 
 // 新增：i18n异步初始化包装
 const ContentRoot = () => {
-    const [ready, setReady] = useState(false);
+    const [ready, setReady] = useImmer(false);
     useEffect(() => {
         initI18n().then(() => setReady(true));
     }, []);

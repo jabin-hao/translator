@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect } from 'react';
+import { useImmer } from 'use-immer';
 import { Select, Button, message, Upload, Modal, ConfigProvider, Segmented } from 'antd';
 import { UI_LANGUAGES } from '~/lib/constants/languages';
 import { UploadOutlined, DownloadOutlined } from '@ant-design/icons';
@@ -27,7 +28,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
   // 从全局设置中提取值
   const uiLang = themeSettings.uiLanguage;
   
-  const [clearConfigModalVisible, setClearConfigModalVisible] = useState(false);
+  const [clearConfigModalVisible, setClearConfigModalVisible] = useImmer(false);
 
   // 监听UI语言变化并自动设置默认值
   useEffect(() => {

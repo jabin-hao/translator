@@ -1,5 +1,6 @@
 import 'antd/dist/reset.css';
-import React, { useState, useEffect } from 'react';
+import { useImmer } from 'use-immer';
+import React, { useEffect } from 'react';
 import { Menu, Button, Tooltip, Space, Avatar, Typography, App, Layout } from 'antd';
 import { Icon } from '@iconify/react';
 import { useTheme } from '~lib/theme/theme';
@@ -37,13 +38,13 @@ const OptionsInner = () => {
   
   // 使用 ThemeProvider 的 useTheme hook
   const { themeMode, setThemeMode, isDark } = useTheme();
-  const [selectedKey, setSelectedKey] = useState('general');
-  const [openKeys, setOpenKeys] = useState<string[]>([]);
+  const [selectedKey, setSelectedKey] = useImmer('general');
+  const [openKeys, setOpenKeys] = useImmer<string[]>([]);
 
   // 确保翻译相关页面时，翻译菜单保持打开
   useEffect(() => {
     if (selectedKey.startsWith('translate-')) {
-      setOpenKeys(prev => prev.includes('translate') ? prev : [...prev, 'translate']);
+      setOpenKeys(draft => draft.includes('translate') ? draft : draft.push('translate'));
     }
   }, [selectedKey]);
 

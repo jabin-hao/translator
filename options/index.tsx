@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { App } from 'antd';
 import { I18nextProvider } from 'react-i18next';
 import { initI18n } from '~i18n';
 import i18n from '../i18n';
 import { ThemeProvider } from '~lib/theme/theme';
 import OptionsInner from './OptionsInner';
+import { useImmer } from 'use-immer';
 
 const OptionsRoot = () => {
-  const [i18nReady, setI18nReady] = useState(false);
+  const [i18nReady, setI18nReady] = useImmer(false);
   
   useEffect(() => {
     initI18n().then(() => {

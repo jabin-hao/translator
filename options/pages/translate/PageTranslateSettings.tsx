@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { produce } from 'immer';
+import React from 'react';
+import { useImmer } from 'use-immer';
 import { Switch, List, Modal, Button, Input, message, Checkbox, Tooltip, Segmented, ConfigProvider, Select } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { 
@@ -8,9 +8,7 @@ import {
 import { 
   useCustomDictionary,
   useDomainSettings,
-  type CustomDictionaryEntry,
-  type DomainSetting
-} from '~lib/storage/indexedHooks';
+  type CustomDictionaryEntry} from '~lib/storage/indexedHooks';
 import { DeleteOutlined } from '@ant-design/icons';
 import SettingsPageContainer from '../../components/SettingsPageContainer';
 import SettingsGroup from '../../components/SettingsGroup';
@@ -43,21 +41,21 @@ const PageTranslateSettings: React.FC = () => {
   } = useCustomDictionary();
   
   // 添加站点相关状态
-  const [addHost, setAddHost] = useState('');
-  const [addType, setAddType] = useState<'always' | 'never'>('always');
+  const [addHost, setAddHost] = useImmer('');
+  const [addType, setAddType] = useImmer<'always' | 'never'>('always');
   
   // 显示全部站点的Modal状态
-  const [showAllAlways, setShowAllAlways] = useState(false);
-  const [showAllNever, setShowAllNever] = useState(false);
-  const [selectedAlways, setSelectedAlways] = useState<string[]>([]);
-  const [selectedNever, setSelectedNever] = useState<string[]>([]);
+  const [showAllAlways, setShowAllAlways] = useImmer(false);
+  const [showAllNever, setShowAllNever] = useImmer(false);
+  const [selectedAlways, setSelectedAlways] = useImmer<string[]>([]);
+  const [selectedNever, setSelectedNever] = useImmer<string[]>([]);
   
   // 自定义词库相关状态
-  const [dictModalOpen, setDictModalOpen] = useState(false);
-  const [dictHost, setDictHost] = useState<string>('');
-  const [dictEntries, setDictEntries] = useState<CustomDictionaryEntry[]>([]);
-  const [dictAddKey, setDictAddKey] = useState('');
-  const [dictAddValue, setDictAddValue] = useState('');
+  const [dictModalOpen, setDictModalOpen] = useImmer(false);
+  const [dictHost, setDictHost] = useImmer<string>('');
+  const [dictEntries, setDictEntries] = useImmer<CustomDictionaryEntry[]>([]);
+  const [dictAddKey, setDictAddKey] = useImmer('');
+  const [dictAddValue, setDictAddValue] = useImmer('');
 
   // 获取黑白名单数据
   const alwaysList = domainSettings.filter(setting => setting.type === 'whitelist' && setting.enabled);
@@ -91,7 +89,6 @@ const PageTranslateSettings: React.FC = () => {
   };
 
   // 不再需要加载站点列表的useEffect，因为数据来自全局配置
-
   const handleSiteAutoChange = (checked: boolean) => {
     toggleAutoTranslate();
   };

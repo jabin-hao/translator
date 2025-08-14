@@ -1,5 +1,6 @@
 import { Storage } from '@plasmohq/storage';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
+import { useImmer } from 'use-immer';
 
 const storage = new Storage();
 
@@ -16,9 +17,9 @@ export const storageApi = {
   }
 };
 
-// 简化的useStorage Hook - 直接使用Plasmo Storage的watch
+// 简化的useStorage Hook
 export function useStorage<T = any>(key: string, defaultValue?: T) {
-  const [value, setValue] = useState<T>(defaultValue as T);
+  const [value, setValue] = useImmer<T>(defaultValue as T);
   const defaultValueRef = useRef(defaultValue);
 
   useEffect(() => {

@@ -2,8 +2,8 @@
  * 基于IndexedDB的数据管理Hooks
  * 为收藏夹、自定义词库、域名设置和翻译缓存提供统一的数据操作接口
  */
-
-import { useCallback, useEffect, useState } from 'react';
+import { useImmer } from 'use-immer';
+import { useCallback, useEffect } from 'react';
 import { IndexedDBManager, DATABASE_CONFIGS } from './indexedDB';
 
 // 数据类型定义
@@ -53,9 +53,9 @@ const dbManager = new IndexedDBManager(DATABASE_CONFIGS.USER_DATA);
 
 // 通用数据操作Hook
 export function useIndexedDBData<T>(storeName: string) {
-  const [data, setData] = useState<T[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [data, setData] = useImmer<T[]>([]);
+  const [loading, setLoading] = useImmer(false);
+  const [error, setError] = useImmer<string | null>(null);
 
   // 初始化数据库
   const initDB = useCallback(async () => {

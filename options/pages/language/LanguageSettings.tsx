@@ -1,6 +1,6 @@
-import React, {useState} from 'react';
-import { produce } from 'immer';
-import {Select, Button, Tag, Space, App} from 'antd';
+import React from 'react';
+import { useImmer } from 'use-immer';
+import {Select, Button, Tag, App} from 'antd';
 import {PlusOutlined} from '@ant-design/icons';
 import {LANGUAGES} from '~lib/constants/languages';
 import {useTranslation} from 'react-i18next';
@@ -35,9 +35,9 @@ const LanguageSettings: React.FC = () => {
     const neverLangs = languageSettings.never;
     const alwaysLangs = languageSettings.always;
     
-    const [addFav, setAddFav] = useState('');
-    const [addNever, setAddNever] = useState('');
-    const [addAlways, setAddAlways] = useState('');
+    const [addFav, setAddFav] = useImmer('');
+    const [addNever, setAddNever] = useImmer('');
+    const [addAlways, setAddAlways] = useImmer('');
 
     // 初始化划词翻译目标语言的逻辑
     React.useEffect(() => {

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { useImmer } from 'use-immer';
+import React, { useEffect } from 'react';
 import { Button, Modal, Switch, InputNumber, App } from 'antd';
 import { Icon } from '@iconify/react';
 import { useTranslation } from 'react-i18next';
@@ -17,10 +18,10 @@ const CacheSettings: React.FC = () => {
   // 使用新的全局配置系统
   const { cacheSettings, updateCache, toggleEnabled } = useCacheSettings();
   
-  const [stats, setStats] = useState<{ count: number; size: number }>({ count: 0, size: 0 });
-  const [loading, setLoading] = useState(false);
+  const [stats, setStats] = useImmer<{ count: number; size: number }>({ count: 0, size: 0 });
+  const [loading, setLoading] = useImmer(false);
   // 新增本地 state 保存输入值
-  const [pendingConfig, setPendingConfig] = useState({
+  const [pendingConfig, setPendingConfig] = useImmer({
     maxAge: cacheSettings.maxAge,
     maxSize: cacheSettings.maxSize,
   });
@@ -30,12 +31,10 @@ const CacheSettings: React.FC = () => {
     try {
       const stats = await cacheManager.getStats();
       // 验证统计数据的有效性
-      const validStats = {
+      setStats({
         count: isNaN(stats.count) ? 0 : stats.count,
         size: isNaN(stats.size) ? 0 : stats.size
-      };
-      
-      setStats(produce(() => validStats));
+      });
       message.success(t('统计已刷新'));
     } catch (error) {
       console.error('加载缓存统计失败:', error);

@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Switch, Typography, message, Input, Button } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { produce } from 'immer';
+import { useImmer } from 'use-immer';
 import { useShortcutSettings } from '~lib/settings/settingsHooks';
 import SettingsPageContainer from '../../components/SettingsPageContainer';
 import SettingsGroup from '../../components/SettingsGroup';
@@ -30,9 +30,9 @@ const ShortcutSettings: React.FC = () => {
     updateShortcut: any;
   };
   
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordedKeys, setRecordedKeys] = useState<string[]>([]);
-  const [recordingType, setRecordingType] = useState<keyof Omit<typeof shortcutSettings, 'enabled'> | null>(null);
+  const [isRecording, setIsRecording] = useImmer(false);
+  const [recordedKeys, setRecordedKeys] = useImmer<string[]>([]);
+  const [recordingType, setRecordingType] = useImmer<keyof Omit<typeof shortcutSettings, 'enabled'> | null>(null);
 
   // 保存设置的辅助函数
   const saveShortcut = async (key: keyof Omit<typeof shortcutSettings, 'enabled'>, value: string) => {

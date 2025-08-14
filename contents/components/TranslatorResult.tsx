@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useEffect, useRef, useMemo, useCallback } from 'react';
 import { Card, Button, Divider, Spin } from 'antd';
 import { CopyOutlined, SoundOutlined, LoadingOutlined, StarOutlined, StarFilled } from '@ant-design/icons';
-import { produce } from 'immer';
+import { useImmer } from 'use-immer';
 import '../index.css';
 import { getEngineLangCode, getLangAbbr, getTTSLang, getBrowserLang } from '~lib/constants/languages';
 import { useTranslation } from 'react-i18next';
-import { useGlobalSettings, useLanguageSettings, useSpeechSettings, useFavoritesSettings } from '~lib/settings/settingsHooks';
+import { useLanguageSettings, useSpeechSettings, useFavoritesSettings } from '~lib/settings/settingsHooks';
 import { FavoritesManager } from '~lib/favorite/favorites';
 
 // 获取友好的引擎名称
@@ -78,18 +78,17 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
   }, [props.x, props.y, props.text]);
 
   // =============== 所有其他 hooks 必须在这里，无条件执行 ===============
-  const [targetLang, setTargetLang] = useState<string | undefined>(undefined);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [translatedText, setTranslatedText] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [usedEngine, setUsedEngine] = useState(props.engine);
-  const [shouldRender, setShouldRender] = useState(false);
-  const [isFavorited, setIsFavorited] = useState(false);
+  const [targetLang, setTargetLang] = useImmer<string | undefined>(undefined);
+  const [isSpeaking, setIsSpeaking] = useImmer(false);
+  const [translatedText, setTranslatedText] = useImmer('');
+  const [loading, setLoading] = useImmer(false);
+  const [usedEngine, setUsedEngine] = useImmer(props.engine);
+  const [shouldRender, setShouldRender] = useImmer(false);
+  const [isFavorited, setIsFavorited] = useImmer(false);
   
   // refs - 也必须无条件调用
   const originalTextRef = useRef(props.text);
   const hasTranslatedRef = useRef(false);
-  const isInitializedRef = useRef(false);
   const translationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const lastTargetLangRef = useRef<string | undefined>(props.targetLang);
@@ -135,15 +134,15 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
     // 直接传递 targetLang，让 callTranslateAPI 处理语言映射
     props.callTranslateAPI(srcText, 'auto', targetLang, props.engine)
       .then(res => {
-        setTranslatedText(produce(() => res.result ?? ''));
-        setUsedEngine(produce(() => res.engine || props.engine));
+        setTranslatedText(res.result ?? '');
+        setUsedEngine(res.engine || props.engine);
         isLanguageSwitchingRef.current = false; // 翻译完成后重置语言切换标志
         props.onTranslationComplete?.(); // 翻译成功时调用回调
       })
       .catch(err => {
         console.error('翻译失败:', err);
-        setTranslatedText(produce(() => t('翻译失败')));
-        setUsedEngine(produce(() => ''));
+        setTranslatedText(t('翻译失败'));
+        setUsedEngine('');
         isLanguageSwitchingRef.current = false; // 翻译失败后也重置语言切换标志
         props.onTranslationComplete?.(); // 翻译失败时也调用回调
       })
@@ -170,7 +169,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
       targetLang !== lastTargetLangRef.current
     ) {
       hasTranslatedRef.current = false;
-      setTranslatedText(produce(() => ''));
+      setTranslatedText('');
       originalTextRef.current = srcText;
       lastTargetLangRef.current = targetLang;
     }

@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { produce } from 'immer';
+import React, { useEffect } from 'react';
+import { useImmer } from 'use-immer';
 import { Select, Switch, Divider, message, Button, Tooltip, Space, Typography } from 'antd';
 import { TRANSLATE_ENGINES } from '~lib/constants/engines';
 import { LANGUAGES } from '~lib/constants/languages';
@@ -13,7 +13,6 @@ import {
   useGlobalSettings,
   useEngineSettings,
   usePageTranslateSettings,
-  useThemeSettings,
   useTextTranslateSettings,
   useSpeechSettings
 } from '~lib/settings/settingsHooks';
@@ -113,12 +112,12 @@ const PopupInner: React.FC = () => {
   const pageTargetLang = settings.languages.pageTarget;
   const textTargetLang = settings.languages.textTarget;
   
-  const [isPageTranslated, setIsPageTranslated] = useState(false);
-  const [isPageTranslating, setIsPageTranslating] = useState(false);
+  const [isPageTranslated, setIsPageTranslated] = useImmer(false);
+  const [isPageTranslating, setIsPageTranslating] = useImmer(false);
 
   // 网站管理相关状态
-  const [siteKey, setSiteKey] = useState('');
-  const [siteSettings, setSiteSettings] = useState({ always: false, never: false });
+  const [siteKey, setSiteKey] = useImmer('');
+  const [siteSettings, setSiteSettings] = useImmer({ always: false, never: false });
 
   // 获取当前 tab 的 host+path
   useEffect(() => {
@@ -166,7 +165,7 @@ const PopupInner: React.FC = () => {
         const tabId = tabs[0]?.id;
         if (!tabId) return;
         chrome.tabs.sendMessage(tabId, { type: 'CHECK_PAGE_TRANSLATED' }, (res) => {
-          setIsPageTranslated(produce(() => res?.translated === true));
+          setIsPageTranslated(res?.translated === true);
         });
       });
     };
@@ -186,11 +185,11 @@ const PopupInner: React.FC = () => {
       const handler = (msg) => {
         if (msg.type === 'FULL_PAGE_TRANSLATE_DONE') {
           setIsPageTranslating(false);
-          setIsPageTranslated(produce(() => true));
+          setIsPageTranslated(true);
         }
         if (msg.type === 'RESTORE_ORIGINAL_PAGE_DONE') {
           setIsPageTranslating(false);
-          setIsPageTranslated(produce(() => false));
+          setIsPageTranslated(false);
         }
       };
       chrome.runtime.onMessage.addListener(handler);
