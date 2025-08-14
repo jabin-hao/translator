@@ -25,7 +25,7 @@ import {
     useTextTranslateSettings,
     useThemeSettings,
     useShortcutSettings
-} from '~lib/settings/globalSettingsHooks';
+} from '~lib/settings/settingsHooks';
 import { callTranslateAPI, callTTSAPI, stopTTSAPI } from './content';
 
 const HOST_ID = "translator-csui"

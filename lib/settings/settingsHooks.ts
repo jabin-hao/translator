@@ -1,14 +1,14 @@
 import { useCallback } from 'react';
 import { produce } from 'immer';
 import { useStorage } from '../storage/storage';
-import type { 
-  GlobalSettings, 
-  PartialDeep 
-} from './globalSettings';
-import { 
-  DEFAULT_SETTINGS, 
+import type {
+  GlobalSettings,
+  PartialDeep
+} from './settings';
+import {
+  DEFAULT_SETTINGS,
   GLOBAL_SETTINGS_KEY
-} from './globalSettings';
+} from './settings';
 
 /**
  * 统一的全局设置管理 Hook
@@ -16,7 +16,7 @@ import {
  */
 export function useGlobalSettings() {
   const [settings, setStorageSettings] = useStorage<GlobalSettings>(
-    GLOBAL_SETTINGS_KEY, 
+    GLOBAL_SETTINGS_KEY,
     DEFAULT_SETTINGS
   );
 
@@ -82,9 +82,9 @@ function deepMergeWithImmer<T>(target: T, source: any): T {
  */
 export function useThemeSettings() {
   const { settings, updateModuleSettings } = useGlobalSettings();
-  
+
   const themeSettings = settings.theme;
-  
+
   const updateTheme = useCallback((updates: PartialDeep<GlobalSettings['theme']>) => {
     updateModuleSettings('theme', updates);
   }, [updateModuleSettings]);
@@ -110,9 +110,9 @@ export function useThemeSettings() {
  */
 export function useEngineSettings() {
   const { settings, updateModuleSettings } = useGlobalSettings();
-  
+
   const engineSettings = settings.engines;
-  
+
   const updateEngines = useCallback((updates: PartialDeep<GlobalSettings['engines']>) => {
     updateModuleSettings('engines', updates);
   }, [updateModuleSettings]);
@@ -122,13 +122,13 @@ export function useEngineSettings() {
   }, [updateEngines]);
 
   const updateApiKey = useCallback((
-    provider: keyof GlobalSettings['engines']['apiKeys'], 
+    provider: keyof GlobalSettings['engines']['apiKeys'],
     key: string
   ) => {
-    updateEngines({ 
-      apiKeys: { 
-        [provider]: key 
-      } 
+    updateEngines({
+      apiKeys: {
+        [provider]: key
+      }
     });
   }, [updateEngines]);
 
@@ -176,9 +176,9 @@ export function useEngineSettings() {
  */
 export function useTextTranslateSettings() {
   const { settings, updateModuleSettings } = useGlobalSettings();
-  
+
   const textTranslateSettings = settings.textTranslate;
-  
+
   const updateTextTranslate = useCallback((updates: PartialDeep<GlobalSettings['textTranslate']>) => {
     updateModuleSettings('textTranslate', updates);
   }, [updateModuleSettings]);
@@ -204,9 +204,9 @@ export function useTextTranslateSettings() {
  */
 export function useLanguageSettings() {
   const { settings, updateModuleSettings } = useGlobalSettings();
-  
+
   const languageSettings = settings.languages;
-  
+
   const updateLanguages = useCallback((updates: PartialDeep<GlobalSettings['languages']>) => {
     updateModuleSettings('languages', updates);
   }, [updateModuleSettings]);
@@ -293,9 +293,9 @@ export function useLanguageSettings() {
  */
 export function useInputTranslateSettings() {
   const { getModuleSettings, updateModuleSettings } = useGlobalSettings();
-  
+
   const inputTranslateSettings = getModuleSettings('inputTranslate');
-  
+
   const updateInputTranslate = useCallback((updates: PartialDeep<GlobalSettings['inputTranslate']>) => {
     updateModuleSettings('inputTranslate', updates);
   }, [updateModuleSettings]);
@@ -316,9 +316,9 @@ export function useInputTranslateSettings() {
  */
 export function useSpeechSettings() {
   const { settings, updateModuleSettings } = useGlobalSettings();
-  
+
   const speechSettings = settings.speech;
-  
+
   const updateSpeech = useCallback((updates: PartialDeep<GlobalSettings['speech']>) => {
     updateModuleSettings('speech', updates);
   }, [updateModuleSettings]);
@@ -349,9 +349,9 @@ export function useSpeechSettings() {
  */
 export function useCacheSettings() {
   const { getModuleSettings, updateModuleSettings } = useGlobalSettings();
-  
+
   const cacheSettings = getModuleSettings('cache');
-  
+
   const updateCache = useCallback((updates: PartialDeep<GlobalSettings['cache']>) => {
     updateModuleSettings('cache', updates);
   }, [updateModuleSettings]);
@@ -372,9 +372,9 @@ export function useCacheSettings() {
  */
 export function useShortcutSettings() {
   const { getModuleSettings, updateModuleSettings } = useGlobalSettings();
-  
+
   const shortcutSettings = getModuleSettings('shortcuts');
-  
+
   const updateShortcuts = useCallback((updates: PartialDeep<GlobalSettings['shortcuts']>) => {
     updateModuleSettings('shortcuts', updates);
   }, [updateModuleSettings]);
@@ -400,9 +400,9 @@ export function useShortcutSettings() {
  */
 export function useFavoritesSettings() {
   const { settings, updateModuleSettings } = useGlobalSettings();
-  
+
   const favoritesSettings = settings.favorites;
-  
+
   const updateFavorites = useCallback((updates: PartialDeep<GlobalSettings['favorites']>) => {
     updateModuleSettings('favorites', updates);
   }, [updateModuleSettings]);
@@ -459,9 +459,9 @@ export function useFavoritesSettings() {
  */
 export function usePageTranslateSettings() {
   const { settings, updateSettings } = useGlobalSettings();
-  
+
   const pageTranslateSettings = settings.pageTranslate;
-  
+
   const updatePageTranslateSettings = useCallback(async (updates: PartialDeep<GlobalSettings['pageTranslate']>) => {
     await updateSettings({ pageTranslate: updates });
   }, [updateSettings]);
@@ -528,14 +528,14 @@ class CustomDictManager {
 
       request.onupgradeneeded = () => {
         const db = request.result;
-        
+
         // 创建自定义词库存储
         if (!db.objectStoreNames.contains(this.storeName)) {
           const store = db.createObjectStore(this.storeName, {
             keyPath: 'id',
             autoIncrement: true
           });
-          
+
           // 创建索引
           store.createIndex('host', 'host', { unique: false });
           store.createIndex('originalText', 'originalText', { unique: false });
@@ -548,43 +548,39 @@ class CustomDictManager {
   // 添加或更新自定义词库条目
   async addEntry(entry: Omit<CustomDictEntry, 'id' | 'timestamp'>): Promise<number> {
     const db = await this.initDB();
-    
+
     return new Promise((resolve, reject) => {
       const transaction = db.transaction([this.storeName], 'readwrite');
       const store = transaction.objectStore(this.storeName);
       const index = store.index('hostAndOriginal');
-      
+
       // 先检查是否已存在
       const checkRequest = index.get([entry.host, entry.originalText]);
-      
+
       checkRequest.onsuccess = () => {
         const existingEntry = checkRequest.result;
-        
+
         if (existingEntry) {
           // 更新现有条目
-          const updatedEntry: CustomDictEntry = {
-            ...existingEntry,
-            customTranslation: entry.customTranslation,
-            lastUsed: Date.now()
-          };
-          
+          const updatedEntry = produce(existingEntry, (draft: CustomDictEntry) => {
+            draft.customTranslation = entry.customTranslation;
+            draft.lastUsed = Date.now();
+          });
           const updateRequest = store.put(updatedEntry);
-          updateRequest.onsuccess = () => resolve(updatedEntry.id!);
+          updateRequest.onsuccess = () => resolve(existingEntry.id!);
           updateRequest.onerror = () => reject(updateRequest.error);
         } else {
           // 添加新条目
-          const newEntry: CustomDictEntry = {
-            ...entry,
-            timestamp: Date.now(),
-            lastUsed: Date.now()
-          };
-          
+          const newEntry = produce(entry, (draft: CustomDictEntry) => {
+            draft.timestamp = Date.now();
+            draft.lastUsed = Date.now();
+          });
           const addRequest = store.add(newEntry);
           addRequest.onsuccess = () => resolve(addRequest.result as number);
           addRequest.onerror = () => reject(addRequest.error);
         }
       };
-      
+
       checkRequest.onerror = () => reject(checkRequest.error);
     });
   }
@@ -592,13 +588,13 @@ class CustomDictManager {
   // 获取指定网站的所有自定义词库
   async getEntriesByHost(host: string): Promise<CustomDictEntry[]> {
     const db = await this.initDB();
-    
+
     return new Promise((resolve, reject) => {
       const transaction = db.transaction([this.storeName], 'readonly');
       const store = transaction.objectStore(this.storeName);
       const index = store.index('host');
       const request = index.getAll(host);
-      
+
       request.onsuccess = () => {
         const entries = request.result;
         resolve(entries);
@@ -613,13 +609,13 @@ class CustomDictManager {
   // 查找自定义翻译
   async findCustomTranslation(host: string, originalText: string): Promise<string | null> {
     const db = await this.initDB();
-    
+
     return new Promise((resolve, reject) => {
       const transaction = db.transaction([this.storeName], 'readwrite');
       const store = transaction.objectStore(this.storeName);
       const index = store.index('hostAndOriginal');
       const request = index.get([host, originalText]);
-      
+
       request.onsuccess = () => {
         const entry = request.result;
         if (entry) {
@@ -631,7 +627,7 @@ class CustomDictManager {
           resolve(null);
         }
       };
-      
+
       request.onerror = () => {
         console.error(`[CustomDictManager] 查找自定义翻译失败:`, request.error);
         reject(request.error);
@@ -642,12 +638,12 @@ class CustomDictManager {
   // 删除自定义词库条目
   async deleteEntry(id: number): Promise<void> {
     const db = await this.initDB();
-    
+
     return new Promise((resolve, reject) => {
       const transaction = db.transaction([this.storeName], 'readwrite');
       const store = transaction.objectStore(this.storeName);
       const request = store.delete(id);
-      
+
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
     });
@@ -657,22 +653,22 @@ class CustomDictManager {
   async deleteEntriesByHost(host: string): Promise<void> {
     const entries = await this.getEntriesByHost(host);
     const db = await this.initDB();
-    
+
     return new Promise((resolve, reject) => {
       const transaction = db.transaction([this.storeName], 'readwrite');
       const store = transaction.objectStore(this.storeName);
-      
+
       let completed = 0;
       let errors: any[] = [];
-      
+
       if (entries.length === 0) {
         resolve();
         return;
       }
-      
+
       entries.forEach(entry => {
         const request = store.delete(entry.id!);
-        
+
         request.onsuccess = () => {
           completed++;
           if (completed === entries.length) {
@@ -683,7 +679,7 @@ class CustomDictManager {
             }
           }
         };
-        
+
         request.onerror = () => {
           errors.push(request.error);
           completed++;
@@ -698,26 +694,26 @@ class CustomDictManager {
   // 获取统计信息
   async getStats(): Promise<{ totalEntries: number; entriesByHost: Record<string, number> }> {
     const db = await this.initDB();
-    
+
     return new Promise((resolve, reject) => {
       const transaction = db.transaction([this.storeName], 'readonly');
       const store = transaction.objectStore(this.storeName);
       const request = store.getAll();
-      
+
       request.onsuccess = () => {
         const entries = request.result;
         const entriesByHost: Record<string, number> = {};
-        
+
         entries.forEach(entry => {
           entriesByHost[entry.host] = (entriesByHost[entry.host] || 0) + 1;
         });
-        
+
         resolve({
           totalEntries: entries.length,
           entriesByHost
         });
       };
-      
+
       request.onerror = () => reject(request.error);
     });
   }
@@ -754,18 +750,18 @@ export async function getCustomDictStats(): Promise<{ totalEntries: number; entr
 // 深度合并工具函数
 function deepMerge<T>(target: T, source: PartialDeep<T>): T {
   const result = { ...target };
-  
+
   for (const key in source) {
     const sourceValue = source[key];
     const targetValue = result[key];
-    
+
     if (sourceValue !== undefined) {
       if (
-        typeof sourceValue === 'object' && 
-        sourceValue !== null && 
+        typeof sourceValue === 'object' &&
+        sourceValue !== null &&
         !Array.isArray(sourceValue) &&
-        typeof targetValue === 'object' && 
-        targetValue !== null && 
+        typeof targetValue === 'object' &&
+        targetValue !== null &&
         !Array.isArray(targetValue)
       ) {
         result[key] = deepMerge(targetValue, sourceValue);
@@ -774,6 +770,6 @@ function deepMerge<T>(target: T, source: PartialDeep<T>): T {
       }
     }
   }
-  
+
   return result;
 }

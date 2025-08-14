@@ -5,9 +5,9 @@ import {googleTranslate, googleTranslateBatch} from "~background/translate/googl
 import {bingTranslate, bingTranslateBatch} from "~background/translate/bing"
 import {deeplTranslate, deeplTranslateBatch} from "~background/translate/deepl"
 import {yandexTranslate, yandexTranslateBatch} from "~background/translate/yandex"
-import { GLOBAL_SETTINGS_KEY } from "../settings/globalSettings"
-import type { GlobalSettings } from "../settings/globalSettings"
-import { findCustomTranslation } from "~lib/settings/globalSettingsHooks"
+import { GLOBAL_SETTINGS_KEY } from "../settings/settings"
+import type { GlobalSettings } from "../settings/settings"
+import { findCustomTranslation } from "~lib/settings/settingsHooks"
 
 export interface TranslateOptions {
   from: string;

@@ -1,9 +1,8 @@
 ﻿// 翻译缓存管理模块 - 使用统一IndexedDB
 import { produce } from 'immer';
 import { storageApi } from '~lib/storage/storage';
-import { DEFAULT_CACHE_CONFIG, TRANSLATION_CACHE_CONFIG_KEY } from '../constants/settings';
-import { GLOBAL_SETTINGS_KEY } from '../settings/globalSettings';
-import type { GlobalSettings } from '../settings/globalSettings';
+import { GLOBAL_SETTINGS_KEY } from '../settings/settings';
+import type { GlobalSettings } from '../settings/settings';
 import { IndexedDBManager, DATABASE_CONFIGS } from '../storage/indexedDB';
 
 // 缓存条目接口
@@ -66,8 +65,10 @@ export class TranslationCacheManager {
   private missCount = 0;
 
   constructor(config: Partial<CacheConfig> = {}) {
-    this.config = produce(DEFAULT_CACHE_CONFIG, (draft) => {
-      Object.assign(draft, config);
+    storageApi.get(GLOBAL_SETTINGS_KEY).then((settings) => {
+      this.config = produce(((settings as unknown) as GlobalSettings)?.cache, (draft) => {
+        Object.assign(draft, config);
+      });
     });
     
     this.dbManager = new IndexedDBManager(DATABASE_CONFIGS.USER_DATA);
@@ -256,13 +257,9 @@ export class TranslationCacheManager {
           };
         });
         await storageApi.set(GLOBAL_SETTINGS_KEY, updatedSettings);
-      } else {
-        // 兼容性：如果全局配置不存在，保存到旧位置
-        await storageApi.set(TRANSLATION_CACHE_CONFIG_KEY, this.config);
       }
     } catch (error) {
       console.error('更新缓存配置失败，使用备用方案:', error);
-      await storageApi.set(TRANSLATION_CACHE_CONFIG_KEY, this.config);
     }
     
     // 配置更新后立即检查是否需要清理缓存

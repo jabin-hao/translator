@@ -5,7 +5,7 @@ import { produce } from 'immer';
 import '../index.css';
 import { getEngineLangCode, getLangAbbr, getTTSLang, getBrowserLang } from '~lib/constants/languages';
 import { useTranslation } from 'react-i18next';
-import { useGlobalSettings, useLanguageSettings, useSpeechSettings, useFavoritesSettings } from '~lib/settings/globalSettingsHooks';
+import { useGlobalSettings, useLanguageSettings, useSpeechSettings, useFavoritesSettings } from '~lib/settings/settingsHooks';
 import { FavoritesManager } from '~lib/favorite/favorites';
 
 // 获取友好的引擎名称

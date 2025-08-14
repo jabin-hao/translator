@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Switch, Typography, message, Input, Button } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { produce } from 'immer';
-import { useShortcutSettings } from '~lib/settings/globalSettingsHooks';
+import { useShortcutSettings } from '~lib/settings/settingsHooks';
 import SettingsPageContainer from '../../components/SettingsPageContainer';
 import SettingsGroup from '../../components/SettingsGroup';
 import SettingsItem from '../../components/SettingsItem';

@@ -1,5 +1,5 @@
 // 后台脚本入口文件
-import { DEFAULT_SETTINGS } from '~lib/settings/globalSettings';
+import { DEFAULT_SETTINGS } from '~lib/settings/settings';
 import { storageApi } from '~lib/storage/storage';
 
 console.log('后台脚本已启动');

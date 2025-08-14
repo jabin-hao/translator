@@ -1,6 +1,6 @@
 import { lazyFullPageTranslate } from '~lib/translate/fullPageTranslate';
-import { GLOBAL_SETTINGS_KEY, DEFAULT_SETTINGS } from '~lib/settings/globalSettings';
-import type { GlobalSettings } from '~lib/settings/globalSettings';
+import { GLOBAL_SETTINGS_KEY, DEFAULT_SETTINGS } from '~lib/settings/settings';
+import type { GlobalSettings } from '~lib/settings/settings';
 import { storageApi } from '~lib/storage/storage';
 import { IndexedDBManager, DATABASE_CONFIGS } from '~lib/storage/indexedDB';
 import type { DomainSetting } from '~lib/storage/indexedHooks';

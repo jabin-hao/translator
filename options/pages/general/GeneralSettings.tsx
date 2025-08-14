@@ -3,13 +3,13 @@ import { Select, Button, message, Upload, Modal, ConfigProvider, Segmented } fro
 import { UI_LANGUAGES } from '~/lib/constants/languages';
 import { UploadOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import { useGlobalSettings, useThemeSettings } from '~lib/settings/globalSettingsHooks';
-import { GLOBAL_SETTINGS_KEY } from '~lib/settings/globalSettings';
+import { useGlobalSettings, useThemeSettings } from '~lib/settings/settingsHooks';
+import { GLOBAL_SETTINGS_KEY } from '~lib/settings/settings';
 import SettingsPageContainer from '../../components/SettingsPageContainer';
 import SettingsGroup from '../../components/SettingsGroup';
 import SettingsItem from '../../components/SettingsItem';
 import { produce } from 'immer';
-import {THEME_OPTIONS} from '~/lib/constants/settings'
+import {THEME_OPTIONS} from '~lib/settings/settings'
 
 // 新增 props 类型
 interface GeneralSettingsProps {

@@ -2,7 +2,7 @@ import React from 'react';
 import { produce } from 'immer';
 import { Switch, Select, Radio, Input, InputNumber, Button, message, Tag, Space } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { useInputTranslateSettings } from '~lib/settings/globalSettingsHooks';
+import { useInputTranslateSettings } from '~lib/settings/settingsHooks';
 import { LANGUAGES } from '~lib/constants/languages';
 import SettingsPageContainer from '../../components/SettingsPageContainer';
 import SettingsGroup from '../../components/SettingsGroup';
@@ -27,20 +27,8 @@ const InputTranslateSettings: React.FC = () => {
     await updateInputTranslate({ autoDetectLanguage });
   };
 
-  const handleShowTranslateButtonChange = async (showTranslateButton: boolean) => {
-    await updateInputTranslate({ showTranslateButton });
-  };
-
-  const handleButtonPositionChange = async (e: any) => {
-    await updateInputTranslate({ buttonPosition: e.target.value });
-  };
-
   const handleTriggerModeChange = async (e: any) => {
     await updateInputTranslate({ triggerMode: e.target.value });
-  };
-
-  const handleHotkeyChange = async (hotkey: string) => {
-    await updateInputTranslate({ hotkey });
   };
 
   const handleAutoTranslateDelayChange = async (autoTranslateDelay: number | null) => {
@@ -53,14 +41,6 @@ const InputTranslateSettings: React.FC = () => {
     if (minTextLength !== null) {
       await updateInputTranslate({ minTextLength });
     }
-  };
-
-  const handleShowOriginalTextChange = async (showOriginalText: boolean) => {
-    await updateInputTranslate({ showOriginalText });
-  };
-
-  const handleReplaceOriginalTextChange = async (replaceOriginalText: boolean) => {
-    await updateInputTranslate({ replaceOriginalText });
   };
 
   const handleAddInputType = async (inputType: string) => {

@@ -16,7 +16,7 @@ import {
   useThemeSettings,
   useTextTranslateSettings,
   useSpeechSettings
-} from '~lib/settings/globalSettingsHooks';
+} from '~lib/settings/settingsHooks';
 import { useDomainSettings } from '~lib/storage/indexedHooks';
 
 const { Text, Title } = Typography;

@@ -1,7 +1,7 @@
 import {sendToBackground} from '@plasmohq/messaging';
 import {getEngineLangCode, getTTSLang} from '~lib/constants/languages';
-import { GLOBAL_SETTINGS_KEY } from '~lib/settings/globalSettings';
-import type { GlobalSettings } from '~lib/settings/globalSettings';
+import { GLOBAL_SETTINGS_KEY } from '~lib/settings/settings';
+import type { GlobalSettings } from '~lib/settings/settings';
 import {storageApi} from "~lib/storage/storage";
 
 // 修改翻译API调用，集成缓存功能

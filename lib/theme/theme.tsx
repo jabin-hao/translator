@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { ConfigProvider, theme } from 'antd';
-import { useThemeSettings } from '../settings/globalSettingsHooks';
+import { useThemeSettings } from '../settings/settingsHooks';
 
 type ThemeMode = 'light' | 'dark' | 'auto';
 

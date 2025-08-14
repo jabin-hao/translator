@@ -59,16 +59,12 @@ export interface GlobalSettings {
     enabled: boolean;
     targetLanguage: string;
     autoDetectLanguage: boolean;
-    showTranslateButton: boolean;
-    buttonPosition: 'inside' | 'outside';
     triggerMode: 'manual' | 'auto' | 'hotkey';
     hotkey: string;
     autoTranslateDelay: number; // 毫秒
     minTextLength: number;
     enabledInputTypes: string[]; // text, textarea, contenteditable 等
     excludeSelectors: string[]; // CSS选择器，排除某些输入框
-    showOriginalText: boolean;
-    replaceOriginalText: boolean;
   };
 
   // 网页翻译设置
@@ -77,8 +73,6 @@ export interface GlobalSettings {
     mode: 'translated' | 'compare';
     targetLanguage: string;
     autoTranslate: boolean; // 统一的自动翻译开关
-    excludeDomains: string[];
-    includeDomains: string[];
   };
 
   // 语音朗读设置
@@ -170,16 +164,12 @@ export const DEFAULT_SETTINGS: GlobalSettings = {
     enabled: true,
     targetLanguage: 'zh-CN',
     autoDetectLanguage: true,
-    showTranslateButton: true,
-    buttonPosition: 'inside',
     triggerMode: 'manual',
     hotkey: 'Ctrl+T',
     autoTranslateDelay: 1000,
     minTextLength: 2,
     enabledInputTypes: ['text', 'textarea', 'email', 'search', 'url'],
     excludeSelectors: ['.no-translate', '[data-no-translate]'],
-    showOriginalText: true,
-    replaceOriginalText: false,
   },
 
   pageTranslate: {
@@ -187,8 +177,6 @@ export const DEFAULT_SETTINGS: GlobalSettings = {
     mode: 'translated',
     targetLanguage: 'zh-CN',
     autoTranslate: false, // 默认关闭自动翻译
-    excludeDomains: [],
-    includeDomains: [],
   },
 
   speech: {
@@ -238,3 +226,14 @@ export const GLOBAL_SETTINGS_KEY = 'global_settings';
 export type PartialDeep<T> = {
   [P in keyof T]?: T[P] extends object ? PartialDeep<T[P]> : T[P];
 };
+
+export const SPEECH_KEY = 'speech_settings'; // 语音合成相关设置
+export const DEEPL_API_KEY = 'deepl_api_key';
+export const YANDEX_API_KEY = 'yandex_api_key';
+
+// 主题
+export const THEME_OPTIONS = [
+    { label: '浅色', value: 'light' },
+    { label: '深色', value: 'dark' },
+    { label: '跟随系统', value: 'auto' }
+]

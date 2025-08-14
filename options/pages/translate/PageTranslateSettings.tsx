@@ -4,7 +4,7 @@ import { Switch, List, Modal, Button, Input, message, Checkbox, Tooltip, Segment
 import { useTranslation } from 'react-i18next';
 import { 
   usePageTranslateSettings,
-} from '~lib/settings/globalSettingsHooks';
+} from '~lib/settings/settingsHooks';
 import { 
   useCustomDictionary,
   useDomainSettings,

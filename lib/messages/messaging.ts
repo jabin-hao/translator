@@ -1,7 +1,7 @@
 import { lazyFullPageTranslate, getPageTranslationStatus, restoreOriginalPage } from '~lib/translate/fullPageTranslate';
 import { Storage } from '@plasmohq/storage';
-import { GLOBAL_SETTINGS_KEY, DEFAULT_SETTINGS } from '~lib/settings/globalSettings';
-import type { GlobalSettings } from '~lib/settings/globalSettings';
+import { GLOBAL_SETTINGS_KEY, DEFAULT_SETTINGS } from '~lib/settings/settings';
+import type { GlobalSettings } from '~lib/settings/settings';
 
 const storage = new Storage();
 
@@ -37,7 +37,7 @@ export const setupMessageHandler = (setShowInputTranslator?: (show: boolean) => 
           try {
             // 读取用户的翻译模式设置
             const settings = await getGlobalSettings();
-            const mode = (settings.pageTranslate.pageTranslateMode || 'translated') as 'translated' | 'compare';
+            const mode = (settings.pageTranslate.mode || 'translated') as 'translated' | 'compare';
             
             const result = await lazyFullPageTranslate(msg.lang, mode, msg.engine);
             const state = (window as any).__translationState;

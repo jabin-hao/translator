@@ -3,7 +3,7 @@ import { produce } from 'immer';
 import { List, Button, Input, message, Modal, Card, Tag, Space, Tooltip, Popconfirm, Select, Empty, Switch } from 'antd';
 import { DeleteOutlined, EditOutlined, SearchOutlined, ExportOutlined, ImportOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import { useFavoritesSettings } from '~lib/settings/globalSettingsHooks';
+import { useFavoritesSettings } from '~lib/settings/settingsHooks';
 import SettingsPageContainer from '../../components/SettingsPageContainer';
 import SettingsGroup from '../../components/SettingsGroup';
 import SettingsItem from '../../components/SettingsItem';
@@ -13,7 +13,7 @@ const { Search } = Input;
 const { Option } = Select;
 
 // 使用全局设置中的收藏单词接口
-import type { GlobalSettings } from '~lib/settings/globalSettings';
+import type { GlobalSettings } from '~lib/settings/settings';
 type FavoriteWord = GlobalSettings['favorites']['words'][0];
 
 const FavoritesSettings: React.FC = () => {

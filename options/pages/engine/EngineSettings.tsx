@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import {
   useGlobalSettings,
   useEngineSettings,
-} from '~lib/settings/globalSettingsHooks';
+} from '~lib/settings/settingsHooks';
 import SettingsPageContainer from '../../components/SettingsPageContainer';
 import SettingsGroup from '../../components/SettingsGroup';
 import SettingsItem from '../../components/SettingsItem';
@@ -15,7 +15,7 @@ import { useTheme } from '~lib/theme/theme';
 const { Option } = Select;
 
 // 使用全局设置中的自定义引擎类型
-import type { CustomEngine, TTSEngine } from '~lib/settings/globalSettings';
+import type { CustomEngine, TTSEngine } from '~lib/settings/settings';
 import { TRANSLATE_ENGINES, TTS_ENGINES } from '~lib/constants/engines';
 
 const EngineSettings: React.FC = () => {
