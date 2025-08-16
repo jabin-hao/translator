@@ -41,15 +41,6 @@ export const setupSelectionHandler = (
   let mutationObserver: MutationObserver | null = null;
   let isUserSelecting: boolean = false; // 跟踪用户是否正在选择文本
 
-  // 获取稳定的位置坐标
-  const getStablePosition = (range: Range): { x: number; y: number } => {
-    const rect = range.getBoundingClientRect();
-    return {
-      x: rect.right + window.scrollX,
-      y: rect.top + window.scrollY - 5
-    };
-  };
-
   // 检查选区是否仍然有效（DOM节点未被删除）
   const isSelectionValid = (range: Range): boolean => {
     try {

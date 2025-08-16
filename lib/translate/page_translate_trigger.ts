@@ -1,39 +1,12 @@
-import { lazyFullPageTranslate } from '~lib/translate/fullPageTranslate';
-import { GLOBAL_SETTINGS_KEY, DEFAULT_SETTINGS } from '~lib/settings/settings';
-import type { GlobalSettings } from '~lib/settings/settings';
-import { storageApi } from '~lib/storage/storage';
-import { IndexedDBManager, DATABASE_CONFIGS } from '~lib/storage/indexedDB';
-import type { DomainSetting } from '~lib/storage/indexedHooks';
+import { lazyFullPageTranslate } from '~lib/translate/page_translate';
+import { usePageTranslateSettings } from '~lib/settings/settings';
+import { useDomainSettings } from '~lib/storage/indexed';
 
-// 获取全局配置
-const getGlobalSettings = async (): Promise<GlobalSettings> => {
-  const settings = await storageApi.get(GLOBAL_SETTINGS_KEY);
-  if (typeof settings === 'string') {
-    try {
-      return JSON.parse(settings);
-    } catch {
-      return DEFAULT_SETTINGS;
-    }
-  }
-  return settings || DEFAULT_SETTINGS;
-};
+const { pageTranslateSettings } = usePageTranslateSettings();
+const { isWhitelisted } = useDomainSettings();
 
-// 获取域名设置
-const getDomainSettings = async (): Promise<DomainSetting[]> => {
-  try {
-    const dbManager = new IndexedDBManager(DATABASE_CONFIGS.USER_DATA);
-    await dbManager.init();
-    return await dbManager.getAll<DomainSetting>('domainSettings');
-  } catch (error) {
-    console.error('获取域名设置失败:', error);
-    return [];
-  }
-};
-
-// 网站匹配逻辑 - 从 siteTranslateSettings 迁移
+// 网站匹配逻辑
 const matchSiteList = (list: string[], url: string): boolean => {
-  console.log('[AutoTranslate] matchSiteList 检查:', { list, url });
-  
   return list.some(item => {
     if (item === url) {
       return true;
@@ -66,24 +39,15 @@ export const setupAutoTranslate = (
     const fullUrl = path === '/' ? host : host + path;
     
     try {
-      const settings = await getGlobalSettings();
-      const pageTranslateConfig = settings.pageTranslate;
-      
-      if (!pageTranslateConfig.autoTranslate) {
+      // 是否开启自动翻译白名单网页
+      if (!pageTranslateSettings.autoTranslate) { 
         return;
       }
       
-      // 获取域名设置
-      const domainSettings = await getDomainSettings();
-      
-      const alwaysList = domainSettings
-        .filter(setting => setting.type === 'whitelist' && setting.enabled)
-        .map(setting => setting.domain);
-        
-      if (matchSiteList(alwaysList, fullUrl)) {
+      if (isWhitelisted(fullUrl)) {
         if (typeof (window as any).__autoFullPageTranslated === 'undefined') {
           (window as any).__autoFullPageTranslated = true;
-          const mode = (pageTranslateConfig.mode || 'translated') as 'translated' | 'compare';
+          const mode = (pageTranslateSettings.mode || 'translated') as 'translated' | 'compare';
           
           const result = await lazyFullPageTranslate(pageTargetLang, mode, engine);
           

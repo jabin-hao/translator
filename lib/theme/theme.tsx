@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect } from 'react';
 import { ConfigProvider, theme } from 'antd';
-import { useThemeSettings } from '../settings/settingsHooks';
+import { useThemeSettings } from '../settings/settings';
 import { useImmer } from 'use-immer';
 
 type ThemeMode = 'light' | 'dark' | 'auto';

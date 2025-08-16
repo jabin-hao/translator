@@ -1,4 +1,5 @@
 import { isInputElement } from '../utils/domUtil';
+import { useShortcutSettings } from '~lib/settings/settings';
 
 // 快捷键处理逻辑
 export const setupShortcutHandler = (
@@ -29,12 +30,9 @@ export const setupShortcutHandler = (
     }
 
     // 获取快捷键设置 - 使用全局设置
-    const { Storage } = await import('@plasmohq/storage');
-    const storage = new Storage();
-    const globalSettings = await storage.get('global_settings') as any;
-    const shortcutSettings = globalSettings?.shortcuts || {};
-    const shortcutEnabled = shortcutSettings?.enabled !== false;
-    const customShortcut = shortcutSettings?.customShortcut || '';
+    const { shortcutSettings, updateShortcut } = useShortcutSettings();
+    const shortcutEnabled = shortcutSettings.enabled;
+    const customShortcut = shortcutSettings.openPopup; // TODO 快捷键数组
 
     // 检查自定义快捷键
     let isCustomShortcut = false;

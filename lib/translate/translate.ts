@@ -7,7 +7,9 @@ import {deeplTranslate, deeplTranslateBatch} from "~background/translate/deepl"
 import {yandexTranslate, yandexTranslateBatch} from "~background/translate/yandex"
 import { GLOBAL_SETTINGS_KEY } from "../settings/settings"
 import type { GlobalSettings } from "../settings/settings"
-import { findCustomTranslation } from "~lib/settings/settingsHooks"
+import { useCustomDictionary } from "../storage/indexed"
+
+const { getDictionaryByDomain } = useCustomDictionary();
 
 export interface TranslateOptions {
   from: string;
@@ -63,11 +65,12 @@ export async function translate(
     try {
       const currentHost = host || (typeof window !== 'undefined' ? window.location.hostname : '');
       if (currentHost) {
-        const customTranslation = await findCustomTranslation(currentHost, text.trim());
+        const customTranslation = await getDictionaryByDomain(currentHost);
         if (customTranslation) {
+          console.log(customTranslation[0].translation);
           return {
             text,
-            translation: customTranslation,
+            translation: Array.isArray(customTranslation) && customTranslation.length > 0 ? customTranslation[0].translation : '',
             engine: 'custom',
             from,
             to,
@@ -227,11 +230,11 @@ export async function translateBatch(
     try {
       const currentHost = host || (typeof window !== 'undefined' ? window.location.hostname : '');
       if (currentHost) {
-        const customTranslation = await findCustomTranslation(currentHost, text.trim());
+        const customTranslation = await getDictionaryByDomain(currentHost);
         if (customTranslation) {
           results[i] = {
             text,
-            translation: customTranslation,
+            translation: Array.isArray(customTranslation) && customTranslation.length > 0 ? customTranslation[0].translation : '',
             engine: 'custom',
             from,
             to,

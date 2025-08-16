@@ -1,9 +1,10 @@
-﻿// 翻译缓存管理模块 - 使用统一IndexedDB
+﻿// 翻译缓存管理模块
+// option | background 调用
 import { produce } from 'immer';
 import { storageApi } from '~lib/storage/storage';
 import { GLOBAL_SETTINGS_KEY } from '../settings/settings';
 import type { GlobalSettings } from '../settings/settings';
-import { IndexedDBManager, DATABASE_CONFIGS } from '../storage/indexedDB';
+import { IndexedDBManager, DATABASE_CONFIGS } from '../storage/indexed';
 
 // 缓存条目接口
 export interface TranslationCache {
@@ -16,11 +17,13 @@ export interface TranslationCache {
   lastAccessed?: number;
 }
 
+// 缓存配置接口
 export interface CacheConfig {
   maxAge: number;
   maxSize: number;
 }
 
+// 缓存统计信息接口
 export interface CacheStats {
   count: number;
   size: number;
@@ -37,7 +40,7 @@ export class CacheUtils {
     const hashArray = Array.from(new Uint8Array(hash));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   }
-
+  // 将字节数转换为人类可读的格式
   static humanReadableSize(bytes: number, decimals: number = 2): string {
     if (bytes === 0) return '0 B';
     const k = 1024;
@@ -46,12 +49,12 @@ export class CacheUtils {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
   }
-
+  // 检查缓存是否过期
   static isExpired(cache: TranslationCache, maxAge: number): boolean {
     if (!cache.timestamp || maxAge <= 0) return false;
     return Date.now() - cache.timestamp > maxAge;
   }
-
+  // 计算缓存条目的大小
   static calculateEntrySize(cache: TranslationCache): number {
     return JSON.stringify(cache).length;
   }
@@ -75,13 +78,13 @@ export class TranslationCacheManager {
     this.loadConfig().catch(console.error);
     this.startPeriodicCleanup();
   }
-
+  // 启动定期清理
   private startPeriodicCleanup(): void {
     setInterval(() => {
       this.cleanupExpiredCache().catch(console.error);
     }, 30 * 60 * 1000);
   }
-
+  // 清理过期缓存
   private async cleanupExpiredCache(): Promise<void> {
     try {
       await this.dbManager.init();

@@ -1,4 +1,4 @@
-import type { SpeechOptions, SpeechResult, SpeechService } from '~lib/translate/speech';
+import type { SpeechOptions, SpeechResult, SpeechService } from '~lib/constants/speech';
 
 // 基础朗读服务接口
 interface BaseSpeechService {

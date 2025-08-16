@@ -6,7 +6,7 @@ import {LANGUAGES} from '~lib/constants/languages';
 import {useTranslation} from 'react-i18next';
 import {
     useLanguageSettings
-} from '~lib/settings/settingsHooks';
+} from '~lib/settings/settings';
 import SettingsPageContainer from '../../components/SettingsPageContainer';
 import SettingsGroup from '../../components/SettingsGroup';
 import SettingsItem from '../../components/SettingsItem';

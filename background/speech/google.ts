@@ -1,4 +1,4 @@
-import type { SpeechOptions, SpeechResult } from '~lib/translate/speech';
+import type { SpeechOptions, SpeechResult } from '~lib/constants/speech';
 
 export class GoogleSpeechService {
   name = 'google' as const;

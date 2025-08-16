@@ -2,6 +2,8 @@
  * 通用IndexedDB操作工具
  * 提供统一的数据库操作接口，支持多个数据库和对象存储
  */
+import { useImmer } from 'use-immer';
+import { useCallback, useEffect } from 'react';
 
 export interface IndexedDBConfig {
   dbName: string;
@@ -215,66 +217,6 @@ export class IndexedDBManager {
   }
 
   /**
-   * 批量添加数据（优化版本，使用单个事务）
-   */
-  async putBatch<T>(storeName: string, dataArray: T[]): Promise<BatchResult> {
-    if (dataArray.length === 0) {
-      return { successful: 0, failed: 0, total: 0, errors: [] };
-    }
-
-    try {
-      await this.ensureInitialized(storeName);
-
-      return new Promise((resolve) => {
-        const transaction = this.db!.transaction([storeName], 'readwrite');
-        const objectStore = transaction.objectStore(storeName);
-
-        let successful = 0;
-        let failed = 0;
-        const errors: Error[] = [];
-        let completed = 0;
-
-        const checkComplete = () => {
-          if (++completed === dataArray.length) {
-            resolve({ successful, failed, total: dataArray.length, errors });
-          }
-        };
-
-        dataArray.forEach((data, index) => {
-          const request = objectStore.put(data);
-
-          request.onsuccess = () => {
-            successful++;
-            checkComplete();
-          };
-
-          request.onerror = () => {
-            failed++;
-            errors.push(new IndexedDBError(
-              `批量保存第 ${index + 1} 项失败`,
-              'putBatch',
-              request.error || undefined
-            ));
-            checkComplete();
-          };
-        });
-
-        transaction.onerror = () => {
-          const error = new IndexedDBError('批量保存事务失败', 'putBatch', transaction.error || undefined);
-          resolve({ successful: 0, failed: dataArray.length, total: dataArray.length, errors: [error] });
-        };
-      });
-    } catch (error) {
-      return {
-        successful: 0,
-        failed: dataArray.length,
-        total: dataArray.length,
-        errors: [error as Error]
-      };
-    }
-  }
-
-  /**
    * 获取单个数据
    */
   async get<T>(storeName: string, key: IDBValidKey): Promise<T | null> {
@@ -338,34 +280,6 @@ export class IndexedDBManager {
       });
     } catch (error) {
       throw new IndexedDBError('获取所有数据失败', 'getAll', error as Error);
-    }
-  }
-
-  /**
-   * 使用游标查询数据（优化版本）
-   */
-  async query<T>(
-    storeName: string,
-    keyRange?: IDBKeyRange,
-    options?: QueryOptions
-  ): Promise<T[]> {
-    try {
-      await this.ensureInitialized(storeName);
-
-      const transaction = this.db!.transaction([storeName], 'readonly');
-      const objectStore = transaction.objectStore(storeName);
-
-      let source: IDBObjectStore | IDBIndex = objectStore;
-      if (options?.index) {
-        if (!objectStore.indexNames.contains(options.index)) {
-          throw new IndexedDBError(`索引 "${options.index}" 不存在`, 'query');
-        }
-        source = objectStore.index(options.index);
-      }
-
-      return this.getWithCursor<T>(source, keyRange, options);
-    } catch (error) {
-      throw new IndexedDBError('查询数据失败', 'query', error as Error);
     }
   }
 
@@ -477,66 +391,6 @@ export class IndexedDBManager {
   }
 
   /**
-   * 批量删除数据
-   */
-  async deleteBatch(storeName: string, keys: IDBValidKey[]): Promise<BatchResult> {
-    if (keys.length === 0) {
-      return { successful: 0, failed: 0, total: 0, errors: [] };
-    }
-
-    try {
-      await this.ensureInitialized(storeName);
-
-      return new Promise((resolve) => {
-        const transaction = this.db!.transaction([storeName], 'readwrite');
-        const objectStore = transaction.objectStore(storeName);
-
-        let successful = 0;
-        let failed = 0;
-        const errors: Error[] = [];
-        let completed = 0;
-
-        const checkComplete = () => {
-          if (++completed === keys.length) {
-            resolve({ successful, failed, total: keys.length, errors });
-          }
-        };
-
-        keys.forEach((key, index) => {
-          const request = objectStore.delete(key);
-
-          request.onsuccess = () => {
-            successful++;
-            checkComplete();
-          };
-
-          request.onerror = () => {
-            failed++;
-            errors.push(new IndexedDBError(
-              `批量删除第 ${index + 1} 项失败`,
-              'deleteBatch',
-              request.error || undefined
-            ));
-            checkComplete();
-          };
-        });
-
-        transaction.onerror = () => {
-          const error = new IndexedDBError('批量删除事务失败', 'deleteBatch', transaction.error || undefined);
-          resolve({ successful: 0, failed: keys.length, total: keys.length, errors: [error] });
-        };
-      });
-    } catch (error) {
-      return {
-        successful: 0,
-        failed: keys.length,
-        total: keys.length,
-        errors: [error as Error]
-      };
-    }
-  }
-
-  /**
    * 清空对象存储
    */
   async clear(storeName: string): Promise<TransactionResult<void>> {
@@ -560,50 +414,6 @@ export class IndexedDBManager {
     } catch (error) {
       return { success: false, error: error as Error };
     }
-  }
-
-  /**
-   * 计数
-   */
-  async count(storeName: string, keyRange?: IDBKeyRange): Promise<number> {
-    try {
-      await this.ensureInitialized(storeName);
-
-      return new Promise((resolve, reject) => {
-        const transaction = this.db!.transaction([storeName], 'readonly');
-        const objectStore = transaction.objectStore(storeName);
-        const request = objectStore.count(keyRange);
-
-        request.onsuccess = () => {
-          resolve(request.result);
-        };
-
-        request.onerror = () => {
-          reject(new IndexedDBError('计数失败', 'count', request.error || undefined));
-        };
-      });
-    } catch (error) {
-      throw new IndexedDBError('计数失败', 'count', error as Error);
-    }
-  }
-
-  /**
-   * 检查数据库是否可用
-   */
-  get isAvailable(): boolean {
-    return this.db !== null && !this.isDestroyed;
-  }
-
-  /**
-   * 获取数据库信息
-   */
-  get info(): { name: string; version: number; stores: string[] } | null {
-    if (!this.db) return null;
-    return {
-      name: this.db.name,
-      version: this.db.version,
-      stores: Array.from(this.db.objectStoreNames)
-    };
   }
 
   /**
@@ -672,39 +482,7 @@ export const DATABASE_CONFIGS = {
       }
     ]
   } as IndexedDBConfig,
-
-  // 系统配置数据库
-  SYSTEM_CONFIG: {
-    dbName: 'SystemConfig',
-    version: 1,
-    stores: [
-      {
-        name: 'settings',
-        keyPath: 'key',
-        indexes: [
-          { name: 'category', keyPath: 'category', unique: false },
-          { name: 'updatedAt', keyPath: 'updatedAt', unique: false }
-        ]
-      },
-      {
-        name: 'logs',
-        keyPath: 'id',
-        autoIncrement: true,
-        indexes: [
-          { name: 'timestamp', keyPath: 'timestamp', unique: false },
-          { name: 'level', keyPath: 'level', unique: false },
-          { name: 'source', keyPath: 'source', unique: false }
-        ]
-      }
-    ]
-  } as IndexedDBConfig
 };
-
-// 工厂函数，用于创建数据库管理器实例
-export function createDBManager(config: IndexedDBConfig | keyof typeof DATABASE_CONFIGS): IndexedDBManager {
-  const dbConfig = typeof config === 'string' ? DATABASE_CONFIGS[config] : config;
-  return new IndexedDBManager(dbConfig);
-}
 
 // 数据库实用工具
 export class DBUtils {
@@ -714,40 +492,312 @@ export class DBUtils {
   static isSupported(): boolean {
     return 'indexedDB' in window && indexedDB !== null;
   }
+}
 
-  /**
-   * 删除整个数据库
-   */
-  static deleteDatabase(dbName: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (!DBUtils.isSupported()) {
-        reject(new IndexedDBError('浏览器不支持IndexedDB', 'deleteDatabase'));
-        return;
-      }
+// hooks
 
-      const deleteReq = indexedDB.deleteDatabase(dbName);
+// 数据类型定义
+export interface FavoriteWord {
+  id: string;
+  word: string;
+  translation: string;
+  sourceLanguage: string;
+  targetLanguage: string;
+  timestamp: number;
+  tags?: string[];
+  notes?: string;
+}
 
-      deleteReq.onsuccess = () => resolve();
-      deleteReq.onerror = () => reject(
-        new IndexedDBError(`删除数据库 ${dbName} 失败`, 'deleteDatabase', deleteReq.error || undefined)
-      );
-      deleteReq.onblocked = () => console.warn(`删除数据库 ${dbName} 被阻塞，请关闭其他标签页`);
-    });
-  }
+export interface CustomDictionaryEntry {
+  id: string;
+  domain: string;
+  original: string;
+  translation: string;
+  sourceLanguage: string;
+  targetLanguage: string;
+  timestamp: number;
+  isActive: boolean;
+}
 
-  /**
-   * 获取数据库列表（仅在支持的浏览器中）
-   */
-  static async getDatabases(): Promise<IDBDatabaseInfo[]> {
-    if (!DBUtils.isSupported() || !indexedDB.databases) {
-      return [];
-    }
+export interface DomainSetting {
+  domain: string;
+  enabled: boolean;
+  targetLanguage?: string;
+  timestamp: number;
+}
 
+export interface TranslationCacheEntry {
+  key: string;
+  originalText: string;
+  translatedText: string;
+  detectedLanguage: string;
+  timestamp: number;
+  accessCount?: number;
+  lastAccessed?: number;
+}
+
+// 数据库管理器实例
+const dbManager = new IndexedDBManager(DATABASE_CONFIGS.USER_DATA);
+
+// 通用数据操作Hook
+export function useIndexedDBData<T>(storeName: string) {
+  const [data, setData] = useImmer<T[]>([]);
+  const [loading, setLoading] = useImmer(false);
+  const [error, setError] = useImmer<string | null>(null);
+
+  // 初始化数据库
+  const initDB = useCallback(async () => {
     try {
-      return await indexedDB.databases();
-    } catch (error) {
-      console.warn('获取数据库列表失败:', error);
+      await dbManager.init();
+    } catch (err) {
+      console.error('初始化数据库失败:', err);
+      setError(err instanceof Error ? err.message : '数据库初始化失败');
+    }
+  }, []);
+
+  // 加载所有数据
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      await initDB();
+      const result = await dbManager.getAll<T>(storeName);
+      setData(result);
+    } catch (err) {
+      console.error('加载数据失败:', err);
+      setError(err instanceof Error ? err.message : '加载数据失败');
+    } finally {
+      setLoading(false);
+    }
+  }, [storeName, initDB]);
+
+  // 添加数据
+  const addData = useCallback(async (item: T) => {
+    try {
+      await initDB();
+      await dbManager.put(storeName, item);
+      await loadData(); // 重新加载数据
+      return true;
+    } catch (err) {
+      console.error('添加数据失败:', err);
+      setError(err instanceof Error ? err.message : '添加数据失败');
+      return false;
+    }
+  }, [storeName, initDB, loadData]);
+
+  // 更新数据
+  const updateData = useCallback(async (item: T) => {
+    try {
+      await initDB();
+      await dbManager.put(storeName, item);
+      await loadData(); // 重新加载数据
+      return true;
+    } catch (err) {
+      console.error('更新数据失败:', err);
+      setError(err instanceof Error ? err.message : '更新数据失败');
+      return false;
+    }
+  }, [storeName, initDB, loadData]);
+
+  // 删除数据
+  const deleteData = useCallback(async (key: string | number) => {
+    try {
+      await initDB();
+      await dbManager.delete(storeName, key);
+      await loadData(); // 重新加载数据
+      return true;
+    } catch (err) {
+      console.error('删除数据失败:', err);
+      setError(err instanceof Error ? err.message : '删除数据失败');
+      return false;
+    }
+  }, [storeName, initDB, loadData]);
+
+  // 根据索引查询数据
+  const queryByIndex = useCallback(async (indexName: string, value: any) => {
+    try {
+      await initDB();
+      return await dbManager.getByIndex<T>(storeName, indexName, value);
+    } catch (err) {
+      console.error('查询数据失败:', err);
+      setError(err instanceof Error ? err.message : '查询数据失败');
       return [];
     }
-  }
+  }, [storeName, initDB]);
+
+  // 清空所有数据
+  const clearData = useCallback(async () => {
+    try {
+      await initDB();
+      await dbManager.clear(storeName);
+      setData([]);
+      return true;
+    } catch (err) {
+      console.error('清空数据失败:', err);
+      setError(err instanceof Error ? err.message : '清空数据失败');
+      return false;
+    }
+  }, [storeName, initDB]);
+
+  // 组件挂载时加载数据
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  return {
+    data,
+    loading,
+    error,
+    loadData,
+    addData,
+    updateData,
+    deleteData,
+    queryByIndex,
+    clearData,
+  };
+}
+
+// 收藏夹管理Hook
+export function useFavorites() {
+  const {
+    data: favorites,
+    loading,
+    error,
+    addData,
+    updateData,
+    deleteData,
+    clearData,
+  } = useIndexedDBData<FavoriteWord>('favorites');
+
+  // 添加收藏
+  const addFavorite = useCallback(async (word: Omit<FavoriteWord, 'id' | 'timestamp'>) => {
+    const favorite: FavoriteWord = {
+      ...word,
+      id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      timestamp: Date.now(),
+    };
+    return await addData(favorite);
+  }, [addData]);
+
+  // 搜索收藏
+  const searchFavorites = useCallback((keyword: string) => {
+    if (!keyword.trim()) return favorites;
+    const lowerKeyword = keyword.toLowerCase();
+    return favorites.filter(item => 
+      item.word.toLowerCase().includes(lowerKeyword) ||
+      item.translation.toLowerCase().includes(lowerKeyword) ||
+      item.notes?.toLowerCase().includes(lowerKeyword)
+    );
+  }, [favorites]);
+
+  return {
+    favorites,
+    loading,
+    error,
+    addFavorite,
+    updateFavorite: updateData,
+    deleteFavorite: deleteData,
+    clearFavorites: clearData,
+    searchFavorites,
+  };
+}
+
+// 自定义词库管理Hook
+export function useCustomDictionary() {
+  const {
+    data: dictionary,
+    loading,
+    error,
+    addData,
+    updateData,
+    deleteData,
+    queryByIndex,
+    clearData,
+  } = useIndexedDBData<CustomDictionaryEntry>('customDictionary');
+
+  // 添加词库条目
+  const addDictionaryEntry = useCallback(async (entry: Omit<CustomDictionaryEntry, 'id' | 'timestamp'>) => {
+    const dictionaryEntry: CustomDictionaryEntry = {
+      ...entry,
+      id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      timestamp: Date.now(),
+    };
+    return await addData(dictionaryEntry);
+  }, [addData]);
+
+  // 根据域名查询词库
+  const getDictionaryByDomain = useCallback(async (domain: string) => {
+    return await queryByIndex('domain', domain);
+  }, [queryByIndex]);
+
+  // 查找翻译
+  const findTranslation = useCallback(async (domain: string, original: string) => {
+    const domainEntries = await getDictionaryByDomain(domain);
+    return domainEntries.find(entry => 
+      entry.original.toLowerCase() === original.toLowerCase() && entry.isActive
+    );
+  }, [getDictionaryByDomain]);
+
+  return {
+    dictionary,
+    loading,
+    error,
+    addDictionaryEntry,
+    updateDictionaryEntry: updateData,
+    deleteDictionaryEntry: deleteData,
+    clearDictionary: clearData,
+    getDictionaryByDomain,
+    findTranslation,
+  };
+}
+
+// 域名设置管理Hook
+export function useDomainSettings() {
+  const {
+    data: domainSettings,
+    loading,
+    error,
+    addData,
+    updateData,
+    deleteData,
+    clearData,
+  } = useIndexedDBData<DomainSetting>('domainSettings');
+
+  // 添加或更新域名设置
+  const setDomainSetting = useCallback(async (setting: Omit<DomainSetting, 'timestamp'>) => {
+    const domainSetting: DomainSetting = {
+      ...setting,
+      timestamp: Date.now(),
+    };
+    
+    // 检查是否已存在
+    const existing = domainSettings.find(item => item.domain === setting.domain);
+    if (existing) {
+      return await updateData(domainSetting);
+    } else {
+      return await addData(domainSetting);
+    }
+  }, [domainSettings, addData, updateData]);
+
+  // 获取域名设置
+  const getDomainSetting = useCallback((domain: string) => {
+    return domainSettings.find(item => item.domain === domain);
+  }, [domainSettings]);
+
+  // 检查域名是否在白名单
+  const isWhitelisted = useCallback((domain: string) => {
+    const setting = getDomainSetting(domain);
+    return setting.enabled;
+  }, [getDomainSetting]);
+
+  return {
+    domainSettings,
+    loading,
+    error,
+    setDomainSetting,
+    deleteDomainSetting: deleteData,
+    clearDomainSettings: clearData,
+    getDomainSetting,
+    isWhitelisted,
+  };
 }

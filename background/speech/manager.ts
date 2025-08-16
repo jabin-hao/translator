@@ -1,4 +1,4 @@
-import type {SpeechOptions, SpeechResult, SpeechService} from '~lib/translate/speech';
+import type {SpeechOptions, SpeechResult, SpeechService} from '~lib/constants/speech';
 import {LocalSpeechService} from './local';
 import {GoogleSpeechService} from './google';
 import {SPEECH_KEY} from '~lib/settings/settings';

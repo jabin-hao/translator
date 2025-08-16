@@ -3,7 +3,7 @@ import { Select, Switch, Slider, Button, message, Segmented, ConfigProvider } fr
 import { TTS_ENGINES } from '~lib/constants/engines';
 import { useTranslation } from 'react-i18next';
 import { 
-  useSpeechSettings} from '~lib/settings/settingsHooks';
+  useSpeechSettings} from '~lib/settings/settings';
 import SettingsPageContainer from '../../components/SettingsPageContainer';
 import SettingsGroup from '../../components/SettingsGroup';
 import SettingsItem from '../../components/SettingsItem';

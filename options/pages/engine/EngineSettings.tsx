@@ -5,15 +5,13 @@ import { Switch, Select, Radio, Space, Card, Divider, Button, Input, Modal, Form
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import {
-  useGlobalSettings,
   useEngineSettings,
-} from '~lib/settings/settingsHooks';
+  useSpeechSettings,
+} from '~lib/settings/settings';
 import SettingsPageContainer from '../../components/SettingsPageContainer';
 import SettingsGroup from '../../components/SettingsGroup';
 import SettingsItem from '../../components/SettingsItem';
 import { useTheme } from '~lib/theme/theme';
-
-const { Option } = Select;
 
 // 使用全局设置中的自定义引擎类型
 import type { CustomEngine, TTSEngine } from '~lib/settings/settings';
@@ -23,9 +21,8 @@ const EngineSettings: React.FC = () => {
   const { t } = useTranslation();
   const { isDark } = useTheme();
   
-  // 使用新的全局配置系统
-  const { settings, updateSettings } = useGlobalSettings();
-  const { engineSettings, setDefaultEngine, updateApiKey, updateEngines } = useEngineSettings();
+  const { engineSettings, setDefaultEngine, updateApiKey, updateEngine } = useEngineSettings();
+  const { speechSettings, updateSpeechSettings } = useSpeechSettings();
 
   // 从全局设置中提取值
   const engine = engineSettings.default;
@@ -34,7 +31,7 @@ const EngineSettings: React.FC = () => {
   const yandexApiKey = engineSettings.apiKeys.yandex;
   
   // TTS引擎设置（从全局设置中获取）
-  const ttsEngine = settings.speech.engine;
+  const ttsEngine = speechSettings.engine;
   
   // 模态框状态
   const [engineModalVisible, setEngineModalVisible] = useImmer(false);
@@ -151,13 +148,13 @@ const EngineSettings: React.FC = () => {
             draft[index] = newEngine;
           }
         });
-        await updateEngines({ customEngines: newEngines });
+        await updateEngine({ customEngines: newEngines });
         message.success('引擎已更新');
       } else {
         const newEngines = produce(customEngines, (draft) => {
           draft.push(newEngine);
         });
-        await updateEngines({ customEngines: newEngines });
+        await updateEngine({ customEngines: newEngines });
         message.success('引擎已添加');
       }
       
@@ -173,7 +170,7 @@ const EngineSettings: React.FC = () => {
     const newEngines = produce(customEngines, (draft) => {
       return draft.filter(engine => engine.id !== engineId);
     });
-    await updateEngines({ customEngines: newEngines });
+    await updateEngine({ customEngines: newEngines });
     
     // 如果删除的是当前选中的引擎，切换到Google
     if (engine === engineId) {
@@ -187,7 +184,7 @@ const EngineSettings: React.FC = () => {
     const newEngines = customEngines.map(engine => 
       engine.id === engineId ? { ...engine, enabled: !engine.enabled } : engine
     );
-    await updateEngines({ customEngines: newEngines });
+    await updateEngine({ customEngines: newEngines });
   };
 
   return (
@@ -297,8 +294,7 @@ const EngineSettings: React.FC = () => {
                 <Segmented
                   value={ttsEngine}
                   onChange={async (value) => {
-                    console.log('Selected TTS Engine:', value);
-                    await updateSettings({ speech: { engine: value as TTSEngine } });
+                    await updateSpeechSettings({ engine: value as TTSEngine });
                     message.success(t('语音合成引擎已切换到 {{engine}}', { engine: value }));
                   }}
                   options={[...TTS_ENGINES]}

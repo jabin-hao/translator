@@ -3,7 +3,7 @@ import { Switch, Select } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { 
   useTextTranslateSettings,
-} from '~lib/settings/settingsHooks';
+} from '~lib/settings/settings';
 import SettingsPageContainer from '../../components/SettingsPageContainer';
 import SettingsGroup from '../../components/SettingsGroup';
 import SettingsItem from '../../components/SettingsItem';

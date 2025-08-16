@@ -15,8 +15,8 @@ import { ThemeProvider } from '~lib/theme/theme';
 // 引入拆分后的模块
 import { setupSelectionHandler } from '~lib/translate/selection';
 import { setupShortcutHandler } from '~lib/translate/shortcuts';
-import { setupMessageHandler } from '~lib/messages/messaging';
-import { setupAutoTranslate } from '~lib/translate/autoTranslate';
+import { setupMessageHandler } from '~lib/messages/message';
+import { setupAutoTranslate } from '~lib/translate/page_translate_trigger';
 
 // 使用新的全局配置系统
 import {
@@ -25,7 +25,7 @@ import {
     useTextTranslateSettings,
     useThemeSettings,
     useShortcutSettings
-} from '~lib/settings/settingsHooks';
+} from '~lib/settings/settings';
 import { callTranslateAPI, callTTSAPI, stopTTSAPI } from './content';
 
 const HOST_ID = "translator-csui"

@@ -4,7 +4,7 @@ import { Button, Modal, Switch, InputNumber, App } from 'antd';
 import { Icon } from '@iconify/react';
 import { useTranslation } from 'react-i18next';
 import { produce } from 'immer';
-import { useCacheSettings } from '~lib/settings/settingsHooks';
+import { useCacheSettings } from '~lib/settings/settings';
 import { cacheManager } from '~lib/cache/cache';
 import { sendToBackground } from '@plasmohq/messaging';
 import SettingsPageContainer from '../../components/SettingsPageContainer';

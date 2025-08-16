@@ -4,12 +4,12 @@ import { Switch, List, Modal, Button, Input, message, Checkbox, Tooltip, Segment
 import { useTranslation } from 'react-i18next';
 import {
   usePageTranslateSettings,
-} from '~lib/settings/settingsHooks';
+} from '~lib/settings/settings';
 import {
   useCustomDictionary,
   useDomainSettings,
   type CustomDictionaryEntry
-} from '~lib/storage/indexedHooks';
+} from '~lib/storage/indexed';
 import { DeleteOutlined } from '@ant-design/icons';
 import SettingsPageContainer from '../../components/SettingsPageContainer';
 import SettingsGroup from '../../components/SettingsGroup';
@@ -41,13 +41,10 @@ const PageTranslateSettings: React.FC = () => {
 
   // 添加站点相关状态
   const [addHost, setAddHost] = useImmer('');
-  const [addType, setAddType] = useImmer<'always' | 'never'>('always');
 
   // 显示全部站点的Modal状态
   const [showAllAlways, setShowAllAlways] = useImmer(false);
-  const [showAllNever, setShowAllNever] = useImmer(false);
   const [selectedAlways, setSelectedAlways] = useImmer<string[]>([]);
-  const [selectedNever, setSelectedNever] = useImmer<string[]>([]);
 
   // 自定义词库相关状态
   const [dictModalOpen, setDictModalOpen] = useImmer(false);
@@ -56,16 +53,12 @@ const PageTranslateSettings: React.FC = () => {
   const [dictAddKey, setDictAddKey] = useImmer('');
   const [dictAddValue, setDictAddValue] = useImmer('');
 
-  // 获取黑白名单数据
-
   // 只保留白名单操作函数
-  const alwaysList = domainSettings.filter(setting => setting.type === 'whitelist' && setting.enabled);
+  const alwaysList = domainSettings.filter(setting => setting.enabled);
   const addToAlwaysList = async (domain: string) => {
     await setDomainSetting({
       domain,
-      type: 'whitelist',
       enabled: true,
-      notes: '用户手动添加'
     });
   };
   const removeFromAlwaysList = async (domain: string) => {

@@ -1,5 +1,5 @@
 // 处理朗读相关的消息
-import type { SpeechOptions, SpeechResult } from '~lib/translate/speech';
+import type { SpeechOptions, SpeechResult } from '~lib/constants/speech';
 import { speechManager } from '../speech/manager';
 
 export interface SpeechMessageRequest {

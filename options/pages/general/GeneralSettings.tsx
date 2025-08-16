@@ -4,7 +4,7 @@ import { Select, Button, message, Upload, Modal, ConfigProvider, Segmented } fro
 import { UI_LANGUAGES } from '~/lib/constants/languages';
 import { UploadOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import { useGlobalSettings, useThemeSettings } from '~lib/settings/settingsHooks';
+import { useGlobalSettings, useThemeSettings } from '~lib/settings/settings';
 import { GLOBAL_SETTINGS_KEY } from '~lib/settings/settings';
 import SettingsPageContainer from '../../components/SettingsPageContainer';
 import SettingsGroup from '../../components/SettingsGroup';

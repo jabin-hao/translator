@@ -2,7 +2,7 @@ import React from 'react';
 import { produce } from 'immer';
 import { Switch, Select, Radio, Input, InputNumber, Button, message, Tag, Space } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { useInputTranslateSettings } from '~lib/settings/settingsHooks';
+import { useInputTranslateSettings } from '~lib/settings/settings';
 import { LANGUAGES } from '~lib/constants/languages';
 import SettingsPageContainer from '../../components/SettingsPageContainer';
 import SettingsGroup from '../../components/SettingsGroup';
