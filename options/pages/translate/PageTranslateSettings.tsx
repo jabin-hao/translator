@@ -2,54 +2,53 @@ import React from 'react';
 import { useImmer } from 'use-immer';
 import { Switch, List, Modal, Button, Input, message, Checkbox, Tooltip, Segmented, ConfigProvider, Select } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { 
+import {
   usePageTranslateSettings,
 } from '~lib/settings/settingsHooks';
-import { 
+import {
   useCustomDictionary,
   useDomainSettings,
-  type CustomDictionaryEntry} from '~lib/storage/indexedHooks';
+  type CustomDictionaryEntry
+} from '~lib/storage/indexedHooks';
 import { DeleteOutlined } from '@ant-design/icons';
 import SettingsPageContainer from '../../components/SettingsPageContainer';
 import SettingsGroup from '../../components/SettingsGroup';
 import SettingsItem from '../../components/SettingsItem';
-const { Option } = Select;
 
 const PageTranslateSettings: React.FC = () => {
   const { t } = useTranslation();
-  
+
   // 使用新的全局配置系统
-  const { 
-    pageTranslateSettings, 
+  const {
+    pageTranslateSettings,
     toggleAutoTranslate,
     updatePageTranslateSettings,
   } = usePageTranslateSettings();
-  
+
   // 使用新的IndexedDB hooks
-  const { 
-    domainSettings, 
-    setDomainSetting, 
-    deleteDomainSetting 
+  const {
+    domainSettings,
+    setDomainSetting,
+    deleteDomainSetting
   } = useDomainSettings();
-  
-  const { 
-    dictionary, 
-    addDictionaryEntry, 
-    updateDictionaryEntry, 
+
+  const {
+    addDictionaryEntry,
+    updateDictionaryEntry,
     deleteDictionaryEntry,
-    getDictionaryByDomain 
+    getDictionaryByDomain
   } = useCustomDictionary();
-  
+
   // 添加站点相关状态
   const [addHost, setAddHost] = useImmer('');
   const [addType, setAddType] = useImmer<'always' | 'never'>('always');
-  
+
   // 显示全部站点的Modal状态
   const [showAllAlways, setShowAllAlways] = useImmer(false);
   const [showAllNever, setShowAllNever] = useImmer(false);
   const [selectedAlways, setSelectedAlways] = useImmer<string[]>([]);
   const [selectedNever, setSelectedNever] = useImmer<string[]>([]);
-  
+
   // 自定义词库相关状态
   const [dictModalOpen, setDictModalOpen] = useImmer(false);
   const [dictHost, setDictHost] = useImmer<string>('');
@@ -58,10 +57,9 @@ const PageTranslateSettings: React.FC = () => {
   const [dictAddValue, setDictAddValue] = useImmer('');
 
   // 获取黑白名单数据
-  const alwaysList = domainSettings.filter(setting => setting.type === 'whitelist' && setting.enabled);
-  const neverList = domainSettings.filter(setting => setting.type === 'blacklist' && setting.enabled);
 
-  // 黑白名单操作函数
+  // 只保留白名单操作函数
+  const alwaysList = domainSettings.filter(setting => setting.type === 'whitelist' && setting.enabled);
   const addToAlwaysList = async (domain: string) => {
     await setDomainSetting({
       domain,
@@ -70,26 +68,12 @@ const PageTranslateSettings: React.FC = () => {
       notes: '用户手动添加'
     });
   };
-
-  const addToNeverList = async (domain: string) => {
-    await setDomainSetting({
-      domain,
-      type: 'blacklist',
-      enabled: true,
-      notes: '用户手动添加'
-    });
-  };
-
   const removeFromAlwaysList = async (domain: string) => {
     await deleteDomainSetting(domain);
   };
 
-  const removeFromNeverList = async (domain: string) => {
-    await deleteDomainSetting(domain);
-  };
-
   // 不再需要加载站点列表的useEffect，因为数据来自全局配置
-  const handleSiteAutoChange = (checked: boolean) => {
+  const handleSiteAutoChange = () => {
     toggleAutoTranslate();
   };
 
@@ -109,13 +93,8 @@ const PageTranslateSettings: React.FC = () => {
     }
 
     try {
-      if (addType === 'always') {
-        await addToAlwaysList(addHost.trim());
-        message.success(t('已添加到白名单'));
-      } else {
-        await addToNeverList(addHost.trim());
-        message.success(t('已添加到黑名单'));
-      }
+      await addToAlwaysList(addHost.trim());
+      message.success(t('已添加到白名单'));
       setAddHost('');
     } catch (error) {
       message.error(t('添加失败'));
@@ -131,14 +110,6 @@ const PageTranslateSettings: React.FC = () => {
     }
   };
 
-  const handleRemoveNever = async (host: string) => {
-    try {
-      await removeFromNeverList(host);
-      message.success(t('已从黑名单移除'));
-    } catch (error) {
-      message.error(t('移除失败'));
-    }
-  };
 
   const handleEditDict = async (host: string) => {
     setDictHost(host);
@@ -207,53 +178,53 @@ const PageTranslateSettings: React.FC = () => {
     onBatchTransfer,
     transferButtonText
   }) => (
-    <Modal
-      open={open}
-      title={title}
-      onCancel={() => {
-        onClose();
-        setSelected([]);
-      }}
-      footer={[
-        <Button key="selectAll" onClick={() => setSelected(selected.length === sites.length ? [] : sites)}>
-          {selected.length === sites.length ? t('取消全选') : t('全选')}
-        </Button>,
-        <Button key="remove" danger disabled={selected.length === 0} onClick={async () => {
-          await onBatchRemove(selected);
-          setSelected([]);
+      <Modal
+        open={open}
+        title={title}
+        onCancel={() => {
           onClose();
-        }}>{t('批量移除')}</Button>,
-        ...(onBatchTransfer && transferButtonText ? [
-          <Button key="transfer" disabled={selected.length === 0} onClick={async () => {
-            await onBatchTransfer(selected);
+          setSelected([]);
+        }}
+        footer={[
+          <Button key="selectAll" onClick={() => setSelected(selected.length === sites.length ? [] : sites)}>
+            {selected.length === sites.length ? t('取消全选') : t('全选')}
+          </Button>,
+          <Button key="remove" danger disabled={selected.length === 0} onClick={async () => {
+            await onBatchRemove(selected);
             setSelected([]);
             onClose();
-          }}>{transferButtonText}</Button>
-        ] : [])
-      ]}
-    >
-      <Checkbox.Group
-        style={{ width: '100%' }}
-        value={selected}
-        onChange={setSelected}
+          }}>{t('批量移除')}</Button>,
+          ...(onBatchTransfer && transferButtonText ? [
+            <Button key="transfer" disabled={selected.length === 0} onClick={async () => {
+              await onBatchTransfer(selected);
+              setSelected([]);
+              onClose();
+            }}>{transferButtonText}</Button>
+          ] : [])
+        ]}
       >
-        <List
-          size="small"
-          dataSource={sites}
-          style={{ maxHeight: 400, overflow: 'auto' }}
-          renderItem={host => (
-            <List.Item>
-              <Checkbox value={host}>{host}</Checkbox>
-            </List.Item>
-          )}
-        />
-      </Checkbox.Group>
-    </Modal>
-  );
+        <Checkbox.Group
+          style={{ width: '100%' }}
+          value={selected}
+          onChange={setSelected}
+        >
+          <List
+            size="small"
+            dataSource={sites}
+            style={{ maxHeight: 400, overflow: 'auto' }}
+            renderItem={host => (
+              <List.Item>
+                <Checkbox value={host}>{host}</Checkbox>
+              </List.Item>
+            )}
+          />
+        </Checkbox.Group>
+      </Modal>
+    );
 
   // 显示部分站点列表
   const alwaysSitesToShow = alwaysList.map(setting => setting.domain).slice(0, 5);
-  const neverSitesToShow = neverList.map(setting => setting.domain).slice(0, 5);
+  // 已移除黑名单相关逻辑
 
   return (
     <SettingsPageContainer title={t('网页翻译')} description={t('配置网页翻译的相关设置')}>
@@ -308,11 +279,7 @@ const PageTranslateSettings: React.FC = () => {
                   placeholder={t('输入域名，如 github.com')}
                   style={{ width: 240 }}
                 />
-                <Select value={addType} onChange={v => setAddType(v)} style={{ width: 100 }}>
-                  <Option value="always">{t('白名单')}</Option>
-                  <Option value="never">{t('黑名单')}</Option>
-                </Select>
-                <Button onClick={handleAddHost}>{t('添加')}</Button>
+                <Button onClick={handleAddHost}>{t('添加到白名单')}</Button>
               </div>
             </SettingsItem>
 
@@ -355,45 +322,6 @@ const PageTranslateSettings: React.FC = () => {
                 )}
               </div>
             </SettingsItem>
-            
-            {/* 黑名单区域 */}
-            <SettingsItem
-              label={t('网站翻译黑名单')}
-              description={t('加入黑名单的网站不会被自动整页翻译')}
-            >
-              <div>
-                <List
-                  size="small"
-                  bordered
-                  dataSource={neverSitesToShow}
-                  renderItem={(host: string) => (
-                    <List.Item
-                      actions={[
-                        <Button size="small" type="link" danger onClick={() => handleRemoveNever(host)}>{t('移除')}</Button>
-                      ]}
-                      style={{ alignItems: 'center' }}
-                    >
-                      <Tooltip title={host} placement="topLeft">
-                        <div style={{
-                          maxWidth: 200,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}>{host}</div>
-                      </Tooltip>
-                    </List.Item>
-                  )}
-                  style={{ maxHeight: 200, overflow: 'auto' }}
-                />
-                {neverList.length > 5 && (
-                  <div style={{ textAlign: 'center', marginTop: 8 }}>
-                    <Button size="small" type="link" onClick={() => setShowAllNever(true)}>
-                      {t('查看全部')} ({neverList.length})
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </SettingsItem>
           </>
         )}
       </SettingsGroup>
@@ -409,27 +337,9 @@ const PageTranslateSettings: React.FC = () => {
         onBatchRemove={async (hosts) => {
           for (const host of hosts) await handleRemoveAlways(host);
         }}
-        onBatchTransfer={async (hosts) => {
-          for (const host of hosts) await addToNeverList(host);
-        }}
-        transferButtonText={t('批量转移到黑名单')}
       />
 
-      <BatchSiteModal
-        open={showAllNever}
-        title={t('全部黑名单')}
-        sites={neverList.map(setting => setting.domain)}
-        selected={selectedNever}
-        setSelected={setSelectedNever}
-        onClose={() => setShowAllNever(false)}
-        onBatchRemove={async (hosts) => {
-          for (const host of hosts) await handleRemoveNever(host);
-        }}
-        onBatchTransfer={async (hosts) => {
-          for (const host of hosts) await addToAlwaysList(host);
-        }}
-        transferButtonText={t('批量转移到白名单')}
-      />
+      {/* 已移除黑名单批量操作 Modal */}
 
       <Modal
         open={dictModalOpen}

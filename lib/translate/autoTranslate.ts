@@ -36,19 +36,16 @@ const matchSiteList = (list: string[], url: string): boolean => {
   
   return list.some(item => {
     if (item === url) {
-      console.log('[AutoTranslate] 精确匹配:', item);
       return true;
     }
     if (item.includes('*')) {
       const regex = new RegExp(item.replace(/\*/g, '.*'));
       const match = regex.test(url);
-      console.log('[AutoTranslate] 通配符匹配:', { item, url, match });
       return match;
     }
     
     // 简单的域名匹配
     if (url.startsWith(item)) {
-      console.log('[AutoTranslate] 前缀匹配:', item);
       return true;
     }
     
@@ -68,44 +65,26 @@ export const setupAutoTranslate = (
     const path = window.location.pathname;
     const fullUrl = path === '/' ? host : host + path;
     
-    console.log('[AutoTranslate] 检查自动翻译:', { host, path, fullUrl });
-    
     try {
       const settings = await getGlobalSettings();
       const pageTranslateConfig = settings.pageTranslate;
       
-      console.log('[AutoTranslate] 页面翻译配置:', pageTranslateConfig);
-      
       if (!pageTranslateConfig.autoTranslate) {
-        console.log('[AutoTranslate] 自动翻译已禁用');
         return;
       }
       
       // 获取域名设置
       const domainSettings = await getDomainSettings();
-      console.log('[AutoTranslate] 域名设置:', domainSettings);
       
-      const neverList = domainSettings
-        .filter(setting => setting.type === 'blacklist' && setting.enabled)
-        .map(setting => setting.domain);
       const alwaysList = domainSettings
         .filter(setting => setting.type === 'whitelist' && setting.enabled)
         .map(setting => setting.domain);
         
-      console.log('[AutoTranslate] 黑白名单:', { neverList, alwaysList });
-      
-      if (matchSiteList(neverList, fullUrl)) {
-        console.log('[AutoTranslate] 网站在黑名单中，跳过翻译');
-        return;
-      }
-      
       if (matchSiteList(alwaysList, fullUrl)) {
-        console.log('[AutoTranslate] 网站在白名单中，开始自动翻译');
         if (typeof (window as any).__autoFullPageTranslated === 'undefined') {
           (window as any).__autoFullPageTranslated = true;
           const mode = (pageTranslateConfig.mode || 'translated') as 'translated' | 'compare';
           
-          console.log('[AutoTranslate] 执行全页翻译:', { mode, pageTargetLang, engine });
           const result = await lazyFullPageTranslate(pageTargetLang, mode, engine);
           
           // 更新全局状态
@@ -140,13 +119,13 @@ export const setupAutoTranslate = (
   // 监听页面卸载事件
   const handleBeforeUnload = () => {
     // 在页面卸载前，停止所有 TTS 播放
-    stopTTSAPI().then(() => {});
+    stopTTSAPI().then();
   };
 
   // 监听页面内容变化事件
   const handleContentChange = () => {
     // 当页面内容发生变化时，重新触发整页翻译
-    triggerFullPageTranslation().then(() => {});
+    triggerFullPageTranslation().then();
   };
 
   // 监听页面卸载事件
