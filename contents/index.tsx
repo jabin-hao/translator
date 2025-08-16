@@ -3,7 +3,7 @@ import { useEffect, useCallback, useRef } from "react"
 import { App } from 'antd';
 import { useImmer } from 'use-immer';
 import { mapUiLangToI18nKey } from '~lib/constants/languages';
-import './index.css';
+import './styles/index.css';
 import antdResetCssText from "data-text:antd/dist/reset.css"
 import type { PlasmoGetShadowHostId } from "plasmo"
 import TranslatorIcon from './components/TranslatorIcon';

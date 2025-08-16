@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useCallback } from 'react';
-import '../index.css';
+import '../styles/index.css';
 import { useImmer } from 'use-immer'
 import { 
   Card, 

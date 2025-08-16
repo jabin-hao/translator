@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useMemo, useCallback } from 'react';
 import { Card, Button, Divider, Spin } from 'antd';
 import { CopyOutlined, SoundOutlined, LoadingOutlined, StarOutlined, StarFilled } from '@ant-design/icons';
 import { useImmer } from 'use-immer';
-import '../index.css';
+import '../styles/index.css';
 import { getEngineLangCode, getLangAbbr, getTTSLang, getBrowserLang } from '~lib/constants/languages';
 import { useTranslation } from 'react-i18next';
 import { useLanguageSettings, useSpeechSettings, useFavoritesSettings } from '~lib/settings/settings';

@@ -14,10 +14,10 @@ import SettingsItem from '../../components/SettingsItem';
 const CacheSettings: React.FC = () => {
   const { t } = useTranslation();
   const { message } = App.useApp();
-  
+
   // 使用新的全局配置系统
   const { cacheSettings, updateCache, toggleEnabled } = useCacheSettings();
-  
+
   const [stats, setStats] = useImmer<{ count: number; size: number }>({ count: 0, size: 0 });
   const [loading, setLoading] = useImmer(false);
   // 新增本地 state 保存输入值
@@ -120,7 +120,7 @@ const CacheSettings: React.FC = () => {
             >
               <div>
                 <div style={{ marginBottom: 8 }}>
-                  <Button 
+                  <Button
                     onClick={loadStats}
                     icon={<Icon icon="material-symbols:refresh" />}
                   >
@@ -150,114 +150,114 @@ const CacheSettings: React.FC = () => {
                   const MS_PER_HOUR = 1000 * 60 * 60;
                   const MS_PER_DAY = MS_PER_HOUR * 24;
                   const MS_PER_MONTH = MS_PER_DAY * 30;
-              const months = Math.floor(pendingConfig.maxAge / MS_PER_MONTH);
-              const days = Math.floor((pendingConfig.maxAge % MS_PER_MONTH) / MS_PER_DAY);
-              const hours = Math.floor((pendingConfig.maxAge % MS_PER_DAY) / MS_PER_HOUR);
-              return (
-                <>
-                  <InputNumber
-                    min={0}
-                    max={24}
-                    value={months}
-                    onChange={value => {
-                      if (value !== null) {
-                        const newMaxAge = value * MS_PER_MONTH + days * MS_PER_DAY + hours * MS_PER_HOUR;
-                        setPendingConfig(produce(draft => ({ ...draft, maxAge: newMaxAge })));
-                      }
-                    }}
-                    addonAfter={t('月')}
-                    style={{ width: 120 }}
-                  />
-                  <InputNumber
-                    min={0}
-                    max={30}
-                    value={days}
-                    onChange={value => {
-                      if (value !== null) {
-                        const newMaxAge = months * MS_PER_MONTH + value * MS_PER_DAY + hours * MS_PER_HOUR;
-                        setPendingConfig(produce(draft => ({ ...draft, maxAge: newMaxAge })));
-                      }
-                    }}
-                    addonAfter={t('天')}
-                    style={{ width: 120 }}
-                  />
-                  <InputNumber
-                    min={0}
-                    max={24}
-                    value={hours}
-                    onChange={value => {
-                      if (value !== null) {
-                        const newMaxAge = months * MS_PER_MONTH + days * MS_PER_DAY + value * MS_PER_HOUR;
-                        setPendingConfig(produce(draft => ({ ...draft, maxAge: newMaxAge })));
-                      }
-                    }}
-                    addonAfter={t('小时')}
-                    style={{ width: 120 }}
-                  />
-                </>
-              );
-            })()}
-          </div>
-          <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
-            {(() => {
-              const months = Math.floor(pendingConfig.maxAge / (1000 * 60 * 60 * 24 * 30));
-              const days = Math.floor((pendingConfig.maxAge % (1000 * 60 * 60 * 24 * 30)) / (1000 * 60 * 60 * 24));
-              const hours = Math.floor((pendingConfig.maxAge % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-              const parts = [];
-              if (months > 0) parts.push(`${months}${t('月')}`);
-              if (days > 0) parts.push(`${days}${t('天')}`);
-              if (hours > 0) parts.push(`${hours}${t('小时')}`);
-              return parts.length > 0 ? `${t('总计')}: ${parts.join(' ')}` : `${t('总计')}: 0${t('小时')}`;
-            })()}
-          </div>
-        </SettingsItem>
+                  const months = Math.floor(pendingConfig.maxAge / MS_PER_MONTH);
+                  const days = Math.floor((pendingConfig.maxAge % MS_PER_MONTH) / MS_PER_DAY);
+                  const hours = Math.floor((pendingConfig.maxAge % MS_PER_DAY) / MS_PER_HOUR);
+                  return (
+                    <>
+                      <InputNumber
+                        min={0}
+                        max={24}
+                        value={months}
+                        onChange={value => {
+                          if (value !== null) {
+                            const newMaxAge = value * MS_PER_MONTH + days * MS_PER_DAY + hours * MS_PER_HOUR;
+                            setPendingConfig(produce(draft => ({ ...draft, maxAge: newMaxAge })));
+                          }
+                        }}
+                        addonAfter={t('月')}
+                        style={{ width: 120 }}
+                      />
+                      <InputNumber
+                        min={0}
+                        max={30}
+                        value={days}
+                        onChange={value => {
+                          if (value !== null) {
+                            const newMaxAge = months * MS_PER_MONTH + value * MS_PER_DAY + hours * MS_PER_HOUR;
+                            setPendingConfig(produce(draft => ({ ...draft, maxAge: newMaxAge })));
+                          }
+                        }}
+                        addonAfter={t('天')}
+                        style={{ width: 120 }}
+                      />
+                      <InputNumber
+                        min={0}
+                        max={24}
+                        value={hours}
+                        onChange={value => {
+                          if (value !== null) {
+                            const newMaxAge = months * MS_PER_MONTH + days * MS_PER_DAY + value * MS_PER_HOUR;
+                            setPendingConfig(produce(draft => ({ ...draft, maxAge: newMaxAge })));
+                          }
+                        }}
+                        addonAfter={t('小时')}
+                        style={{ width: 120 }}
+                      />
+                    </>
+                  );
+                })()}
+              </div>
+              <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
+                {(() => {
+                  const months = Math.floor(pendingConfig.maxAge / (1000 * 60 * 60 * 24 * 30));
+                  const days = Math.floor((pendingConfig.maxAge % (1000 * 60 * 60 * 24 * 30)) / (1000 * 60 * 60 * 24));
+                  const hours = Math.floor((pendingConfig.maxAge % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                  const parts = [];
+                  if (months > 0) parts.push(`${months}${t('月')}`);
+                  if (days > 0) parts.push(`${days}${t('天')}`);
+                  if (hours > 0) parts.push(`${hours}${t('小时')}`);
+                  return parts.length > 0 ? `${t('总计')}: ${parts.join(' ')}` : `${t('总计')}: 0${t('小时')}`;
+                })()}
+              </div>
+            </SettingsItem>
 
-        <SettingsItem
-          label={t('最大缓存条数')}
-          description={t('达到此数量时将删除最旧的缓存')}
-        >
-          <InputNumber
-            min={100}
-            max={10000}
-            value={pendingConfig.maxSize}
-            onChange={value => {
-              if (value) setPendingConfig(produce(draft => ({ ...draft, maxSize: value })));
-            }}
-            style={{ width: 120 }}
-          />
-        </SettingsItem>
+            <SettingsItem
+              label={t('最大缓存条数')}
+              description={t('达到此数量时将删除最旧的缓存')}
+            >
+              <InputNumber
+                min={100}
+                max={10000}
+                value={pendingConfig.maxSize}
+                onChange={value => {
+                  if (value) setPendingConfig(produce(draft => ({ ...draft, maxSize: value })));
+                }}
+                style={{ width: 120 }}
+              />
+            </SettingsItem>
 
-        <SettingsItem
-          label={t('保存配置')}
-        >
-          <Button 
-            onClick={async () => {
-              await updateCache(pendingConfig);
-              await cacheManager.updateConfig(pendingConfig);
-              await sendToBackground({ name: 'handle' as never, body: { service: 'cache', action: 'reschedule' } });
-              message.success(t('缓存配置已保存'));
-            }}
-          >
-            {t('保存')}
-          </Button>
-        </SettingsItem>
-      </SettingsGroup>
+            <SettingsItem
+              label={t('保存配置')}
+            >
+              <Button
+                onClick={async () => {
+                  await updateCache(pendingConfig);
+                  await cacheManager.updateConfig(pendingConfig);
+                  await sendToBackground({ name: 'handle' as never, body: { service: 'cache', action: 'reschedule' } });
+                  message.success(t('缓存配置已保存'));
+                }}
+              >
+                {t('保存')}
+              </Button>
+            </SettingsItem>
+          </SettingsGroup>
 
-      <SettingsGroup title={t('缓存操作')}>
-        <SettingsItem
-          label={t('清空缓存')}
-          description={t('删除所有翻译缓存数据')}
-        >
-          <Button 
-            danger 
-            onClick={handleClearCache}
-            loading={loading}
-            icon={<Icon icon="material-symbols:delete-outline" />}
-          >
-            {t('清空所有缓存')}
-          </Button>
-        </SettingsItem>
-      </SettingsGroup>
+          <SettingsGroup title={t('缓存操作')}>
+            <SettingsItem
+              label={t('清空缓存')}
+              description={t('删除所有翻译缓存数据')}
+            >
+              <Button
+                danger
+                onClick={handleClearCache}
+                loading={loading}
+                icon={<Icon icon="material-symbols:delete-outline" />}
+              >
+                {t('清空所有缓存')}
+              </Button>
+            </SettingsItem>
+          </SettingsGroup>
         </>
       )}
     </SettingsPageContainer>

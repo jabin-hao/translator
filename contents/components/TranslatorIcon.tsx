@@ -1,5 +1,5 @@
 import React from 'react';
-import '../index.css';
+import '../styles/index.css';
 import PluginIcon from './PluginIcon';
 import { useTheme } from '~lib/theme/theme';
 

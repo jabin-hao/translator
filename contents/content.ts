@@ -1,8 +1,8 @@
-import {sendToBackground} from '@plasmohq/messaging';
-import {getEngineLangCode, getTTSLang} from '~lib/constants/languages';
-import { GLOBAL_SETTINGS_KEY } from '~lib/settings/settings';
-import type { GlobalSettings } from '~lib/settings/settings';
-import {storageApi} from "~lib/storage/storage";
+import { sendToBackground } from '@plasmohq/messaging';
+import { getEngineLangCode, getTTSLang } from '~lib/constants/languages';
+import { useCacheSettings } from '~lib/settings/settings';
+
+const { cacheSettings } = useCacheSettings();
 
 // 修改翻译API调用，集成缓存功能
 export async function callTranslateAPI(
@@ -16,16 +16,7 @@ export async function callTranslateAPI(
 
     try {
         // 读取用户的缓存设置 - 从全局配置获取
-        let cacheEnabled = true; // 默认启用缓存
-        try {
-            const globalSettings = await storageApi.get(GLOBAL_SETTINGS_KEY) as unknown as GlobalSettings;
-            if (globalSettings?.cache?.enabled !== undefined) {
-                cacheEnabled = globalSettings.cache.enabled;
-            }
-        } catch (error) {
-            console.error('获取缓存设置失败:', error);
-            // 保持默认值 true
-        }
+        let cacheEnabled = cacheSettings.enabled || true; // 默认启用缓存
 
         // 使用通用消息处理器
         const response = await sendToBackground({
@@ -62,7 +53,7 @@ export async function callTranslateAPI(
 export async function callTTSAPI(text: string, lang: string): Promise<{ success: boolean; audioData?: ArrayBuffer; error?: string }> {
     try {
         const ttsLang = getTTSLang(lang);
-        
+
         const response = await sendToBackground({
             name: "handle" as never,
             body: {
@@ -83,7 +74,7 @@ export async function callTTSAPI(text: string, lang: string): Promise<{ success:
             if (audioData && audioData.constructor === Uint8Array) {
                 audioData = audioData.buffer.slice(audioData.byteOffset, audioData.byteOffset + audioData.byteLength);
             }
-            
+
             return {
                 success: true,
                 audioData: audioData

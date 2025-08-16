@@ -553,25 +553,25 @@ export function useSpeechSettings() {
 
   const speechSettings = settings.speech;
 
-  const updateSpeechSettings = useCallback((updates: PartialDeep<GlobalSettings['speech']>) => {
+  const updateSpeech = useCallback((updates: PartialDeep<GlobalSettings['speech']>) => {
     updateModuleSettings('speech', updates);
   }, [updateModuleSettings]);
 
   const toggleEnabled = useCallback(() => {
-    updateSpeechSettings({ enabled: !speechSettings.enabled });
-  }, [speechSettings.enabled, updateSpeechSettings]);
+    updateSpeech({ enabled: !speechSettings.enabled });
+  }, [speechSettings.enabled, updateSpeech]);
 
   const setEngine = useCallback((engine: GlobalSettings['speech']['engine']) => {
-    updateSpeechSettings({ engine });
-  }, [updateSpeechSettings]);
+    updateSpeech({ engine });
+  }, [updateSpeech]);
 
   const setVoiceSettings = useCallback((settings: { speed?: number; pitch?: number; volume?: number; }) => {
-    updateSpeechSettings(settings);
-  }, [updateSpeechSettings]);
+    updateSpeech(settings);
+  }, [updateSpeech]);
 
   return {
     speechSettings,
-    updateSpeechSettings,
+    updateSpeech,
     toggleEnabled,
     setEngine,
     setVoiceSettings,

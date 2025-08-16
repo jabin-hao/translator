@@ -1,5 +1,5 @@
 /* 导入主题变量 */
-@import './styles/theme.css';
+@import './theme.css';
 
 /* 全局样式重置 */
 * {
