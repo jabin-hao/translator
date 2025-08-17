@@ -59,9 +59,7 @@ const PopupInner: React.FC = () => {
   const addToAlwaysList = async (domain: string) => {
     await setDomainSetting({
       domain,
-      type: 'whitelist',
       enabled: true,
-      notes: '用户手动添加'
     });
   };
 
@@ -130,7 +128,7 @@ const PopupInner: React.FC = () => {
   // 监听域名设置变化，重新计算站点设置
   useEffect(() => {
     if (siteKey && domainSettings.length >= 0) {
-      const alwaysList = domainSettings.filter(setting => setting.type === 'whitelist' && setting.enabled).map(s => s.domain);
+      const alwaysList = domainSettings.filter(setting => setting.enabled).map(s => s.domain);
 
 
       const isAlways = matchSiteList(alwaysList, siteKey);
@@ -235,7 +233,7 @@ const PopupInner: React.FC = () => {
     }
 
     // 重新检查匹配状态
-    const alwaysList = domainSettings.filter(setting => setting.type === 'whitelist' && setting.enabled).map(s => s.domain);
+    const alwaysList = domainSettings.filter(setting => setting.enabled).map(s => s.domain);
 
     const isAlways = matchSiteList(alwaysList, siteKey);
 
