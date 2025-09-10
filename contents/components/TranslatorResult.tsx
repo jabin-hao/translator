@@ -55,8 +55,9 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
   // =============== 使用新的全局配置系统 ===============
   const { languageSettings } = useLanguageSettings();
   const { speechSettings } = useSpeechSettings();
-  const { favoritesSettings } = useFavoritesSettings();
-  const { favorites, addFavorite, deleteFavorite } = useFavorites();
+  const { favoritesSettings, addFavoriteWord, removeFavoriteWord } = useFavoritesSettings();
+  
+  const favorites = favoritesSettings.words;
   
   const favoriteLangs = languageSettings.favorites;
   const speechConfig = {
@@ -247,7 +248,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
         const sourceText = props.originalText || props.text;
         const isAlreadyFavorited = favorites.some(fav => 
           fav.originalText === sourceText &&
-          fav.targetLanguage === targetLang
+          fav.translatedText === translatedText
         );
         setIsFavorited(isAlreadyFavorited);
       } catch (error) {
@@ -274,7 +275,9 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
   
   // 停止朗读的统一函数
   const stopSpeaking = async () => {
-    await props.stopTTSAPI();
+    if (props.stopTTSAPI && typeof props.stopTTSAPI === 'function') {
+      await props.stopTTSAPI();
+    }
     if (currentAudioRef.current) {
       currentAudioRef.current.pause();
       currentAudioRef.current = null;
@@ -630,11 +633,11 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
         // 取消收藏 - 查找对应的收藏项
         const favoriteItem = favorites.find(
           item => item.originalText === sourceText && 
-                  item.targetLanguage === targetLang
+                  item.translatedText === translatedText
         );
         
         if (favoriteItem) {
-          const success = await deleteFavorite(favoriteItem.id);
+          const success = await removeFavoriteWord(favoriteItem.id);
           if (success) {
             setIsFavorited(false);
             props.showMessage('success', t('已取消收藏'));
@@ -642,12 +645,9 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
         }
       } else {
         // 添加收藏
-        const success = await addFavorite({
+        const success = await addFavoriteWord({
           originalText: sourceText,
-          translatedText: translatedText,
-          sourceLanguage: 'auto',  // 源语言设为auto
-          targetLanguage: targetLang,
-          engine: props.engine || 'bing'
+          translatedText: translatedText
         });
         if (success) {
           setIsFavorited(true);
@@ -662,12 +662,8 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
 
   // =============== 渲染逻辑 ===============
   
-  // 如果组件不应该渲染或目标语言未设置，返回null
-  if (!shouldRender || !targetLang) {
-    return null;
-  }
-
-  return (
+  // 使用条件渲染而不是早期返回，避免违反 React Hooks 规则
+  return (!shouldRender || !targetLang) ? null : (
     <Card
       data-translator-result
       className="translator-result-card"

@@ -5,10 +5,6 @@ import { useTranslation } from 'react-i18next';
 import {
   usePageTranslateSettings,
 } from '~lib/settings/settings';
-import {
-  useCustomDictionary,
-  useDomainSettings
-} from '~lib/storage/chrome_storage_hooks';
 import { type CustomDictionaryEntry } from '~lib/storage/chrome_storage';
 import { DeleteOutlined } from '@ant-design/icons';
 import SettingsPageContainer from '../../components/SettingsPageContainer';
@@ -18,26 +14,21 @@ import SettingsItem from '../../components/SettingsItem';
 const PageTranslateSettings: React.FC = () => {
   const { t } = useTranslation();
 
-  // 使用新的全局配置系统
+  // 使用新的全局配置系统（包含基础设置、自定义词库、域名设置）
   const {
     pageTranslateSettings,
     toggleAutoTranslate,
     updatePageTranslateSettings,
-  } = usePageTranslateSettings();
-
-  // 使用新的Chrome Storage hooks
-  const {
+    // 域名设置
     domainSettings,
     setDomainSetting,
-    deleteDomainSetting
-  } = useDomainSettings();
-
-  const {
+    deleteDomainSetting,
+    // 自定义词库
     addDictionaryEntry,
     updateDictionaryEntry,
     deleteDictionaryEntry,
     getDictionaryByDomain
-  } = useCustomDictionary();
+  } = usePageTranslateSettings();
 
   // 添加站点相关状态
   const [addHost, setAddHost] = useImmer('');

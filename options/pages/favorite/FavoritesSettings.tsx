@@ -26,13 +26,6 @@ const FavoritesSettings: React.FC = () => {
   
   const [filteredFavorites, setFilteredFavorites] = useImmer<FavoriteWord[]>([]);
   const [searchText, setSearchText] = useImmer('');
-  const [selectedLanguage, setSelectedLanguage] = useImmer<string>('all');
-  
-  // 编辑模态框状态
-  const [editModalVisible, setEditModalVisible] = useImmer(false);
-  const [editingWord, setEditingWord] = useImmer<FavoriteWord | null>(null);
-  const [editNote, setEditNote] = useImmer('');
-  const [editTags, setEditTags] = useImmer<string[]>([]);
 
   // 导入导出状态
   const [importModalVisible, setImportModalVisible] = useImmer(false);
@@ -45,24 +38,17 @@ const FavoritesSettings: React.FC = () => {
     // 按搜索文本过滤
     if (searchText) {
       filtered = filtered.filter(item => 
-        item.word.toLowerCase().includes(searchText.toLowerCase()) ||
-        item.translation.toLowerCase().includes(searchText.toLowerCase()) ||
-        item.notes?.toLowerCase().includes(searchText.toLowerCase())
+        item.originalText.toLowerCase().includes(searchText.toLowerCase()) ||
+        item.translatedText.toLowerCase().includes(searchText.toLowerCase())
       );
     }
-    
-    // 按语言过滤
-    if (selectedLanguage !== 'all') {
-      filtered = filtered.filter(item => 
-        item.sourceLanguage === selectedLanguage || item.targetLanguage === selectedLanguage
-      );
-    }
+
     
     // 按时间排序（最新的在前）
     filtered.sort((a, b) => b.timestamp - a.timestamp);
     
     setFilteredFavorites(filtered);
-  }, [favorites, searchText, selectedLanguage]);
+  }, [favorites, searchText]);
 
   // 删除收藏
   const handleDelete = async (id: string) => {
@@ -78,29 +64,13 @@ const FavoritesSettings: React.FC = () => {
     message.success(t('已清空所有收藏'));
   };
 
-  // 编辑收藏
+  // 编辑收藏（简化版，不再支持编辑）
   const handleEdit = (word: FavoriteWord) => {
-    setEditingWord(word);
-    setEditNote(word.notes || '');
-    setEditTags(word.tags || []);
-    setEditModalVisible(true);
+    // 由于简化了数据结构，暂时禁用编辑功能
+    message.info(t('数据结构已简化，暂不支持编辑功能'));
   };
 
-  // 保存编辑
-  const handleSaveEdit = async () => {
-    if (!editingWord) return;
-    
-    // 使用 immer 优化对象更新
-    const newFavorites = favorites.map(item =>
-      item.id === editingWord.id
-      ? { ...item, notes: editNote, tags: editTags }
-      : item
-    );
-    await updateFavorites({ words: newFavorites });
-    setEditModalVisible(false);
-    setEditingWord(null);
-    message.success(t('已保存修改'));
-  };
+
 
   // 导出收藏
   const handleExport = () => {
@@ -120,9 +90,19 @@ const FavoritesSettings: React.FC = () => {
     try {
       const importedData = JSON.parse(importText);
       if (Array.isArray(importedData)) {
-        const validData = importedData.filter(item => 
-          item.id && item.word && item.translation
-        );
+        // 支持新旧格式，将旧格式转换为新格式
+        const validData = importedData
+          .filter(item => {
+            const originalText = item.originalText || item.word;
+            const translatedText = item.translatedText || item.translation;
+            return originalText && translatedText;
+          })
+          .map(item => ({
+            id: item.id || `fav_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            originalText: item.originalText || item.word,
+            translatedText: item.translatedText || item.translation,
+            timestamp: item.timestamp || Date.now()
+          }));
         
         const newFavorites = [...favorites, ...validData];
         await updateFavorites({ words: newFavorites });
@@ -137,13 +117,7 @@ const FavoritesSettings: React.FC = () => {
     }
   };
 
-  // 获取语言列表
-  const languageOptions = Array.from(
-    new Set([
-      ...favorites.map(item => item.sourceLanguage),
-      ...favorites.map(item => item.targetLanguage)
-    ])
-  ).filter(Boolean);
+  // 语言选择功能已移除，因为简化了数据结构
 
   const formatTimestamp = (timestamp: number) => {
     return new Date(timestamp).toLocaleString('zh-CN');
@@ -173,22 +147,12 @@ const FavoritesSettings: React.FC = () => {
               <Space direction="vertical" style={{ width: '100%' }}>
                 <Space>
                   <Search
-                    placeholder={t('搜索原文、译文或备注')}
+                    placeholder={t('搜索原文或译文')}
                     value={searchText}
                     onChange={(e) => setSearchText(e.target.value)}
                     style={{ width: 300 }}
                     allowClear
                   />
-                  <Select
-                    value={selectedLanguage}
-                    onChange={setSelectedLanguage}
-                    style={{ width: 120 }}
-                  >
-                    <Option value="all">{t('所有语言')}</Option>
-                    {languageOptions.map(lang => (
-                      <Option key={lang} value={lang}>{lang}</Option>
-                    ))}
-                  </Select>
                 </Space>
                 
                 <Space>
@@ -260,42 +224,17 @@ const FavoritesSettings: React.FC = () => {
                   >
                     <div style={{ marginBottom: 8 }}>
                       <div style={{ fontSize: 16, fontWeight: 500, marginBottom: 4 }}>
-                        {item.word}
+                        {item.originalText}
                       </div>
                       <div style={{ 
                         color: isDark ? '#a6a6a6' : '#666666',
                         fontSize: 14,
                         marginBottom: 8
                       }}>
-                        {item.translation}
+                        {item.translatedText}
                       </div>
                     </div>
-                    
-                    <div style={{ marginBottom: 8 }}>
-                      <Tag color="blue">
-                        {item.sourceLanguage} → {item.targetLanguage}
-                      </Tag>
-                    </div>
-                    
-                    {item.tags && item.tags.length > 0 && (
-                      <div style={{ marginBottom: 8 }}>
-                        {item.tags.map(tag => (
-                          <Tag key={tag} color="orange">
-                            {tag}
-                          </Tag>
-                        ))}
-                      </div>
-                    )}
-                    
-                    {item.notes && (
-                      <div style={{ 
-                        fontSize: 12, 
-                        color: isDark ? '#a6a6a6' : '#999999',
-                        marginBottom: 8
-                      }}>
-                        {item.notes}
-                      </div>
-                    )}
+
                     
                     <div style={{ 
                       fontSize: 12, 
@@ -310,49 +249,7 @@ const FavoritesSettings: React.FC = () => {
           )}
         </SettingsItem>
 
-      {/* 编辑模态框 */}
-      <Modal
-        title={t('编辑收藏')}
-        open={editModalVisible}
-        onOk={handleSaveEdit}
-        onCancel={() => setEditModalVisible(false)}
-        okText={t('保存')}
-        cancelText={t('取消')}
-      >
-        {editingWord && (
-          <Space direction="vertical" style={{ width: '100%' }}>
-            <div>
-              <div style={{ fontWeight: 500, marginBottom: 4 }}>
-                {editingWord.word}
-              </div>
-              <div style={{ color: isDark ? '#a6a6a6' : '#666666' }}>
-                {editingWord.translation}
-              </div>
-            </div>
-            
-            <div>
-              <div style={{ marginBottom: 8 }}>备注：</div>
-              <Input.TextArea
-                value={editNote}
-                onChange={(e) => setEditNote(e.target.value)}
-                placeholder={t('添加备注...')}
-                rows={3}
-              />
-            </div>
-            
-            <div>
-              <div style={{ marginBottom: 8 }}>标签：</div>
-              <Select
-                mode="tags"
-                value={editTags}
-                onChange={setEditTags}
-                placeholder={t('添加标签...')}
-                style={{ width: '100%' }}
-              />
-            </div>
-          </Space>
-        )}
-      </Modal>
+
 
       {/* 导入模态框 */}
       <Modal

@@ -2,9 +2,19 @@
  * 全局设置管理
  * 统一管理所有配置项，提供类型安全和默认值
  */
-import { useCallback } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { produce } from 'immer';
 import { useStorage } from '../storage/storage';
+import { 
+  favoritesManager, 
+  customDictionaryManager, 
+  domainSettingsManager,
+  translationCacheManager,
+  type FavoriteWord,
+  type CustomDictionaryEntry,
+  type DomainSetting,
+  type TranslationCacheEntry
+} from '../storage/chrome_storage';
 
 // 翻译引擎类型定义
 export type TranslateEngine = 'google' | 'deepl' | 'bing' | 'yandex' | string;
@@ -119,13 +129,9 @@ export interface GlobalSettings {
     enabled: boolean;
     words: Array<{
       id: string;
-      word: string;
-      translation: string;
-      sourceLanguage: string;
-      targetLanguage: string;
+      originalText: string;
+      translatedText: string;
       timestamp: number;
-      tags?: string[];
-      notes?: string;
     }>;
     autoSave: boolean;
     maxSize: number;
@@ -580,23 +586,77 @@ export function useSpeechSettings() {
 
 /**
  * 专门用于缓存设置的 Hook
+ * 使用 Chrome Storage API 管理缓存数据
  */
 export function useCacheSettings() {
-  const { getModuleSettings, updateModuleSettings } = useGlobalSettings();
+  const [caches, setCaches] = useState<TranslationCacheEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>('');
 
+  // 缓存配置（从全局设置获取）
+  const { getModuleSettings, updateModuleSettings } = useGlobalSettings();
   const cacheSettings = getModuleSettings('cache');
 
   const updateCache = useCallback((updates: PartialDeep<GlobalSettings['cache']>) => {
     updateModuleSettings('cache', updates);
   }, [updateModuleSettings]);
 
+  const loadCaches = useCallback(async () => {
+    try {
+      setLoading(true);
+      // 直接从 Chrome Storage 获取缓存数据
+      const { chromeStorage } = await import('../storage/chrome_storage');
+      const data = await chromeStorage.get<TranslationCacheEntry>('translationCache');
+      setCaches(data);
+      setError('');
+    } catch (err) {
+      console.error('加载缓存失败:', err);
+      setError(err instanceof Error ? err.message : '加载缓存失败');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadCaches();
+  }, [loadCaches]);
+
+  const clearCache = useCallback(async () => {
+    try {
+      const success = await translationCacheManager.clear();
+      if (success) {
+        await loadCaches();
+      }
+      return success;
+    } catch (err) {
+      console.error('清空缓存失败:', err);
+      setError(err instanceof Error ? err.message : '清空缓存失败');
+      return false;
+    }
+  }, [loadCaches]);
+
+  const getCacheStats = useCallback(async () => {
+    try {
+      return await translationCacheManager.getStats();
+    } catch (err) {
+      console.error('获取缓存统计失败:', err);
+      return { count: 0, size: 0, hitRate: 0, totalRequests: 0, hitCount: 0 };
+    }
+  }, []);
+
   const toggleEnabled = useCallback(() => {
     updateCache({ enabled: !cacheSettings.enabled });
   }, [cacheSettings.enabled, updateCache]);
 
   return {
+    caches,
+    loading,
+    error,
     cacheSettings,
     updateCache,
+    clearCache,
+    getCacheStats,
+    refresh: loadCaches,
     toggleEnabled,
   };
 }
@@ -631,70 +691,177 @@ export function useShortcutSettings() {
 
 /**
  * 专门用于收藏夹设置的 Hook
+ * 使用 Chrome Storage API 管理收藏夹数据
  */
 export function useFavoritesSettings() {
   const { settings, updateModuleSettings } = useGlobalSettings();
 
-  const favoritesSettings = settings.favorites;
+  const [favorites, setFavorites] = useState<FavoriteWord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>('');
 
-  const updateFavorites = useCallback((updates: PartialDeep<GlobalSettings['favorites']>) => {
-    updateModuleSettings('favorites', updates);
-  }, [updateModuleSettings]);
+  const loadFavorites = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await favoritesManager.getFavorites();
+      setFavorites(data);
+      setError('');
+    } catch (err) {
+      console.error('加载收藏夹失败:', err);
+      setError(err instanceof Error ? err.message : '加载收藏夹失败');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
+  useEffect(() => {
+    loadFavorites();
+  }, [loadFavorites]);
+
+  const addFavorite = useCallback(async (favorite: Omit<FavoriteWord, 'id' | 'timestamp'>) => {
+    try {
+      const success = await favoritesManager.addFavorite(favorite);
+      if (success) {
+        await loadFavorites();
+      }
+      return success;
+    } catch (err) {
+      console.error('添加收藏失败:', err);
+      setError(err instanceof Error ? err.message : '添加收藏失败');
+      return false;
+    }
+  }, [loadFavorites]);
+
+  const deleteFavorite = useCallback(async (id: string) => {
+    try {
+      const success = await favoritesManager.deleteFavorite(id);
+      if (success) {
+        await loadFavorites();
+      }
+      return success;
+    } catch (err) {
+      console.error('删除收藏失败:', err);
+      setError(err instanceof Error ? err.message : '删除收藏失败');
+      return false;
+    }
+  }, [loadFavorites]);
+
+  const clearFavorites = useCallback(async () => {
+    try {
+      const success = await favoritesManager.clearFavorites();
+      if (success) {
+        await loadFavorites();
+      }
+      return success;
+    } catch (err) {
+      console.error('清空收藏失败:', err);
+      setError(err instanceof Error ? err.message : '清空收藏失败');
+      return false;
+    }
+  }, [loadFavorites]);
+
+  const searchFavorites = useCallback(async (query: string) => {
+    try {
+      return await favoritesManager.searchFavorites(query);
+    } catch (err) {
+      console.error('搜索收藏失败:', err);
+      return [];
+    }
+  }, []);
+
+  // 提供兼容性接口
+  const favoritesSettings = {
+    enabled: settings.favorites.enabled, // 从全局设置获取
+    words: favorites,
+    autoSave: settings.favorites.autoSave,
+    maxSize: settings.favorites.maxSize,
+  };
+
+  const updateFavorites = useCallback((updates: { words?: FavoriteWord[] }) => {
+    // 这是为了兼容现有代码，实际上数据通过 Chrome Storage 管理
+    if (updates.words) {
+      setFavorites(updates.words);
+    }
+  }, []);
+
+  // 切换收藏夹启用状态
   const toggleEnabled = useCallback(() => {
-    updateFavorites({ enabled: !favoritesSettings.enabled });
-  }, [favoritesSettings.enabled, updateFavorites]);
-
-  // 使用 immer 优化收藏夹操作
-  const addFavoriteWord = useCallback((word: GlobalSettings['favorites']['words'][0]) => {
-    updateFavorites(
-      produce(favoritesSettings, (draft) => {
-        draft.words.push(word);
-      })
-    );
-  }, [favoritesSettings, updateFavorites]);
-
-  const removeFavoriteWord = useCallback((wordId: string) => {
-    updateFavorites(
-      produce(favoritesSettings, (draft) => {
-        draft.words = draft.words.filter(w => w.id !== wordId);
-      })
-    );
-  }, [favoritesSettings, updateFavorites]);
-
-  const updateFavoriteWord = useCallback((wordId: string, updates: Partial<GlobalSettings['favorites']['words'][0]>) => {
-    updateFavorites(
-      produce(favoritesSettings, (draft) => {
-        const wordIndex = draft.words.findIndex(w => w.id === wordId);
-        if (wordIndex !== -1) {
-          Object.assign(draft.words[wordIndex], updates);
-        }
-      })
-    );
-  }, [favoritesSettings, updateFavorites]);
-
-  const clearAllFavorites = useCallback(() => {
-    updateFavorites({ words: [] });
-  }, [updateFavorites]);
+    updateModuleSettings('favorites', { enabled: !settings.favorites.enabled });
+  }, [settings.favorites.enabled, updateModuleSettings]);
 
   return {
-    favoritesSettings,
-    updateFavorites,
-    toggleEnabled,
-    addFavoriteWord,
-    removeFavoriteWord,
-    updateFavoriteWord,
-    clearAllFavorites,
+    favorites,
+    loading,
+    error,
+    favoritesSettings, // 兼容性
+    addFavorite,
+    deleteFavorite,
+    clearFavorites,
+    searchFavorites,
+    refresh: loadFavorites,
+    updateFavorites, // 兼容性
+    toggleEnabled, // 新增：切换启用状态
+    // 保持向后兼容的方法名
+    addFavoriteWord: addFavorite,
+    removeFavoriteWord: deleteFavorite,
+    clearAllFavorites: clearFavorites,
   };
 }
 
 /**
  * 网页翻译设置 Hook（统一管理所有网页翻译相关配置）
+ * 包含：基础设置、自定义词库、域名设置
  */
 export function usePageTranslateSettings() {
   const { settings, updateSettings } = useGlobalSettings();
 
   const pageTranslateSettings = settings.pageTranslate;
+
+  // 自定义词库状态
+  const [dictionary, setDictionary] = useState<CustomDictionaryEntry[]>([]);
+  const [dictLoading, setDictLoading] = useState(true);
+  const [dictError, setDictError] = useState<string>('');
+
+  // 域名设置状态
+  const [domainSettings, setDomainSettings] = useState<DomainSetting[]>([]);
+  const [domainLoading, setDomainLoading] = useState(true);
+  const [domainError, setDomainError] = useState<string>('');
+
+  // 加载自定义词库
+  const loadDictionary = useCallback(async () => {
+    try {
+      setDictLoading(true);
+      const data = await customDictionaryManager.getDictionary();
+      setDictionary(data);
+      setDictError('');
+    } catch (err) {
+      console.error('加载自定义词库失败:', err);
+      setDictError(err instanceof Error ? err.message : '加载自定义词库失败');
+    } finally {
+      setDictLoading(false);
+    }
+  }, []);
+
+  // 加载域名设置
+  const loadDomainSettings = useCallback(async () => {
+    try {
+      setDomainLoading(true);
+      const data = await domainSettingsManager.getDomainSettings();
+      setDomainSettings(data);
+      setDomainError('');
+    } catch (err) {
+      console.error('加载域名设置失败:', err);
+      setDomainError(err instanceof Error ? err.message : '加载域名设置失败');
+    } finally {
+      setDomainLoading(false);
+    }
+  }, []);
+
+  // 初始化加载
+  useEffect(() => {
+    loadDictionary();
+    loadDomainSettings();
+  }, [loadDictionary, loadDomainSettings]);
 
   const updatePageTranslateSettings = useCallback(async (updates: PartialDeep<GlobalSettings['pageTranslate']>) => {
     await updateSettings({ pageTranslate: updates });
@@ -717,13 +884,172 @@ export function usePageTranslateSettings() {
     await updatePageTranslateSettings({ targetLanguage });
   }, [updatePageTranslateSettings]);
 
+  // 自定义词库功能
+  const addDictionaryEntry = useCallback(async (entry: Omit<CustomDictionaryEntry, 'id' | 'timestamp'>) => {
+    try {
+      const success = await customDictionaryManager.addEntry(entry);
+      if (success) {
+        await loadDictionary();
+      }
+      return success;
+    } catch (err) {
+      console.error('添加词库条目失败:', err);
+      setDictError(err instanceof Error ? err.message : '添加词库条目失败');
+      return false;
+    }
+  }, [loadDictionary]);
+
+  const updateDictionaryEntry = useCallback(async (entry: CustomDictionaryEntry) => {
+    try {
+      const success = await customDictionaryManager.updateEntry(entry);
+      if (success) {
+        await loadDictionary();
+      }
+      return success;
+    } catch (err) {
+      console.error('更新词库条目失败:', err);
+      setDictError(err instanceof Error ? err.message : '更新词库条目失败');
+      return false;
+    }
+  }, [loadDictionary]);
+
+  const deleteDictionaryEntry = useCallback(async (id: string) => {
+    try {
+      const success = await customDictionaryManager.deleteEntry(id);
+      if (success) {
+        await loadDictionary();
+      }
+      return success;
+    } catch (err) {
+      console.error('删除词库条目失败:', err);
+      setDictError(err instanceof Error ? err.message : '删除词库条目失败');
+      return false;
+    }
+  }, [loadDictionary]);
+
+  const clearDictionary = useCallback(async () => {
+    try {
+      const success = await customDictionaryManager.clearDictionary();
+      if (success) {
+        await loadDictionary();
+      }
+      return success;
+    } catch (err) {
+      console.error('清空词库失败:', err);
+      setDictError(err instanceof Error ? err.message : '清空词库失败');
+      return false;
+    }
+  }, [loadDictionary]);
+
+  const getDictionaryByDomain = useCallback(async (domain: string) => {
+    try {
+      return await customDictionaryManager.getDictionaryByDomain(domain);
+    } catch (err) {
+      console.error('查询域名词库失败:', err);
+      return [];
+    }
+  }, []);
+
+  const findTranslation = useCallback(async (domain: string, original: string) => {
+    try {
+      return await customDictionaryManager.findTranslation(domain, original);
+    } catch (err) {
+      console.error('查找翻译失败:', err);
+      return undefined;
+    }
+  }, []);
+
+  // 域名设置功能
+  const setDomainSetting = useCallback(async (setting: Omit<DomainSetting, 'timestamp'>) => {
+    try {
+      const success = await domainSettingsManager.setDomainSetting(setting);
+      if (success) {
+        await loadDomainSettings();
+      }
+      return success;
+    } catch (err) {
+      console.error('设置域名设置失败:', err);
+      setDomainError(err instanceof Error ? err.message : '设置域名设置失败');
+      return false;
+    }
+  }, [loadDomainSettings]);
+
+  const deleteDomainSetting = useCallback(async (domain: string) => {
+    try {
+      const success = await domainSettingsManager.deleteDomainSetting(domain);
+      if (success) {
+        await loadDomainSettings();
+      }
+      return success;
+    } catch (err) {
+      console.error('删除域名设置失败:', err);
+      setDomainError(err instanceof Error ? err.message : '删除域名设置失败');
+      return false;
+    }
+  }, [loadDomainSettings]);
+
+  const clearDomainSettings = useCallback(async () => {
+    try {
+      const success = await domainSettingsManager.clearDomainSettings();
+      if (success) {
+        await loadDomainSettings();
+      }
+      return success;
+    } catch (err) {
+      console.error('清空域名设置失败:', err);
+      setDomainError(err instanceof Error ? err.message : '清空域名设置失败');
+      return false;
+    }
+  }, [loadDomainSettings]);
+
+  const isWhitelisted = useCallback(async (domain: string) => {
+    try {
+      return await domainSettingsManager.isWhitelisted(domain);
+    } catch (err) {
+      console.error('检查白名单失败:', err);
+      return false;
+    }
+  }, []);
+
+  const getWhitelistedDomains = useCallback(async () => {
+    try {
+      return await domainSettingsManager.getWhitelistedDomains();
+    } catch (err) {
+      console.error('获取白名单域名失败:', err);
+      return [];
+    }
+  }, []);
+
   return {
+    // 基础设置
     pageTranslateSettings,
     updatePageTranslateSettings,
-    // 基本功能
     toggleEnabled,
     toggleAutoTranslate,
     setTranslateMode,
     setTargetLanguage,
+    
+    // 自定义词库
+    dictionary,
+    dictLoading,
+    dictError,
+    addDictionaryEntry,
+    updateDictionaryEntry,
+    deleteDictionaryEntry,
+    clearDictionary,
+    getDictionaryByDomain,
+    findTranslation,
+    refreshDictionary: loadDictionary,
+    
+    // 域名设置
+    domainSettings,
+    domainLoading,
+    domainError,
+    setDomainSetting,
+    deleteDomainSetting,
+    clearDomainSettings,
+    isWhitelisted,
+    getWhitelistedDomains,
+    refreshDomainSettings: loadDomainSettings,
   };
 }

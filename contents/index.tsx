@@ -27,7 +27,6 @@ import {
     useShortcutSettings,
     usePageTranslateSettings
 } from '~lib/settings/settings';
-import { useDomainSettings } from '~lib/storage/chrome_storage_hooks';
 import { callTranslateAPI, callTTSAPI, stopTTSAPI } from './content';
 
 const HOST_ID = "translator-csui"
@@ -165,8 +164,7 @@ const ContentScript = () => {
     const { textTranslateSettings } = useTextTranslateSettings();
     const { themeSettings } = useThemeSettings();
     const { shortcutSettings } = useShortcutSettings();
-    const { pageTranslateSettings } = usePageTranslateSettings();
-    const { domainSettings, getWhitelistedDomains } = useDomainSettings();
+    const { pageTranslateSettings, domainSettings, getWhitelistedDomains } = usePageTranslateSettings();
 
     // 从全局设置中提取值
     const engine = engineSettings.default;

@@ -9,21 +9,15 @@ import type { FavoriteWord } from '../storage/chrome_storage';
 export class FavoritesManager {
   // 添加收藏
   static async addFavorite(
-    word: string,
-    translation: string,
-    sourceLanguage: string,
-    targetLanguage: string,
-    engine: string = 'bing',
-    notes?: string,
-    tags?: string[]
+    originalText: string,
+    translatedText: string
   ): Promise<void> {
     try {
       // 检查是否已存在相同的收藏
       const allFavorites = await favoritesManager.getFavorites();
       const existingFavorite = allFavorites.find(
-        fav => fav.originalText === word && 
-               fav.sourceLanguage === sourceLanguage && 
-               fav.targetLanguage === targetLanguage
+        fav => fav.originalText === originalText && 
+               fav.translatedText === translatedText
       );
 
       if (existingFavorite) {
@@ -32,15 +26,8 @@ export class FavoritesManager {
       } else {
         // 添加新收藏
         await favoritesManager.addFavorite({
-          originalText: word,
-          translatedText: translation,
-          sourceLanguage,
-          targetLanguage,
-          engine,
-          word, // 向后兼容
-          translation, // 向后兼容
-          notes,
-          tags
+          originalText,
+          translatedText
         });
       }
     } catch (error) {
@@ -91,16 +78,14 @@ export class FavoritesManager {
 
   // 检查是否已收藏
   static async isFavorited(
-    word: string,
-    sourceLanguage: string,
-    targetLanguage: string
+    originalText: string,
+    translatedText: string
   ): Promise<boolean> {
     try {
       const favorites = await favoritesManager.getFavorites();
       return favorites.some(
-        fav => fav.originalText === word && 
-               fav.sourceLanguage === sourceLanguage && 
-               fav.targetLanguage === targetLanguage
+        fav => fav.originalText === originalText && 
+               fav.translatedText === translatedText
       );
     } catch (error) {
       console.error('检查收藏状态失败:', error);
@@ -108,19 +93,12 @@ export class FavoritesManager {
     }
   }
 
-  // 按语言对获取收藏
-  static async getFavoritesByLanguagePair(
-    sourceLanguage: string,
-    targetLanguage: string
-  ): Promise<FavoriteWord[]> {
+  // 获取所有收藏（简化版，不再支持按语言对筛选）
+  static async getFavoritesByLanguagePair(): Promise<FavoriteWord[]> {
     try {
-      const allFavorites = await favoritesManager.getFavorites();
-      return allFavorites.filter(
-        fav => fav.sourceLanguage === sourceLanguage && 
-               fav.targetLanguage === targetLanguage
-      );
+      return await favoritesManager.getFavorites();
     } catch (error) {
-      console.error('按语言对获取收藏失败:', error);
+      console.error('获取收藏失败:', error);
       return [];
     }
   }
@@ -128,7 +106,6 @@ export class FavoritesManager {
   // 获取收藏统计
   static async getFavoritesStats(): Promise<{
     total: number;
-    byLanguage: Record<string, number>;
     recentCount: number;
   }> {
     try {
@@ -136,13 +113,9 @@ export class FavoritesManager {
       const now = Date.now();
       const oneWeekAgo = now - 7 * 24 * 60 * 60 * 1000;
 
-      const byLanguage: Record<string, number> = {};
       let recentCount = 0;
 
       favorites.forEach(fav => {
-        const key = `${fav.sourceLanguage}-${fav.targetLanguage}`;
-        byLanguage[key] = (byLanguage[key] || 0) + 1;
-        
         if (fav.timestamp > oneWeekAgo) {
           recentCount++;
         }
@@ -150,14 +123,12 @@ export class FavoritesManager {
 
       return {
         total: favorites.length,
-        byLanguage,
         recentCount
       };
     } catch (error) {
       console.error('获取收藏统计失败:', error);
       return {
         total: 0,
-        byLanguage: {},
         recentCount: 0
       };
     }
@@ -177,21 +148,17 @@ export class FavoritesManager {
   // 从JSON导入收藏
   static async importFavorites(jsonData: string): Promise<void> {
     try {
-      const favorites: FavoriteWord[] = JSON.parse(jsonData);
+      const favorites: any[] = JSON.parse(jsonData);
       
       for (const favorite of favorites) {
-        // 验证数据结构
-        if (favorite.originalText && favorite.translatedText) {
+        // 验证数据结构，支持新旧格式
+        const originalText = favorite.originalText || favorite.word;
+        const translatedText = favorite.translatedText || favorite.translation;
+        
+        if (originalText && translatedText) {
           await favoritesManager.addFavorite({
-            originalText: favorite.originalText,
-            translatedText: favorite.translatedText,
-            sourceLanguage: favorite.sourceLanguage,
-            targetLanguage: favorite.targetLanguage,
-            engine: favorite.engine || 'bing',
-            word: favorite.word || favorite.originalText,
-            translation: favorite.translation || favorite.translatedText,
-            notes: favorite.notes,
-            tags: favorite.tags
+            originalText,
+            translatedText
           });
         }
       }
@@ -208,11 +175,7 @@ export function searchInFavorites(favorites: FavoriteWord[], keyword: string): F
   
   return favorites.filter(item =>
     (item.originalText?.toLowerCase().includes(lowercaseKeyword)) ||
-    (item.translatedText?.toLowerCase().includes(lowercaseKeyword)) ||
-    (item.word?.toLowerCase().includes(lowercaseKeyword)) ||
-    (item.translation?.toLowerCase().includes(lowercaseKeyword)) ||
-    (item.notes?.toLowerCase().includes(lowercaseKeyword)) ||
-    (item.tags?.some(tag => tag.toLowerCase().includes(lowercaseKeyword)))
+    (item.translatedText?.toLowerCase().includes(lowercaseKeyword))
   );
 }
 
@@ -231,24 +194,12 @@ export const useFavorites = () => {
 
   // 包装方法以保持API兼容性
   const addFavoriteCompat = async (
-    word: string,
-    translation: string,
-    sourceLanguage: string,
-    targetLanguage: string,
-    engine: string = 'bing',
-    notes?: string,
-    tags?: string[]
+    originalText: string,
+    translatedText: string
   ) => {
     return await addFavorite({
-      originalText: word,
-      translatedText: translation,
-      sourceLanguage,
-      targetLanguage,
-      engine,
-      word, // 向后兼容
-      translation, // 向后兼容
-      notes,
-      tags
+      originalText,
+      translatedText
     });
   };
 
@@ -257,25 +208,17 @@ export const useFavorites = () => {
   };
 
   const isFavorited = (
-    word: string,
-    sourceLanguage: string,
-    targetLanguage: string
+    originalText: string,
+    translatedText: string
   ): boolean => {
     return favorites.some(
-      fav => (fav.originalText === word || fav.word === word) && 
-             fav.sourceLanguage === sourceLanguage && 
-             fav.targetLanguage === targetLanguage
+      fav => fav.originalText === originalText && 
+             fav.translatedText === translatedText
     );
   };
 
-  const getFavoritesByLanguagePair = (
-    sourceLanguage: string,
-    targetLanguage: string
-  ): FavoriteWord[] => {
-    return favorites.filter(
-      fav => fav.sourceLanguage === sourceLanguage && 
-             fav.targetLanguage === targetLanguage
-    );
+  const getFavoritesByLanguagePair = (): FavoriteWord[] => {
+    return favorites;
   };
 
   const searchInCurrentFavorites = (keyword: string): FavoriteWord[] => {

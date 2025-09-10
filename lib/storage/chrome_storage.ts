@@ -7,15 +7,7 @@ export interface FavoriteWord {
   id: string;
   originalText: string;
   translatedText: string;
-  sourceLanguage: string;
-  targetLanguage: string;
-  engine: string;
   timestamp: number;
-  // 兼容字段
-  word?: string; // 向后兼容
-  translation?: string; // 向后兼容
-  notes?: string;
-  tags?: string[];
 }
 
 export interface CustomDictionaryEntry {

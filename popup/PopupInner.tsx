@@ -17,7 +17,6 @@ import {
   useTextTranslateSettings,
   useSpeechSettings
 } from '~lib/settings/settings';
-import { useDomainSettings } from '~lib/storage/chrome_storage_hooks';
 
 const { Text, Title } = Typography;
 
@@ -53,7 +52,7 @@ const PopupInner: React.FC = () => {
     domainSettings,
     setDomainSetting,
     deleteDomainSetting
-  } = useDomainSettings();
+  } = usePageTranslateSettings();
 
   // 创建黑白名单操作函数
   const addToAlwaysList = async (domain: string) => {

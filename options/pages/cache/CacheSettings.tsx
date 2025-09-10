@@ -134,14 +134,6 @@ const CacheSettings: React.FC = () => {
               description={t('显示当前缓存的条目数和估算的存储大小')}
             >
               <div>
-                <div style={{ marginBottom: 8 }}>
-                  <Button
-                    onClick={loadStats}
-                    icon={<Icon icon="material-symbols:refresh" />}
-                  >
-                    {t('刷新统计')}
-                  </Button>
-                </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 16 }}>
                   <div style={{ display: 'flex', alignItems: 'center' }}>
                     <span style={{ fontSize: 16, fontWeight: 'bold', color: '#1890ff' }}>{stats.count}</span>
