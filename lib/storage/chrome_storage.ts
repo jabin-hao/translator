@@ -368,6 +368,30 @@ export class TranslationCacheManager {
       return false;
     }
   }
+
+  /**
+   * 获取缓存统计信息
+   */
+  async getStats(): Promise<{ count: number; size: number }> {
+    try {
+      const cacheEntries = await chromeStorage.get<TranslationCacheEntry>(STORAGE_KEYS.TRANSLATION_CACHE);
+      const count = cacheEntries.length;
+      
+      // 估算缓存大小 (基于JSON字符串长度)
+      const sizeInBytes = JSON.stringify(cacheEntries).length;
+      
+      return {
+        count,
+        size: sizeInBytes
+      };
+    } catch (error) {
+      console.error('Failed to get cache stats:', error);
+      return {
+        count: 0,
+        size: 0
+      };
+    }
+  }
 }
 
 // 导出管理器实例

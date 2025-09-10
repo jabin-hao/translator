@@ -18,7 +18,19 @@ const CacheSettings: React.FC = () => {
   // 使用新的全局配置系统
   const { cacheSettings, updateCache, toggleEnabled } = useCacheSettings();
 
-  const [stats, setStats] = useImmer<{ count: number; size: number }>({ count: 0, size: 0 });
+  const [stats, setStats] = useImmer<{ 
+    count: number; 
+    size: number; 
+    hitRate: number;
+    totalRequests: number;
+    hitCount: number;
+  }>({ 
+    count: 0, 
+    size: 0, 
+    hitRate: 0,
+    totalRequests: 0,
+    hitCount: 0
+  });
   const [loading, setLoading] = useImmer(false);
   // 新增本地 state 保存输入值
   const [pendingConfig, setPendingConfig] = useImmer({
@@ -29,11 +41,14 @@ const CacheSettings: React.FC = () => {
   // 加载缓存统计信息
   const loadStats = async () => {
     try {
-      const stats = await cacheManager.getStats();
+      const cacheStats = await cacheManager.getStats();
       // 验证统计数据的有效性
       setStats({
-        count: isNaN(stats.count) ? 0 : stats.count,
-        size: isNaN(stats.size) ? 0 : stats.size
+        count: isNaN(cacheStats.count) ? 0 : cacheStats.count,
+        size: isNaN(cacheStats.size) ? 0 : cacheStats.size,
+        hitRate: isNaN(cacheStats.hitRate) ? 0 : cacheStats.hitRate,
+        totalRequests: isNaN(cacheStats.totalRequests) ? 0 : cacheStats.totalRequests,
+        hitCount: isNaN(cacheStats.hitCount) ? 0 : cacheStats.hitCount
       });
       message.success(t('统计已刷新'));
     } catch (error) {
@@ -116,7 +131,7 @@ const CacheSettings: React.FC = () => {
           <SettingsGroup title={t('缓存统计')}>
             <SettingsItem
               label={t('当前缓存')}
-              description={t('显示当前缓存的条目数和占用空间大小')}
+              description={t('显示当前缓存的条目数和估算的存储大小')}
             >
               <div>
                 <div style={{ marginBottom: 8 }}>
@@ -127,14 +142,34 @@ const CacheSettings: React.FC = () => {
                     {t('刷新统计')}
                   </Button>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 16 }}>
                   <div style={{ display: 'flex', alignItems: 'center' }}>
                     <span style={{ fontSize: 16, fontWeight: 'bold', color: '#1890ff' }}>{stats.count}</span>
-                    <span style={{ fontSize: 13, color: '#666', marginLeft: 4 }}>{t('条')}</span>
+                    <span style={{ fontSize: 13, color: '#666', marginLeft: 4 }}>{t('条缓存')}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center' }}>
                     <span style={{ fontSize: 16, fontWeight: 'bold', color: '#52c41a' }}>{formatSize(stats.size)}</span>
+                    <span style={{ fontSize: 11, color: '#999', marginLeft: 4 }}>{t('(估算)')}</span>
                   </div>
+                  {stats.totalRequests > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <span style={{ fontSize: 14, fontWeight: 'bold', color: '#faad14' }}>
+                        {stats.hitRate.toFixed(1)}%
+                      </span>
+                      <span style={{ fontSize: 12, color: '#666', marginLeft: 4 }}>{t('命中率')}</span>
+                    </div>
+                  )}
+                </div>
+                {stats.totalRequests > 0 && (
+                  <div style={{ fontSize: 11, color: '#666', marginTop: 4 }}>
+                    {t('总请求: {{total}}，命中: {{hit}}', { 
+                      total: stats.totalRequests, 
+                      hit: stats.hitCount 
+                    })}
+                  </div>
+                )}
+                <div style={{ fontSize: 11, color: '#666', marginTop: 4 }}>
+                  {t('注: 存储大小为JSON序列化后的估算值')}
                 </div>
               </div>
             </SettingsItem>

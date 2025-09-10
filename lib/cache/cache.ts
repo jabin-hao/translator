@@ -106,12 +106,13 @@ class CacheManager {
   // 获取缓存统计信息
   async getStats(): Promise<CacheStats> {
     try {
-      // Chrome Storage API 不直接提供统计信息，这里返回基本信息
+      // 从 Chrome Storage 获取实际的缓存统计
+      const { count, size } = await translationCacheManager.getStats();
       const hitRate = this.totalRequests > 0 ? (this.hitCount / this.totalRequests) * 100 : 0;
 
       return {
-        count: 0, // Chrome Storage 不易获取精确计数
-        size: 0,  // Chrome Storage 不易获取精确大小
+        count,
+        size,
         hitRate,
         totalRequests: this.totalRequests,
         hitCount: this.hitCount,
