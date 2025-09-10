@@ -17,7 +17,7 @@ import {
   useTextTranslateSettings,
   useSpeechSettings
 } from '~lib/settings/settings';
-import { useDomainSettings } from '~lib/storage/indexed';
+import { useDomainSettings } from '~lib/storage/chrome_storage_hooks';
 
 const { Text, Title } = Typography;
 
@@ -60,6 +60,7 @@ const PopupInner: React.FC = () => {
     await setDomainSetting({
       domain,
       enabled: true,
+      type: 'whitelist'
     });
   };
 

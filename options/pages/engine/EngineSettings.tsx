@@ -22,7 +22,7 @@ const EngineSettings: React.FC = () => {
   const { isDark } = useTheme();
   
   const { engineSettings, setDefaultEngine, updateApiKey, updateEngine } = useEngineSettings();
-  const { speechSettings, updateSpeechSettings } = useSpeechSettings();
+  const { speechSettings, updateSpeech } = useSpeechSettings();
 
   // 从全局设置中提取值
   const engine = engineSettings.default;
@@ -294,7 +294,7 @@ const EngineSettings: React.FC = () => {
                 <Segmented
                   value={ttsEngine}
                   onChange={async (value) => {
-                    await updateSpeechSettings({ engine: value as TTSEngine });
+                    await updateSpeech({ engine: value as TTSEngine });
                     message.success(t('语音合成引擎已切换到 {{engine}}', { engine: value }));
                   }}
                   options={[...TTS_ENGINES]}

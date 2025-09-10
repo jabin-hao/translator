@@ -33,7 +33,7 @@ export async function cleanCache() {
     const beforeStats = await cacheManager.getStats();
 
     // 调用正确的清理过期缓存方法
-    const result = await cacheManager.cleanupExpired();
+    await cacheManager.cleanupExpiredCache();
     
     // 获取清理后的统计信息
     const afterStats = await cacheManager.getStats();

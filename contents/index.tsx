@@ -24,8 +24,10 @@ import {
     useEngineSettings,
     useTextTranslateSettings,
     useThemeSettings,
-    useShortcutSettings
+    useShortcutSettings,
+    usePageTranslateSettings
 } from '~lib/settings/settings';
+import { useDomainSettings } from '~lib/storage/chrome_storage_hooks';
 import { callTranslateAPI, callTTSAPI, stopTTSAPI } from './content';
 
 const HOST_ID = "translator-csui"
@@ -163,6 +165,8 @@ const ContentScript = () => {
     const { textTranslateSettings } = useTextTranslateSettings();
     const { themeSettings } = useThemeSettings();
     const { shortcutSettings } = useShortcutSettings();
+    const { pageTranslateSettings } = usePageTranslateSettings();
+    const { domainSettings, getWhitelistedDomains } = useDomainSettings();
 
     // 从全局设置中提取值
     const engine = engineSettings.default;
@@ -207,10 +211,10 @@ const ContentScript = () => {
             // 如果开启了选择时自动翻译，直接触发翻译
             if (selectTranslateEnabled) {
                 // 将翻译结果显示在选中文字的正下方
-                setResult(draft => {
-                    draft.x = rect.left + window.scrollX;
-                    draft.y = rect.bottom + window.scrollY;
-                    draft.originalText = text;
+                setResult({
+                    x: rect.left + window.scrollX,
+                    y: rect.bottom + window.scrollY,
+                    originalText: text
                 });
                 setShouldTranslate(true);
                 return;
@@ -246,10 +250,10 @@ const ContentScript = () => {
                 iconY = window.innerHeight - iconHeight - margin;
             }
 
-            setIcon(draft => {
-                draft.x = iconX;
-                draft.y = iconY;
-                draft.text = text;
+            setIcon({
+                x: iconX,
+                y: iconY,
+                text: text
             });
         }
     };
@@ -270,10 +274,10 @@ const ContentScript = () => {
             const selectionRect = rect || range.getBoundingClientRect();
 
             // 将翻译结果显示在选中文字的正下方
-            setResult(draft => {
-                draft.x = selectionRect.left + window.scrollX; // 左对齐
-                draft.y = selectionRect.bottom + window.scrollY; // 正下方
-                draft.originalText = selectionText;
+            setResult({
+                x: selectionRect.left + window.scrollX, // 左对齐
+                y: selectionRect.bottom + window.scrollY, // 正下方
+                originalText: selectionText
             });
             setShouldTranslate(true);
         }
@@ -288,16 +292,17 @@ const ContentScript = () => {
                 const range = selection.getRangeAt(0);
                 const rect = range.getBoundingClientRect();
 
-                setResult(draft => {
-                    draft.x = rect.left; // 使用视窗相对坐标，因为结果组件也使用fixed定位
-                    draft.y = rect.bottom + 5; // 选中文字的
+                setResult({
+                    x: rect.left, // 使用视窗相对坐标，因为结果组件也使用fixed定位
+                    y: rect.bottom + 5, // 选中文字的下方
+                    originalText: selection.toString().trim()
                 });
             } else {
                 // 如果没有选中文字，则使用图标位置作为备选
-                setResult(draft => {
-                    draft.x = icon.x;
-                    draft.y = icon.y + 30; // 在图标下方偏移30
-                    draft.originalText = icon.text;
+                setResult({
+                    x: icon?.x || 0,
+                    y: (icon?.y || 0) + 30, // 在图标下方偏移30
+                    originalText: icon?.text || ''
                 });
             }
             setShouldTranslate(true);
@@ -329,7 +334,11 @@ const ContentScript = () => {
         return setupShortcutHandler(
             triggerTranslation,
             setShowInputTranslator,
-            textTranslateEnabled // 传入划词翻译启用状态
+            textTranslateEnabled, // 传入划词翻译启用状态
+            {
+                enabled: shortcutEnabled,
+                openPopup: customShortcut
+            }
         );
     }, [shortcutEnabled, customShortcut, triggerTranslation, textTranslateEnabled]); // 添加textTranslateEnabled依赖
 
@@ -363,8 +372,31 @@ const ContentScript = () => {
 
     // 设置自动翻译
     useEffect(() => {
-        return setupAutoTranslate(pageTargetLang, engine, stopTTSAPICallback);
-    }, [pageTargetLang, engine, stopTTSAPICallback]);
+        const setupAutoTranslation = async () => {
+            // 异步获取白名单站点列表
+            const whitelistedSites = await getWhitelistedDomains();
+            
+            return setupAutoTranslate(
+                pageTargetLang, 
+                engine, 
+                stopTTSAPICallback,
+                pageTranslateSettings.autoTranslate,
+                whitelistedSites,
+                pageTranslateSettings.mode || 'translated'
+            );
+        };
+
+        let cleanup: (() => void) | undefined;
+        setupAutoTranslation().then(cleanupFn => {
+            cleanup = cleanupFn;
+        });
+
+        return () => {
+            if (cleanup) {
+                cleanup();
+            }
+        };
+    }, [pageTargetLang, engine, stopTTSAPICallback, pageTranslateSettings, getWhitelistedDomains]);
 
     (window as any).callTranslateAPI = callTranslateAPICallback;
 

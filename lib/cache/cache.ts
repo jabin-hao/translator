@@ -1,12 +1,11 @@
-﻿// 翻译缓存管理模块
+// 翻译缓存管理模块 - 使用 Chrome Storage API
 // option | background 调用
-import { produce } from 'immer';
 import { storageApi } from '~lib/storage/storage';
 import { GLOBAL_SETTINGS_KEY } from '../settings/settings';
 import type { GlobalSettings } from '../settings/settings';
-import { IndexedDBManager, DATABASE_CONFIGS } from '../storage/indexed';
+import { translationCacheManager } from '../storage/chrome_storage';
 
-// 缓存条目接口
+// 缓存条目接口 (向后兼容)
 export interface TranslationCache {
   originalText: string;
   translatedText: string;
@@ -28,250 +27,146 @@ export interface CacheStats {
   count: number;
   size: number;
   hitRate: number;
-  memoryUsage: number;
+  totalRequests: number;
+  hitCount: number;
 }
 
-// 缓存工具类
-export class CacheUtils {
-  static async getCacheKey(text: string, from: string, to: string, engine: string): Promise<string> {
-    const data = `${text}|${from}|${to}|${engine}`;
-    const encoder = new TextEncoder();
-    const hash = await crypto.subtle.digest('SHA-256', encoder.encode(data));
-    const hashArray = Array.from(new Uint8Array(hash));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  }
-  // 将字节数转换为人类可读的格式
-  static humanReadableSize(bytes: number, decimals: number = 2): string {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const dm = decimals < 0 ? 0 : decimals;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-  }
-  // 检查缓存是否过期
-  static isExpired(cache: TranslationCache, maxAge: number): boolean {
-    if (!cache.timestamp || maxAge <= 0) return false;
-    return Date.now() - cache.timestamp > maxAge;
-  }
-  // 计算缓存条目的大小
-  static calculateEntrySize(cache: TranslationCache): number {
-    return JSON.stringify(cache).length;
-  }
-}
-
-// 缓存管理类
-export class TranslationCacheManager {
-  private config: CacheConfig;
-  private dbManager: IndexedDBManager;
+// 缓存管理器类 - 简化版，使用 Chrome Storage
+class CacheManager {
   private hitCount = 0;
-  private missCount = 0;
+  private totalRequests = 0;
+  private config: CacheConfig;
 
-  constructor(config: Partial<CacheConfig> = {}) {
-    storageApi.get(GLOBAL_SETTINGS_KEY).then((settings) => {
-      this.config = produce(((settings as unknown) as GlobalSettings)?.cache, (draft) => {
-        Object.assign(draft, config);
-      });
-    });
-    
-    this.dbManager = new IndexedDBManager(DATABASE_CONFIGS.USER_DATA);
-    this.loadConfig().catch(console.error);
-    this.startPeriodicCleanup();
+  constructor() {
+    this.config = {
+      maxAge: 24 * 60 * 60 * 1000, // 24小时
+      maxSize: 10000, // 最大10000条缓存
+    };
   }
-  // 启动定期清理
-  private startPeriodicCleanup(): void {
-    setInterval(() => {
-      this.cleanupExpiredCache().catch(console.error);
-    }, 30 * 60 * 1000);
-  }
-  // 清理过期缓存
-  private async cleanupExpiredCache(): Promise<void> {
+
+  // 初始化 - 为了向后兼容保留此方法
+  async initDB(): Promise<void> {
     try {
-      await this.dbManager.init();
-      const allCache = await this.dbManager.getAll<TranslationCache>('translationCache');
+      // 从全局设置中读取缓存配置
+      const settings = await storageApi.get(GLOBAL_SETTINGS_KEY) as unknown as GlobalSettings;
       
-      for (const entry of allCache) {
-        if (CacheUtils.isExpired(entry, this.config.maxAge)) {
-          await this.dbManager.delete('translationCache', entry.key);
-        }
+      if (settings?.cache) {
+        this.config.maxAge = settings.cache.maxAge || this.config.maxAge;
+        this.config.maxSize = settings.cache.maxSize || this.config.maxSize;
       }
+    } catch (error) {
+      console.error('初始化缓存配置失败:', error);
+    }
+  }
+
+  // 清理过期缓存
+  async cleanupExpiredCache(): Promise<void> {
+    try {
+      await translationCacheManager.cleanupExpired(this.config.maxAge);
+      console.log('清理过期缓存完成');
     } catch (error) {
       console.error('清理过期缓存失败:', error);
     }
   }
 
-  private async loadConfig(): Promise<void> {
-    try {
-      const globalSettings = await storageApi.get(GLOBAL_SETTINGS_KEY) as unknown as GlobalSettings;
-      
-      if (globalSettings?.cache) {
-        this.config = produce(this.config, (draft) => {
-          Object.assign(draft, {
-            maxAge: globalSettings.cache.maxAge,
-            maxSize: globalSettings.cache.maxSize,
-          });
-        });
-      }
-    } catch (error) {
-      console.error('加载缓存配置失败:', error);
-    }
-  }
-
+  // 获取缓存
   async get(text: string, from: string, to: string, engine: string): Promise<string | null> {
+    this.totalRequests++;
+
     try {
-      const hash = await CacheUtils.getCacheKey(text, from, to, engine);
-      await this.dbManager.init();
-      const translation = await this.dbManager.get<TranslationCache>('translationCache', hash);
-      
-      if (translation && !CacheUtils.isExpired(translation, this.config.maxAge)) {
-        const updated = produce(translation, (draft) => {
-          draft.accessCount = (draft.accessCount || 0) + 1;
-          draft.lastAccessed = Date.now();
-        });
-        
-        await this.dbManager.put('translationCache', updated);
+      const result = await translationCacheManager.get(text, from, to, engine);
+      if (result) {
         this.hitCount++;
-        return translation.translatedText;
       }
-
-      if (translation) {
-        await this.dbManager.delete('translationCache', hash);
-      }
-
-      this.missCount++;
-      return null;
+      return result;
     } catch (error) {
-      console.error('获取翻译缓存失败:', error);
-      this.missCount++;
+      console.error('获取缓存失败:', error);
       return null;
     }
   }
 
-  async set(text: string, translation: string, from: string, to: string, engine: string): Promise<void> {
+  // 设置缓存
+  async set(text: string, translatedText: string, from: string, to: string, engine: string): Promise<void> {
     try {
-      const hash = await CacheUtils.getCacheKey(text, from, to, engine);
-      
-      const cacheEntry: TranslationCache = {
-        originalText: text,
-        translatedText: translation,
-        detectedLanguage: from,
-        key: hash,
-        timestamp: Date.now(),
-        accessCount: 1,
-        lastAccessed: Date.now(),
-      };
-
-      await this.dbManager.init();
-      await this.dbManager.put('translationCache', cacheEntry);
-      await this.cleanupIfNeeded();
+      await translationCacheManager.set(text, translatedText, from, to, engine);
     } catch (error) {
-      console.error('设置翻译缓存失败:', error);
+      console.error('设置缓存失败:', error);
     }
   }
 
+  // 清空缓存
   async clear(): Promise<void> {
     try {
-      await this.dbManager.init();
-      await this.dbManager.clear('translationCache');
+      await translationCacheManager.clear();
     } catch (error) {
-      console.error('清空翻译缓存失败:', error);
+      console.error('清空缓存失败:', error);
     }
   }
 
+  // 获取缓存统计信息
   async getStats(): Promise<CacheStats> {
     try {
-      await this.dbManager.init();
-      const allCache = await this.dbManager.getAll<TranslationCache>('translationCache');
-      const count = allCache.length;
-      const size = allCache.reduce((total, entry) => total + CacheUtils.calculateEntrySize(entry), 0);
-      
+      // Chrome Storage API 不直接提供统计信息，这里返回基本信息
+      const hitRate = this.totalRequests > 0 ? (this.hitCount / this.totalRequests) * 100 : 0;
+
       return {
-        count,
-        size,
-        hitRate: this.calculateHitRate(),
-        memoryUsage: size,
+        count: 0, // Chrome Storage 不易获取精确计数
+        size: 0,  // Chrome Storage 不易获取精确大小
+        hitRate,
+        totalRequests: this.totalRequests,
+        hitCount: this.hitCount,
       };
     } catch (error) {
-      return { count: 0, size: 0, hitRate: 0, memoryUsage: 0 };
+      console.error('获取缓存统计失败:', error);
+      return {
+        count: 0,
+        size: 0,
+        hitRate: 0,
+        totalRequests: this.totalRequests,
+        hitCount: this.hitCount,
+      };
     }
   }
 
-  private calculateHitRate(): number {
-    const total = this.hitCount + this.missCount;
-    return total > 0 ? (this.hitCount / total) * 100 : 0;
-  }
-
-  private async cleanupIfNeeded(): Promise<void> {
+  // 优化缓存大小
+  async optimizeCache(): Promise<void> {
     try {
-      const stats = await this.getStats();
-      if (stats.count > this.config.maxSize) {
-        const allCache = await this.dbManager.getAll<TranslationCache>('translationCache');
-        allCache.sort((a, b) => a.timestamp - b.timestamp);
-        
-        const toDelete = allCache.slice(0, stats.count - this.config.maxSize);
-        for (const entry of toDelete) {
-          await this.dbManager.delete('translationCache', entry.key);
-        }
-      }
-    } catch (error) {
-      console.error('缓存清理失败:', error);
-    }
-  }
-
-  async initDB(): Promise<void> {
-    await this.dbManager.init();
-  }
-
-  async cleanupExpired(): Promise<{ removed: number; message: string }> {
-    try {
-      const beforeCount = await this.getStats().then(stats => stats.count);
+      // Chrome Storage API 内部已处理缓存大小优化
       await this.cleanupExpiredCache();
-      const afterCount = await this.getStats().then(stats => stats.count);
-      const removed = beforeCount - afterCount;
-
-      return { 
-        removed, 
-        message: `成功清理 ${removed} 个过期缓存条目` 
-      };
     } catch (error) {
-      console.error('清理过期缓存失败:', error);
-      return { 
-        removed: 0, 
-        message: `清理失败: ${error instanceof Error ? error.message : '未知错误'}` 
-      };
+      console.error('优化缓存失败:', error);
     }
   }
 
+  // 更新缓存配置
   async updateConfig(newConfig: Partial<CacheConfig>): Promise<void> {
-    // 使用 immer 进行配置更新
-    this.config = produce(this.config, (draft) => {
-      Object.assign(draft, newConfig);
-    });
+    if (newConfig.maxAge !== undefined) this.config.maxAge = newConfig.maxAge;
+    if (newConfig.maxSize !== undefined) this.config.maxSize = newConfig.maxSize;
 
-    // 更新全局配置中的缓存设置
     try {
+      // 更新全局设置
       const globalSettings = await storageApi.get(GLOBAL_SETTINGS_KEY) as unknown as GlobalSettings;
       if (globalSettings) {
-        const updatedSettings = produce(globalSettings, (draft) => {
-          draft.cache = {
-            ...draft.cache,
-            maxAge: this.config.maxAge,
-            maxSize: this.config.maxSize,
-          };
-        });
+        const updatedSettings = {
+          ...globalSettings,
+          cache: {
+            ...globalSettings.cache,
+            ...newConfig
+          }
+        };
         await storageApi.set(GLOBAL_SETTINGS_KEY, updatedSettings);
       }
     } catch (error) {
-      console.error('更新缓存配置失败，使用备用方案:', error);
+      console.error('更新缓存配置失败:', error);
     }
-    
-    // 配置更新后立即检查是否需要清理缓存
-    await this.cleanupIfNeeded();
   }
 
-  async dispose(): Promise<void> {
-    this.dbManager.close();
+  // 重置统计信息
+  resetStats(): void {
+    this.hitCount = 0;
+    this.totalRequests = 0;
   }
 }
 
-export const cacheManager = new TranslationCacheManager();
+// 导出实例
+export const cacheManager = new CacheManager();

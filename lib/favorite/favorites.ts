@@ -1,146 +1,106 @@
-// 收藏逻辑 
+// 收藏逻辑 - 使用 Chrome Storage API
 // option | content 调用
 import { useImmer } from 'use-immer';
-import { useFavorites as useIndexedDBFavorites } from '../storage/indexed';
-import { IndexedDBManager, DATABASE_CONFIGS } from '../storage/indexed';
-import type { FavoriteWord } from '../storage/indexed';
+import { useFavorites as useFavoritesHook } from '../storage/chrome_storage_hooks';
+import { favoritesManager } from '../storage/chrome_storage';
+import type { FavoriteWord } from '../storage/chrome_storage';
 
-// 收藏相关的工具函数
+// 收藏相关的工具函数 - 使用 Chrome Storage API
 export class FavoritesManager {
-  private static dbManager: IndexedDBManager | null = null;
-
-  // 获取数据库管理器实例
-  private static async getDbManager(): Promise<IndexedDBManager> {
-    if (!this.dbManager) {
-      this.dbManager = new IndexedDBManager(DATABASE_CONFIGS.USER_DATA);
-      await this.dbManager.init();
-    }
-    return this.dbManager;
-  }
-
   // 添加收藏
   static async addFavorite(
     word: string,
     translation: string,
     sourceLanguage: string,
     targetLanguage: string,
+    engine: string = 'bing',
     notes?: string,
     tags?: string[]
   ): Promise<void> {
     try {
-      const dbManager = await this.getDbManager();
-
       // 检查是否已存在相同的收藏
-      const allFavorites = await dbManager.getAll<FavoriteWord>('favorites');
+      const allFavorites = await favoritesManager.getFavorites();
       const existingFavorite = allFavorites.find(
-        item => item.word === word &&
-          item.sourceLanguage === sourceLanguage &&
-          item.targetLanguage === targetLanguage
+        fav => fav.originalText === word && 
+               fav.sourceLanguage === sourceLanguage && 
+               fav.targetLanguage === targetLanguage
       );
 
       if (existingFavorite) {
-        // 更新现有收藏
-        const updatedFavorite = {
-          ...existingFavorite,
-          translation,
-          timestamp: Date.now(),
-          notes: notes || existingFavorite.notes,
-          tags: tags || existingFavorite.tags
-        };
-
-        await dbManager.put('favorites', updatedFavorite);
+        console.log('该收藏已存在');
+        return;
       } else {
         // 添加新收藏
-        const newFavorite: FavoriteWord = {
-          id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          word,
-          translation,
+        await favoritesManager.addFavorite({
+          originalText: word,
+          translatedText: translation,
           sourceLanguage,
           targetLanguage,
-          timestamp: Date.now(),
+          engine,
+          word, // 向后兼容
+          translation, // 向后兼容
           notes,
-          tags: tags || []
-        };
-
-        await dbManager.put('favorites', newFavorite);
+          tags
+        });
       }
     } catch (error) {
       console.error('添加收藏失败:', error);
+      throw error;
     }
   }
 
-  // 移除收藏
+  // 删除收藏
   static async removeFavorite(id: string): Promise<void> {
     try {
-      const dbManager = await this.getDbManager();
-      await dbManager.delete('favorites', id);
+      await favoritesManager.deleteFavorite(id);
     } catch (error) {
-      console.error('移除收藏失败:', error);
+      console.error('删除收藏失败:', error);
+      throw error;
     }
   }
 
-  // 批量移除收藏
-  static async removeFavorites(ids: string[]): Promise<void> {
+  // 获取所有收藏
+  static async getAllFavorites(): Promise<FavoriteWord[]> {
     try {
-      const dbManager = await this.getDbManager();
-
-      // 批量删除
-      await Promise.all(ids.map(id => dbManager.delete('favorites', id)));
+      return await favoritesManager.getFavorites();
     } catch (error) {
-      console.error('批量移除收藏失败:', error);
+      console.error('获取收藏列表失败:', error);
+      return [];
     }
   }
 
-  // 更新收藏笔记
-  static async updateFavoriteNotes(id: string, notes: string): Promise<void> {
+  // 清空收藏
+  static async clearAllFavorites(): Promise<void> {
     try {
-      const dbManager = await this.getDbManager();
-      const favorite = await dbManager.get<FavoriteWord>('favorites', id);
-
-      if (favorite) {
-        const updatedFavorite = {
-          ...favorite,
-          notes,
-          timestamp: Date.now()
-        };
-
-        await dbManager.put('favorites', updatedFavorite);
-      }
+      await favoritesManager.clearFavorites();
     } catch (error) {
-      console.error('更新笔记失败:', error);
+      console.error('清空收藏失败:', error);
+      throw error;
     }
   }
 
-  // 更新收藏标签
-  static async updateFavoriteTags(id: string, tags: string[]): Promise<void> {
+  // 搜索收藏
+  static async searchFavorites(keyword: string): Promise<FavoriteWord[]> {
     try {
-      const dbManager = await this.getDbManager();
-      const favorite = await dbManager.get<FavoriteWord>('favorites', id);
-
-      if (favorite) {
-        const updatedFavorite = {
-          ...favorite,
-          tags,
-          timestamp: Date.now()
-        };
-
-        await dbManager.put('favorites', updatedFavorite);
-      }
+      return await favoritesManager.searchFavorites(keyword);
     } catch (error) {
-      console.error('更新标签失败:', error);
+      console.error('搜索收藏失败:', error);
+      return [];
     }
   }
 
   // 检查是否已收藏
-  static async isFavorited(word: string, sourceLanguage: string, targetLanguage: string): Promise<boolean> {
+  static async isFavorited(
+    word: string,
+    sourceLanguage: string,
+    targetLanguage: string
+  ): Promise<boolean> {
     try {
-      const dbManager = await this.getDbManager();
-      const allFavorites = await dbManager.getAll<FavoriteWord>('favorites');
-
-      return allFavorites.some(
-        item => item.word === word &&
-          item.sourceLanguage === sourceLanguage &&
-          item.targetLanguage === targetLanguage
+      const favorites = await favoritesManager.getFavorites();
+      return favorites.some(
+        fav => fav.originalText === word && 
+               fav.sourceLanguage === sourceLanguage && 
+               fav.targetLanguage === targetLanguage
       );
     } catch (error) {
       console.error('检查收藏状态失败:', error);
@@ -148,263 +108,190 @@ export class FavoritesManager {
     }
   }
 
-  // 获取所有收藏
-  static async getFavorites(): Promise<FavoriteWord[]> {
+  // 按语言对获取收藏
+  static async getFavoritesByLanguagePair(
+    sourceLanguage: string,
+    targetLanguage: string
+  ): Promise<FavoriteWord[]> {
     try {
-      const dbManager = await this.getDbManager();
-      return await dbManager.getAll<FavoriteWord>('favorites');
+      const allFavorites = await favoritesManager.getFavorites();
+      return allFavorites.filter(
+        fav => fav.sourceLanguage === sourceLanguage && 
+               fav.targetLanguage === targetLanguage
+      );
     } catch (error) {
-      console.error('获取收藏失败:', error);
+      console.error('按语言对获取收藏失败:', error);
       return [];
     }
   }
 
-  // 搜索收藏
-  static async searchFavorites(keyword: string, language?: string): Promise<FavoriteWord[]> {
-    const favorites = await this.getFavorites();
-    if (!keyword) return favorites;
+  // 获取收藏统计
+  static async getFavoritesStats(): Promise<{
+    total: number;
+    byLanguage: Record<string, number>;
+    recentCount: number;
+  }> {
+    try {
+      const favorites = await favoritesManager.getFavorites();
+      const now = Date.now();
+      const oneWeekAgo = now - 7 * 24 * 60 * 60 * 1000;
 
-    return favorites.filter(item =>
-      item.word.toLowerCase().includes(keyword.toLowerCase()) ||
-      item.translation.toLowerCase().includes(keyword.toLowerCase()) ||
-      (item.notes && item.notes.toLowerCase().includes(keyword.toLowerCase())) ||
-      (item.tags && item.tags.some(tag => tag.toLowerCase().includes(keyword.toLowerCase()))) ||
-      (language ? item.sourceLanguage === language || item.targetLanguage === language : true)
-    );
+      const byLanguage: Record<string, number> = {};
+      let recentCount = 0;
+
+      favorites.forEach(fav => {
+        const key = `${fav.sourceLanguage}-${fav.targetLanguage}`;
+        byLanguage[key] = (byLanguage[key] || 0) + 1;
+        
+        if (fav.timestamp > oneWeekAgo) {
+          recentCount++;
+        }
+      });
+
+      return {
+        total: favorites.length,
+        byLanguage,
+        recentCount
+      };
+    } catch (error) {
+      console.error('获取收藏统计失败:', error);
+      return {
+        total: 0,
+        byLanguage: {},
+        recentCount: 0
+      };
+    }
+  }
+
+  // 导出收藏到JSON
+  static async exportFavorites(): Promise<string> {
+    try {
+      const favorites = await favoritesManager.getFavorites();
+      return JSON.stringify(favorites, null, 2);
+    } catch (error) {
+      console.error('导出收藏失败:', error);
+      throw error;
+    }
+  }
+
+  // 从JSON导入收藏
+  static async importFavorites(jsonData: string): Promise<void> {
+    try {
+      const favorites: FavoriteWord[] = JSON.parse(jsonData);
+      
+      for (const favorite of favorites) {
+        // 验证数据结构
+        if (favorite.originalText && favorite.translatedText) {
+          await favoritesManager.addFavorite({
+            originalText: favorite.originalText,
+            translatedText: favorite.translatedText,
+            sourceLanguage: favorite.sourceLanguage,
+            targetLanguage: favorite.targetLanguage,
+            engine: favorite.engine || 'bing',
+            word: favorite.word || favorite.originalText,
+            translation: favorite.translation || favorite.translatedText,
+            notes: favorite.notes,
+            tags: favorite.tags
+          });
+        }
+      }
+    } catch (error) {
+      console.error('导入收藏失败:', error);
+      throw error;
+    }
   }
 }
 
-// 搜索状态接口
-interface SearchState {
-  keyword: string;
-  language?: string;
-  results: FavoriteWord[];
-  isSearching: boolean;
+// 搜索收藏的辅助函数
+export function searchInFavorites(favorites: FavoriteWord[], keyword: string): FavoriteWord[] {
+  const lowercaseKeyword = keyword.toLowerCase();
+  
+  return favorites.filter(item =>
+    (item.originalText?.toLowerCase().includes(lowercaseKeyword)) ||
+    (item.translatedText?.toLowerCase().includes(lowercaseKeyword)) ||
+    (item.word?.toLowerCase().includes(lowercaseKeyword)) ||
+    (item.translation?.toLowerCase().includes(lowercaseKeyword)) ||
+    (item.notes?.toLowerCase().includes(lowercaseKeyword)) ||
+    (item.tags?.some(tag => tag.toLowerCase().includes(lowercaseKeyword)))
+  );
 }
 
-// 收藏操作状态接口
-interface FavoriteOperationState {
-  isAdding: boolean;
-  isRemoving: boolean;
-  isUpdating: boolean;
-  selectedIds: string[];
-}
-
-// React Hook for favorites management with useImmer optimization
-export function useFavorites() {
-  // 使用新的IndexedDB Hook
+// React Hook - 用于在组件中使用收藏功能
+export const useFavorites = () => {
   const {
     favorites,
     loading,
     error,
-    addFavorite: addFavoriteIndexedDB,
-    updateFavorite,
+    addFavorite,
     deleteFavorite,
     clearFavorites,
-    searchFavorites: searchFavoritesIndexedDB
-  } = useIndexedDBFavorites();
+    searchFavorites,
+    refresh
+  } = useFavoritesHook();
 
-  // 使用 useImmer 管理搜索状态
-  const [searchState, updateSearchState] = useImmer<SearchState>({
-    keyword: '',
-    language: undefined,
-    results: [],
-    isSearching: false
-  });
-
-  // 使用 useImmer 管理操作状态
-  const [operationState, updateOperationState] = useImmer<FavoriteOperationState>({
-    isAdding: false,
-    isRemoving: false,
-    isUpdating: false,
-    selectedIds: []
-  });
-
-  // 添加收藏
-  const addFavorite = async (
+  // 包装方法以保持API兼容性
+  const addFavoriteCompat = async (
     word: string,
     translation: string,
     sourceLanguage: string,
     targetLanguage: string,
+    engine: string = 'bing',
     notes?: string,
     tags?: string[]
   ) => {
-    updateOperationState(draft => {
-      draft.isAdding = true;
+    return await addFavorite({
+      originalText: word,
+      translatedText: translation,
+      sourceLanguage,
+      targetLanguage,
+      engine,
+      word, // 向后兼容
+      translation, // 向后兼容
+      notes,
+      tags
     });
-
-    try {
-      await addFavoriteIndexedDB({
-        word,
-        translation,
-        sourceLanguage,
-        targetLanguage,
-        notes,
-        tags: tags || []
-      });
-    } finally {
-      updateOperationState(draft => {
-        draft.isAdding = false;
-      });
-    }
   };
 
-  // 移除收藏
   const removeFavorite = async (id: string) => {
-    updateOperationState(draft => {
-      draft.isRemoving = true;
-    });
-
-    try {
-      await deleteFavorite(id);
-    } finally {
-      updateOperationState(draft => {
-        draft.isRemoving = false;
-      });
-    }
+    return await deleteFavorite(id);
   };
 
-  // 批量移除收藏
-  const removeFavorites = async (ids: string[]) => {
-    updateOperationState(draft => {
-      draft.isRemoving = true;
-    });
-
-    try {
-      await Promise.all(ids.map(id => deleteFavorite(id)));
-
-      // 清空选中状态
-      updateOperationState(draft => {
-        draft.selectedIds = [];
-      });
-    } catch (error) {
-      console.error('批量移除收藏失败:', error);
-    } finally {
-      updateOperationState(draft => {
-        draft.isRemoving = false;
-      });
-    }
-  };
-
-  // 更新收藏信息
-  const updateFavoriteInfo = async (
-    id: string,
-    updates: Partial<Pick<FavoriteWord, 'notes' | 'tags'>>
-  ) => {
-    updateOperationState(draft => {
-      draft.isUpdating = true;
-    });
-
-    try {
-      const favorite = favorites.find(f => f.id === id);
-      if (favorite) {
-        const updatedFavorite = {
-          ...favorite,
-          ...updates,
-          timestamp: Date.now()
-        };
-
-        await updateFavorite(updatedFavorite);
-      }
-    } finally {
-      updateOperationState(draft => {
-        draft.isUpdating = false;
-      });
-    }
-  };
-
-  // 搜索收藏
-  const searchFavorites = async (keyword: string, language?: string) => {
-    updateSearchState(draft => {
-      draft.keyword = keyword;
-      draft.language = language;
-      draft.isSearching = true;
-    });
-
-    try {
-      const results = await searchFavoritesIndexedDB(keyword);
-
-      updateSearchState(draft => {
-        draft.results = language
-          ? results.filter(item =>
-            item.sourceLanguage === language || item.targetLanguage === language
-          )
-          : results;
-        draft.isSearching = false;
-      });
-    } catch (error) {
-      updateSearchState(draft => {
-        draft.isSearching = false;
-      });
-      console.error('搜索失败:', error);
-    }
-  };
-
-  // 切换选中状态
-  const toggleSelection = (id: string) => {
-    updateOperationState(draft => {
-      const index = draft.selectedIds.indexOf(id);
-      if (index > -1) {
-        draft.selectedIds.splice(index, 1);
-      } else {
-        draft.selectedIds.push(id);
-      }
-    });
-  };
-
-  // 全选/取消全选
-  const toggleSelectAll = () => {
-    updateOperationState(draft => {
-      if (draft.selectedIds.length === favorites.length) {
-        draft.selectedIds = [];
-      } else {
-        draft.selectedIds = favorites.map(f => f.id);
-      }
-    });
-  };
-
-  // 清空选中
-  const clearSelection = () => {
-    updateOperationState(draft => {
-      draft.selectedIds = [];
-    });
-  };
-
-  // 检查是否已收藏
-  const isFavorited = (word: string, sourceLanguage: string, targetLanguage: string) => {
+  const isFavorited = (
+    word: string,
+    sourceLanguage: string,
+    targetLanguage: string
+  ): boolean => {
     return favorites.some(
-      item => item.word === word &&
-        item.sourceLanguage === sourceLanguage &&
-        item.targetLanguage === targetLanguage
+      fav => (fav.originalText === word || fav.word === word) && 
+             fav.sourceLanguage === sourceLanguage && 
+             fav.targetLanguage === targetLanguage
     );
   };
 
+  const getFavoritesByLanguagePair = (
+    sourceLanguage: string,
+    targetLanguage: string
+  ): FavoriteWord[] => {
+    return favorites.filter(
+      fav => fav.sourceLanguage === sourceLanguage && 
+             fav.targetLanguage === targetLanguage
+    );
+  };
+
+  const searchInCurrentFavorites = (keyword: string): FavoriteWord[] => {
+    return searchInFavorites(favorites, keyword);
+  };
+
   return {
-    // 基础数据
-    favorites: favorites || [],
+    favorites,
     loading,
     error,
-
-    // 搜索状态
-    searchState,
-
-    // 操作状态
-    operationState,
-
-    // 基础操作
-    addFavorite,
+    addFavorite: addFavoriteCompat,
     removeFavorite,
-    removeFavorites,
-    updateFavoriteInfo,
     clearFavorites,
     isFavorited,
-
-    // 搜索操作
-    searchFavorites,
-
-    // 选择操作
-    toggleSelection,
-    toggleSelectAll,
-    clearSelection
+    getFavoritesByLanguagePair,
+    searchFavorites: searchInCurrentFavorites,
+    refresh
   };
-}
+};

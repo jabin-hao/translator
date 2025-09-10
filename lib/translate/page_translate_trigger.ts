@@ -1,9 +1,4 @@
 import { lazyFullPageTranslate } from '~lib/translate/page_translate';
-import { usePageTranslateSettings } from '~lib/settings/settings';
-import { useDomainSettings } from '~lib/storage/indexed';
-
-const { pageTranslateSettings } = usePageTranslateSettings();
-const { isWhitelisted } = useDomainSettings();
 
 // 网站匹配逻辑
 const matchSiteList = (list: string[], url: string): boolean => {
@@ -30,7 +25,10 @@ const matchSiteList = (list: string[], url: string): boolean => {
 export const setupAutoTranslate = (
   pageTargetLang: string,
   engine: string,
-  stopTTSAPI: () => Promise<void>
+  stopTTSAPI: () => Promise<void>,
+  autoTranslateEnabled: boolean = false,
+  whitelistedSites: string[] = [],
+  mode: 'translated' | 'compare' = 'translated'
 ) => {
   // 整页翻译自动触发逻辑
   const triggerFullPageTranslation = async () => {
@@ -40,14 +38,13 @@ export const setupAutoTranslate = (
     
     try {
       // 是否开启自动翻译白名单网页
-      if (!pageTranslateSettings.autoTranslate) { 
+      if (!autoTranslateEnabled) { 
         return;
       }
       
-      if (isWhitelisted(fullUrl)) {
+      if (matchSiteList(whitelistedSites, fullUrl)) {
         if (typeof (window as any).__autoFullPageTranslated === 'undefined') {
           (window as any).__autoFullPageTranslated = true;
-          const mode = (pageTranslateSettings.mode || 'translated') as 'translated' | 'compare';
           
           const result = await lazyFullPageTranslate(pageTargetLang, mode, engine);
           

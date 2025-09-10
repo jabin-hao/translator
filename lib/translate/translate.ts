@@ -1,5 +1,4 @@
 // 统一翻译服务
-import {cacheManager} from "../cache/cache"
 import {storageApi} from "~lib/storage/storage"
 import {googleTranslate, googleTranslateBatch} from "~background/translate/google"
 import {bingTranslate, bingTranslateBatch} from "~background/translate/bing"
@@ -7,9 +6,18 @@ import {deeplTranslate, deeplTranslateBatch} from "~background/translate/deepl"
 import {yandexTranslate, yandexTranslateBatch} from "~background/translate/yandex"
 import { GLOBAL_SETTINGS_KEY } from "../settings/settings"
 import type { GlobalSettings } from "../settings/settings"
-import { useCustomDictionary } from "../storage/indexed"
+import { customDictionaryManager, translationCacheManager } from "../storage/chrome_storage"
+import type { CustomDictionaryEntry } from "../storage/chrome_storage"
 
-const { getDictionaryByDomain } = useCustomDictionary();
+// 创建字典查询的独立函数
+async function getDictionaryByDomain(domain: string): Promise<CustomDictionaryEntry[]> {
+  try {
+    return await customDictionaryManager.getDictionaryByDomain(domain);
+  } catch (error) {
+    console.error('查询自定义字典失败:', error);
+    return [];
+  }
+}
 
 export interface TranslateOptions {
   from: string;
@@ -61,26 +69,28 @@ export async function translate(
   try {
     const { from, to, engine, useCache = true } = options;
     
-    // 1. 首先检查自定义词库
-    try {
-      const currentHost = host || (typeof window !== 'undefined' ? window.location.hostname : '');
-      if (currentHost) {
-        const customTranslation = await getDictionaryByDomain(currentHost);
-        if (customTranslation) {
-          console.log(customTranslation[0].translation);
-          return {
-            text,
-            translation: Array.isArray(customTranslation) && customTranslation.length > 0 ? customTranslation[0].translation : '',
-            engine: 'custom',
-            from,
-            to,
-            cached: false,
-          };
+    // 1. 首先检查自定义词库（仅在客户端环境）
+    if (typeof window !== 'undefined') {
+      try {
+        const currentHost = host || window.location.hostname;
+        if (currentHost) {
+          const customTranslation = await getDictionaryByDomain(currentHost);
+          if (customTranslation && customTranslation.length > 0) {
+            console.log(customTranslation[0].translation);
+            return {
+              text,
+              translation: customTranslation[0].translation || '',
+              engine: 'custom',
+              from,
+              to,
+              cached: false,
+            };
+          }
         }
+      } catch (error) {
+        // 自定义词库查找失败，继续使用常规翻译
+        console.error('自定义词库查找失败:', error);
       }
-    } catch (error) {
-      // 自定义词库查找失败，继续使用常规翻译
-      console.error('自定义词库查找失败:', error);
     }
     
     // 2. 检查全局缓存开关和选项中的缓存开关
@@ -88,9 +98,7 @@ export async function translate(
 
     // 3. 如果启用缓存 先尝试从缓存获取
     if (shouldUseCache) {
-      // 确保 IndexedDB 已初始化
-      await cacheManager.initDB();
-      const cachedTranslation = await cacheManager.get(text, from, to, engine);
+      const cachedTranslation = await translationCacheManager.get(text, from, to, engine);
       if (cachedTranslation) {
         return {
           text,
@@ -126,7 +134,7 @@ export async function translate(
       // 如果启用缓存，保存到缓存
       if (shouldUseCache) {
         try {
-          await cacheManager.set(text, translation, from, to, engine);
+          await translationCacheManager.set(text, translation, from, to, engine);
         } catch (cacheError) {
           console.error('保存到缓存失败:', cacheError);
         }
@@ -163,7 +171,7 @@ export async function translate(
         // 如果启用缓存，保存到缓存（使用原始引擎名）
         if (shouldUseCache) {
           try {
-            await cacheManager.set(text, translation, from, to, engine);
+            await translationCacheManager.set(text, translation, from, to, engine);
           } catch (cacheError) {
             console.error('保存到缓存失败:', cacheError);
           }
@@ -210,10 +218,7 @@ export async function translateBatch(
   // 检查缓存开关
   const shouldUseCache = useCache && await isCacheEnabled();
   
-  // 如果启用缓存，确保 IndexedDB 已初始化
-  if (shouldUseCache) {
-    await cacheManager.initDB();
-  }
+  // Chrome Storage API 不需要初始化
 
   //先查自定义词库和缓存，提高命中率
   const results: TranslateResult[] = [];
@@ -226,32 +231,34 @@ export async function translateBatch(
   for (let i = 0; i < texts.length; i++) {
     const text = texts[i];
     
-    // 1. 首先检查自定义词库
-    try {
-      const currentHost = host || (typeof window !== 'undefined' ? window.location.hostname : '');
-      if (currentHost) {
-        const customTranslation = await getDictionaryByDomain(currentHost);
-        if (customTranslation) {
-          results[i] = {
-            text,
-            translation: Array.isArray(customTranslation) && customTranslation.length > 0 ? customTranslation[0].translation : '',
-            engine: 'custom',
-            from,
-            to,
-            cached: false,
-          };
-          customHitCount++;
-          continue;
+    // 1. 首先检查自定义词库（仅在客户端环境）
+    if (typeof window !== 'undefined') {
+      try {
+        const currentHost = host || window.location.hostname;
+        if (currentHost) {
+          const customTranslation = await getDictionaryByDomain(currentHost);
+          if (customTranslation && customTranslation.length > 0) {
+            results[i] = {
+              text,
+              translation: customTranslation[0].translation || '',
+              engine: 'custom',
+              from,
+              to,
+              cached: false,
+            };
+            customHitCount++;
+            continue;
+          }
         }
+      } catch (error) {
+        // 自定义词库查找失败，继续查缓存
+        console.error('自定义词库查找失败:', error);
       }
-    } catch (error) {
-      // 自定义词库查找失败，继续查缓存
-      console.error('自定义词库查找失败:', error);
     }
     
     // 2. 检查缓存
     if (shouldUseCache) {
-      const cached = await cacheManager.get(text, from, to, engine);
+      const cached = await translationCacheManager.get(text, from, to, engine);
       if (cached) {
         results[i] = {
           text,
@@ -288,7 +295,7 @@ export async function translateBatch(
         if (shouldUseCache) {
           for (let i = 0; i < toTranslate.length; i++) {
             try {
-              await cacheManager.set(toTranslate[i], translations[i], from, to, engine);
+              await translationCacheManager.set(toTranslate[i], translations[i], from, to, engine);
             } catch (cacheError) {
               console.error('批量翻译缓存写入失败:', cacheError);
             }

@@ -1,8 +1,5 @@
 import { sendToBackground } from '@plasmohq/messaging';
 import { getEngineLangCode, getTTSLang } from '~lib/constants/languages';
-import { useCacheSettings } from '~lib/settings/settings';
-
-const { cacheSettings } = useCacheSettings();
 
 // 修改翻译API调用，集成缓存功能
 export async function callTranslateAPI(
@@ -15,8 +12,8 @@ export async function callTranslateAPI(
     const toMapped = getEngineLangCode(to, engine);
 
     try {
-        // 读取用户的缓存设置 - 从全局配置获取
-        let cacheEnabled = cacheSettings.enabled || true; // 默认启用缓存
+        // 默认启用缓存，具体设置由background服务处理
+        let cacheEnabled = true;
 
         // 使用通用消息处理器
         const response = await sendToBackground({

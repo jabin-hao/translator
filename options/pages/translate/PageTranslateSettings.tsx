@@ -7,9 +7,9 @@ import {
 } from '~lib/settings/settings';
 import {
   useCustomDictionary,
-  useDomainSettings,
-  type CustomDictionaryEntry
-} from '~lib/storage/indexed';
+  useDomainSettings
+} from '~lib/storage/chrome_storage_hooks';
+import { type CustomDictionaryEntry } from '~lib/storage/chrome_storage';
 import { DeleteOutlined } from '@ant-design/icons';
 import SettingsPageContainer from '../../components/SettingsPageContainer';
 import SettingsGroup from '../../components/SettingsGroup';
@@ -25,7 +25,7 @@ const PageTranslateSettings: React.FC = () => {
     updatePageTranslateSettings,
   } = usePageTranslateSettings();
 
-  // 使用新的IndexedDB hooks
+  // 使用新的Chrome Storage hooks
   const {
     domainSettings,
     setDomainSetting,
@@ -59,6 +59,7 @@ const PageTranslateSettings: React.FC = () => {
     await setDomainSetting({
       domain,
       enabled: true,
+      type: 'whitelist',
     });
   };
   const removeFromAlwaysList = async (domain: string) => {
@@ -127,8 +128,6 @@ const PageTranslateSettings: React.FC = () => {
         domain: dictHost,
         original: dictAddKey.trim(),
         translation: dictAddValue.trim(),
-        sourceLanguage: 'auto',
-        targetLanguage: 'zh',
         isActive: true
       });
       const entries = await getDictionaryByDomain(dictHost);

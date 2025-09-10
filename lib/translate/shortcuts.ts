@@ -1,11 +1,14 @@
 import { isInputElement } from '../utils/domUtil';
-import { useShortcutSettings } from '~lib/settings/settings';
 
 // 快捷键处理逻辑
 export const setupShortcutHandler = (
   triggerTranslation: (text: string, rect: DOMRect) => void,
   setShowInputTranslator: (show: boolean) => void,
-  isTextTranslateEnabled: boolean = true // 新增：是否启用划词翻译
+  isTextTranslateEnabled: boolean = true, // 新增：是否启用划词翻译
+  shortcutSettings: {
+    enabled: boolean;
+    openPopup?: string;
+  }
 ) => {
   let lastCtrlPressTime = 0;
   let isTranslating = false;
@@ -29,8 +32,7 @@ export const setupShortcutHandler = (
       lastCtrlPressTime = now;
     }
 
-    // 获取快捷键设置 - 使用全局设置
-    const { shortcutSettings, updateShortcut } = useShortcutSettings();
+    // 使用传入的快捷键设置
     const shortcutEnabled = shortcutSettings.enabled;
     const customShortcut = shortcutSettings.openPopup; // TODO 快捷键数组
 

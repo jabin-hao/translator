@@ -6,7 +6,7 @@ import '../styles/index.css';
 import { getEngineLangCode, getLangAbbr, getTTSLang, getBrowserLang } from '~lib/constants/languages';
 import { useTranslation } from 'react-i18next';
 import { useLanguageSettings, useSpeechSettings, useFavoritesSettings } from '~lib/settings/settings';
-import { FavoritesManager } from '~lib/favorite/favorites';
+import { useFavorites } from '~lib/storage/chrome_storage_hooks';
 
 // 获取友好的引擎名称
 const getEngineDisplayName = (engine: string) => {
@@ -56,6 +56,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
   const { languageSettings } = useLanguageSettings();
   const { speechSettings } = useSpeechSettings();
   const { favoritesSettings } = useFavoritesSettings();
+  const { favorites, addFavorite, deleteFavorite } = useFavorites();
   
   const favoriteLangs = languageSettings.favorites;
   const speechConfig = {
@@ -241,13 +242,12 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
       return;
     }
     
-    const checkFavoriteStatus = async () => {
+    const checkFavoriteStatus = () => {
       try {
         const sourceText = props.originalText || props.text;
-        const isAlreadyFavorited = await FavoritesManager.isFavorited(
-          sourceText,
-          'auto', // 源语言设为auto，因为我们通常不知道确切的源语言
-          targetLang
+        const isAlreadyFavorited = favorites.some(fav => 
+          fav.originalText === sourceText &&
+          fav.targetLanguage === targetLang
         );
         setIsFavorited(isAlreadyFavorited);
       } catch (error) {
@@ -627,31 +627,32 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
       const sourceText = props.originalText || props.text;
       
       if (isFavorited) {
-        // 取消收藏 - 需要先获取收藏ID
-        const favorites = await FavoritesManager.getFavorites();
+        // 取消收藏 - 查找对应的收藏项
         const favoriteItem = favorites.find(
-          item => item.word === sourceText && 
-                  item.sourceLanguage === 'auto' && 
+          item => item.originalText === sourceText && 
                   item.targetLanguage === targetLang
         );
         
         if (favoriteItem) {
-          await FavoritesManager.removeFavorite(favoriteItem.id);
-          setIsFavorited(false);
-          props.showMessage('success', t('已取消收藏'));
+          const success = await deleteFavorite(favoriteItem.id);
+          if (success) {
+            setIsFavorited(false);
+            props.showMessage('success', t('已取消收藏'));
+          }
         }
       } else {
         // 添加收藏
-        await FavoritesManager.addFavorite(
-          sourceText,
-          translatedText,
-          'auto',  // 源语言设为auto
-          targetLang,
-          '', // 备注为空
-          [] // 标签为空
-        );
-        setIsFavorited(true);
-        props.showMessage('success', t('已添加到收藏'));
+        const success = await addFavorite({
+          originalText: sourceText,
+          translatedText: translatedText,
+          sourceLanguage: 'auto',  // 源语言设为auto
+          targetLanguage: targetLang,
+          engine: props.engine || 'bing'
+        });
+        if (success) {
+          setIsFavorited(true);
+          props.showMessage('success', t('已添加到收藏'));
+        }
       }
     } catch (error) {
       console.error('收藏操作失败:', error);
