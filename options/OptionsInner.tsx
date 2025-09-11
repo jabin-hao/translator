@@ -7,7 +7,7 @@ import { useTheme } from '~lib/theme/theme';
 import GeneralSettings from './pages/general/GeneralSettings';
 import About from './pages/about/About';
 import LanguageSettings from './pages/language/LanguageSettings';
-import PluginIcon from '~contents/components/PluginIcon';
+
 import ShortcutSettings from './pages/shortcut/ShortcutSettings';
 import CacheSettings from './pages/cache/CacheSettings';
 import { useTranslation } from 'react-i18next';
@@ -144,7 +144,7 @@ const OptionsInner = () => {
                   alignItems: 'center',
                   justifyContent: 'center'
                 }}
-                icon={<PluginIcon size={32} />}
+                icon={<Icon name="translate" size={32} style={{ color: '#2386e1' }} />}
               />
               <Title 
                 level={3} 
@@ -168,7 +168,7 @@ const OptionsInner = () => {
                   shape="circle"
                   size="large"
                   icon={<Icon name="brand-github" size={20} />}
-                  onClick={() => window.open('https://github.com/Bugbyebyebye/translator', '_blank')}
+                  onClick={() => window.open('https://github.com/jabin-hao/translator', '_blank')}
                   style={{ 
                     color: isDark ? '#a6a6a6' : '#666666',
                     border: 'none'

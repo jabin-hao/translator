@@ -195,7 +195,7 @@ const PopupInner: React.FC = () => {
   };
 
   const handleCacheToggle = async (checked: boolean) => {
-    await updateCache({ enabled: checked  });
+    await updateCache({ enabled: checked });
     message.success(checked ? t('已启用翻译缓存') : t('已禁用翻译缓存'));
   };
 

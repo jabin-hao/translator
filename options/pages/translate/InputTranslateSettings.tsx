@@ -19,13 +19,7 @@ const InputTranslateSettings: React.FC = () => {
     message.success(enabled ? t('已启用输入框翻译') : t('已禁用输入框翻译'));
   };
 
-  const handleTargetLanguageChange = async (targetLanguage: string) => {
-    await updateInputTranslate({ targetLanguage });
-  };
 
-  const handleAutoDetectLanguageChange = async (autoDetectLanguage: boolean) => {
-    await updateInputTranslate({ autoDetectLanguage });
-  };
 
   const handleTriggerModeChange = async (e: any) => {
     await updateInputTranslate({ triggerMode: e.target.value });
@@ -79,10 +73,6 @@ const InputTranslateSettings: React.FC = () => {
     await updateInputTranslate({ excludeSelectors: newSelectors });
   };
 
-  const testHotkey = () => {
-    message.info(t('快捷键 {{hotkey}} 已设置', { hotkey: inputTranslateSettings.hotkey }));
-  };
-
   return (
     <SettingsPageContainer
       title={t('输入框翻译设置')}
@@ -100,39 +90,7 @@ const InputTranslateSettings: React.FC = () => {
           />
         </SettingsItem>
 
-        {inputTranslateSettings.enabled && (
-          <>
-            <SettingsItem
-              label={t('自动检测语言')}
-              description={t('自动检测输入文本的语言')}
-            >
-              <Switch
-                checked={inputTranslateSettings.autoDetectLanguage}
-                onChange={handleAutoDetectLanguageChange}
-              />
-            </SettingsItem>
 
-            <SettingsItem
-              label={t('目标语言')}
-              description={t('输入框翻译的目标语言')}
-            >
-              <Select
-                value={inputTranslateSettings.targetLanguage}
-                onChange={handleTargetLanguageChange}
-                style={{ width: 200 }}
-                showSearch
-                placeholder={t('选择目标语言')}
-                optionFilterProp="children"
-              >
-                {LANGUAGES.map((lang) => (
-                  <Option key={lang.code} value={lang.code}>
-                    {lang.label}
-                  </Option>
-                ))}
-              </Select>
-            </SettingsItem>
-          </>
-        )}
       </SettingsGroup>
 
       {/* 触发设置 */}

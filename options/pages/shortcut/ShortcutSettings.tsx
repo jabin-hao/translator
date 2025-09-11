@@ -20,7 +20,7 @@ const ShortcutSettings: React.FC = () => {
       toggleTranslate?: string;
       translateSelection?: string;
       translateInput?: string;
-      translatePage?: string;
+      pageTranslate?: string;
       openPopup?: string;
       openInput?: string;
       [key: string]: any;
@@ -124,7 +124,7 @@ const ShortcutSettings: React.FC = () => {
       description: t('翻译当前输入框的内容')
     },
     {
-      key: 'translatePage' as const,
+      key: 'pageTranslate' as const,
       label: t('翻译整个页面'),
       description: t('翻译当前页面的所有内容')
     },

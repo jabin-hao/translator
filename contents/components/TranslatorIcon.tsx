@@ -1,6 +1,6 @@
 import React from 'react';
 import '../styles/index.css';
-import PluginIcon from './PluginIcon';
+import { IconLanguage } from '@tabler/icons-react';
 import { useTheme } from '~lib/theme/theme';
 
 interface TranslatorIconProps {
@@ -51,7 +51,7 @@ const TranslatorIcon: React.FC<TranslatorIconProps> = ({ x, y, onClick }) => {
         onClick();
       }}
     >
-      <PluginIcon size={24} />
+      <IconLanguage size={24} style={{ color: '#2386e1' }} />
     </div>
   );
 };

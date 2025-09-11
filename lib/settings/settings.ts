@@ -55,25 +55,17 @@ export interface GlobalSettings {
   // 划词翻译设置
   textTranslate: {
     enabled: boolean;
-    autoDetectLanguage: boolean;
     showOriginal: boolean;
     doubleClickTranslate: boolean;
     selectTranslate: boolean;
     quickTranslate: boolean;
     pressKeyTranslate: boolean;
-    keyCode: string;
-    pressKeyWithCtrl: boolean;
-    pressKeyWithShift: boolean;
-    pressKeyWithAlt: boolean;
   };
 
   // 输入翻译设置（网页输入框翻译）
   inputTranslate: {
     enabled: boolean;
-    targetLanguage: string;
-    autoDetectLanguage: boolean;
-    triggerMode: 'manual' | 'auto' | 'hotkey';
-    hotkey: string;
+    triggerMode: 'auto' | 'hotkey';
     autoTranslateDelay: number; // 毫秒
     minTextLength: number;
     enabledInputTypes: string[]; // text, textarea, contenteditable 等
@@ -84,7 +76,6 @@ export interface GlobalSettings {
   pageTranslate: {
     enabled: boolean;
     mode: 'translated' | 'compare';
-    targetLanguage: string;
     autoTranslate: boolean; // 统一的自动翻译开关
   };
 
@@ -106,15 +97,17 @@ export interface GlobalSettings {
     always: string[];
     pageTarget: string;
     textTarget: string;
+    inputTarget: string;
   };
 
   // 快捷键设置
   shortcuts: {
     enabled: boolean;
     toggleTranslate: string;
-    translateSelection: string;
-    translatePage: string;
+    pageTranslate: string;
     openPopup: string;
+    textTranslate: string; // 原 textTranslate.hotkey
+    inputTranslate: string; // 原 inputTranslate.hotkey
   };
 
   // 缓存设置
@@ -157,24 +150,16 @@ export const DEFAULT_SETTINGS: GlobalSettings = {
 
   textTranslate: {
     enabled: true,
-    autoDetectLanguage: true,
     showOriginal: false,
-    doubleClickTranslate: true,
+    doubleClickTranslate: false,
     selectTranslate: false, // 默认不自动翻译，显示图标
     quickTranslate: false,
     pressKeyTranslate: false,
-    keyCode: 'Space',
-    pressKeyWithCtrl: false,
-    pressKeyWithShift: false,
-    pressKeyWithAlt: false,
   },
 
   inputTranslate: {
     enabled: true,
-    targetLanguage: 'zh-CN',
-    autoDetectLanguage: true,
-    triggerMode: 'manual',
-    hotkey: 'Ctrl+T',
+    triggerMode: 'auto',
     autoTranslateDelay: 1000,
     minTextLength: 2,
     enabledInputTypes: ['text', 'textarea', 'email', 'search', 'url'],
@@ -184,7 +169,6 @@ export const DEFAULT_SETTINGS: GlobalSettings = {
   pageTranslate: {
     enabled: true,
     mode: 'translated',
-    targetLanguage: 'zh-CN',
     autoTranslate: false, // 默认关闭自动翻译
   },
 
@@ -204,14 +188,16 @@ export const DEFAULT_SETTINGS: GlobalSettings = {
     always: [],
     pageTarget: 'zh-CN',
     textTarget: 'zh-CN',
+    inputTarget: 'zh-CN'
   },
 
   shortcuts: {
     enabled: true,
     toggleTranslate: 'Alt+T',
-    translateSelection: 'Alt+S',
-    translatePage: 'Alt+P',
+    pageTranslate: 'Alt+P',
     openPopup: 'Alt+Q',
+    textTranslate: 'Ctrl+Space', // 原 textTranslate.hotkey
+    inputTranslate: 'Ctrl+T', // 原 inputTranslate.hotkey
   },
 
   cache: {
@@ -459,6 +445,10 @@ export function useLanguageSettings() {
     updateLanguages({ textTarget });
   }, [updateLanguages]);
 
+  const setInputTargetLanguage = useCallback((inputTarget: string) => {
+    updateLanguages({ inputTarget });
+  }, [updateLanguages]);
+
   // 使用 immer 简化数组操作
   const addFavoriteLanguage = useCallback((langCode: string) => {
     updateLanguages(
@@ -519,6 +509,7 @@ export function useLanguageSettings() {
     updateLanguages,
     setPageTargetLanguage,
     setTextTargetLanguage,
+    setInputTargetLanguage,
     addFavoriteLanguage,
     removeFavoriteLanguage,
     addNeverLanguage,
@@ -880,10 +871,6 @@ export function usePageTranslateSettings() {
     await updatePageTranslateSettings({ mode });
   }, [updatePageTranslateSettings]);
 
-  const setTargetLanguage = useCallback(async (targetLanguage: string) => {
-    await updatePageTranslateSettings({ targetLanguage });
-  }, [updatePageTranslateSettings]);
-
   // 自定义词库功能
   const addDictionaryEntry = useCallback(async (entry: Omit<CustomDictionaryEntry, 'id' | 'timestamp'>) => {
     try {
@@ -1027,7 +1014,6 @@ export function usePageTranslateSettings() {
     toggleEnabled,
     toggleAutoTranslate,
     setTranslateMode,
-    setTargetLanguage,
     
     // 自定义词库
     dictionary,

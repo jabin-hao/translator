@@ -38,7 +38,7 @@ const TextTranslateSettings: React.FC = () => {
       {/* 只有开启划词翻译时才显示其他设置 */}
       {textTranslateSettings.enabled && (
         <>
-          <SettingsGroup title={t('翻译触发方式')}>
+          <SettingsGroup title={t('触发设置')}>
             <SettingsItem
               label={t('选词自动翻译')}
               description={t('选择文本后自动翻译，关闭则显示翻译图标')}
@@ -56,6 +56,16 @@ const TextTranslateSettings: React.FC = () => {
               <Switch
                 checked={textTranslateSettings.doubleClickTranslate}
                 onChange={(checked) => handleSwitchChange('doubleClickTranslate', checked)}
+              />
+            </SettingsItem>
+
+            <SettingsItem
+              label={t('快捷键翻译')}
+              description={t('选中文本后按快捷键进行翻译')}
+            >
+              <Switch
+                checked={textTranslateSettings.pressKeyTranslate}
+                onChange={(checked) => handleSwitchChange('pressKeyTranslate', checked)}
               />
             </SettingsItem>
 

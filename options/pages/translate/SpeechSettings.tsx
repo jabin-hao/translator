@@ -94,31 +94,14 @@ const SpeechSettings: React.FC = () => {
       {/* 语音朗读详细设置 - 条件渲染 */}
       {speechSettings?.enabled && (
         <>
-          <SettingsGroup title={t('朗读引擎')}>
+          <SettingsGroup title={t('朗读设置')}>
             <SettingsItem 
               label={t('朗读引擎')}
-              description={t('选择语音合成引擎')}
+              description={t('朗读引擎请在引擎设置页面进行配置')}
             >
-              <ConfigProvider
-                theme={{
-                  components: {
-                    Segmented: {
-                      itemColor: isDark ? '#fff' : undefined,
-                      itemHoverColor: isDark ? '#fff' : undefined,
-                      itemSelectedColor: isDark ? '#fff' : undefined,
-                    }
-                  }
-                }}
-              >
-                <Segmented
-                  value={speechSettings?.engine || 'google'}
-                  onChange={(value) => handleSettingChange('engine', value)}
-                  options={TTS_ENGINES.map(engine => ({
-                    label: engine.label,
-                    value: engine.value,
-                  }))}
-                />
-              </ConfigProvider>
+              <span style={{ color: isDark ? '#999' : '#666' }}>
+                {t('当前引擎')}: {TTS_ENGINES.find(e => e.value === (speechSettings?.engine || 'google'))?.label || 'Google TTS'}
+              </span>
             </SettingsItem>
 
             <SettingsItem 

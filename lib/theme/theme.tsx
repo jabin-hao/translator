@@ -28,7 +28,12 @@ interface ThemeProviderProps {
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   // 使用全局配置中的主题设置
   const { themeSettings, setThemeMode: updateThemeMode } = useThemeSettings();
-  const themeMode = themeSettings.mode;
+  const themeMode = themeSettings?.mode || 'auto';
+  
+  // 如果主题设置还没有加载完成，显示加载状态
+  if (!themeSettings) {
+    return <div>Loading...</div>;
+  }
   
   const [isDark, setIsDark] = useImmer(() => {
     // 初始化时计算一次

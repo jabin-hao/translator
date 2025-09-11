@@ -21,7 +21,7 @@ const FavoritesSettings: React.FC = () => {
   const { isDark } = useTheme();
   
   // 使用新的全局配置系统
-  const { favoritesSettings, updateFavorites, toggleEnabled } = useFavoritesSettings();
+  const { favoritesSettings, updateFavorites, toggleEnabled, deleteFavorite, clearFavorites } = useFavoritesSettings();
   const favorites = favoritesSettings.words;
   
   const [filteredFavorites, setFilteredFavorites] = useImmer<FavoriteWord[]>([]);
@@ -52,16 +52,32 @@ const FavoritesSettings: React.FC = () => {
 
   // 删除收藏
   const handleDelete = async (id: string) => {
-    // 使用 immer 优化数组过滤
-    const newFavorites = favorites.filter(item => item.id !== id);
-    await updateFavorites({ words: newFavorites });
-    message.success(t('已删除收藏'));
+    try {
+      const success = await deleteFavorite(id);
+      if (success) {
+        message.success(t('已删除收藏'));
+      } else {
+        message.error(t('删除失败'));
+      }
+    } catch (error) {
+      console.error('删除收藏失败:', error);
+      message.error(t('删除失败'));
+    }
   };
 
   // 批量删除
   const handleBatchDelete = async () => {
-    await updateFavorites({ words: [] });
-    message.success(t('已清空所有收藏'));
+    try {
+      const success = await clearFavorites();
+      if (success) {
+        message.success(t('已清空所有收藏'));
+      } else {
+        message.error(t('清空失败'));
+      }
+    } catch (error) {
+      console.error('清空收藏失败:', error);
+      message.error(t('清空失败'));
+    }
   };
 
   // 导出收藏
@@ -202,7 +218,12 @@ const FavoritesSettings: React.FC = () => {
                           okText={t('确定')}
                           cancelText={t('取消')}
                         >
-                          <Icon name="delete" size={16} />
+                          <Button 
+                            type="text" 
+                            size="small"
+                            icon={<Icon name="delete" size={16} />}
+                            style={{ color: '#ff4d4f' }}
+                          />
                         </Popconfirm>
                       </Tooltip>
                     ]}

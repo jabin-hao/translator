@@ -1,9 +1,9 @@
 import React from 'react';
 import { useImmer } from 'use-immer';
-import {Select, Button, Tag, App} from 'antd';
+import { Select, Button, Tag, App } from 'antd';
 import Icon from '~lib/components/Icon';
-import {LANGUAGES} from '~lib/constants/languages';
-import {useTranslation} from 'react-i18next';
+import { LANGUAGES } from '~lib/constants/languages';
+import { useTranslation } from 'react-i18next';
 import {
     useLanguageSettings
 } from '~lib/settings/settings';
@@ -12,14 +12,15 @@ import SettingsGroup from '../../components/SettingsGroup';
 import SettingsItem from '../../components/SettingsItem';
 
 const LanguageSettings: React.FC = () => {
-    const {t, i18n} = useTranslation();
-    const {message} = App.useApp();
-    
+    const { t, i18n } = useTranslation();
+    const { message } = App.useApp();
+
     // 使用专门的语言设置hook
-    const { 
-        languageSettings, 
-        setPageTargetLanguage, 
+    const {
+        languageSettings,
+        setPageTargetLanguage,
         setTextTargetLanguage,
+        setInputTargetLanguage,
         addFavoriteLanguage,
         removeFavoriteLanguage,
         addNeverLanguage,
@@ -27,14 +28,14 @@ const LanguageSettings: React.FC = () => {
         addAlwaysLanguage,
         removeAlwaysLanguage
     } = useLanguageSettings();
-    
+
     // 从语言设置中提取值
     const pageTargetLang = languageSettings.pageTarget;
     const textTargetLang = languageSettings.textTarget;
     const favoriteLangs = languageSettings.favorites;
     const neverLangs = languageSettings.never;
     const alwaysLangs = languageSettings.always;
-    
+
     const [addFav, setAddFav] = useImmer('');
     const [addNever, setAddNever] = useImmer('');
     const [addAlways, setAddAlways] = useImmer('');
@@ -108,12 +109,12 @@ const LanguageSettings: React.FC = () => {
                     <Select
                         key={i18n.language}
                         value={pageTargetLang}
-                        options={LANGUAGES.map(l => ({label: t('lang.' + l.code), value: l.code}))}
+                        options={LANGUAGES.map(l => ({ label: t('lang.' + l.code), value: l.code }))}
                         onChange={async val => {
                             await setPageTargetLanguage(val);
                             message.success('已保存');
                         }}
-                        style={{width: 240}}
+                        style={{ width: 240 }}
                         size="middle"
                     />
                 </SettingsItem>
@@ -125,13 +126,31 @@ const LanguageSettings: React.FC = () => {
                     <Select
                         key={i18n.language}
                         value={textTargetLang}
-                        options={LANGUAGES.map(l => ({label: t('lang.' + l.code), value: l.code}))}
+                        options={LANGUAGES.map(l => ({ label: t('lang.' + l.code), value: l.code }))}
                         onChange={async val => {
                             await setTextTargetLanguage(val);
                             message.success('已保存');
                         }}
-                        style={{width: 240}}
+                        style={{ width: 240 }}
                         size="middle"
+                    />
+                </SettingsItem>
+
+                <SettingsItem
+                    label={t('输入翻译目标语言')}
+                    description={t('设置输入框翻译的专用目标语言')}
+                >
+                    <Select
+                        key={i18n.language}
+                        value={languageSettings.inputTarget}
+                        options={LANGUAGES.map(l => ({ label: t('lang.' + l.code), value: l.code }))}
+                        onChange={async val => {
+                            await setInputTargetLanguage(val);
+                            message.success('已保存');
+                        }}
+                        style={{ width: 240 }}
+                        size="middle"
+                        placeholder={t('选择目标语言')}
                     />
                 </SettingsItem>
             </SettingsGroup>
@@ -142,7 +161,7 @@ const LanguageSettings: React.FC = () => {
                     description={t('你常用的目标语言，优先用于自动选择（最多3种）')}
                 >
                     <div>
-                        <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12}}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                             <Select
                                 key={i18n.language}
                                 value={addFav}
@@ -151,14 +170,14 @@ const LanguageSettings: React.FC = () => {
                                     value: l.code
                                 }))}
                                 onChange={setAddFav}
-                                style={{width: 200}}
+                                style={{ width: 200 }}
                                 size="middle"
                                 placeholder={t('选择语言')}
                                 allowClear
                             />
-                            <Button 
-                                icon={<Icon name="plus" size={16} />} 
-                                onClick={handleAddFav} 
+                            <Button
+                                icon={<Icon name="plus" size={16} />}
+                                onClick={handleAddFav}
                                 disabled={!addFav || favoriteLangs.length >= 3}
                                 size="middle"
                             >
@@ -172,7 +191,7 @@ const LanguageSettings: React.FC = () => {
                                     closable
                                     onClose={() => handleRemoveFav(lang)}
                                     color="blue"
-                                    style={{marginBottom: 4}}
+                                    style={{ marginBottom: 4 }}
                                 >
                                     {t('lang.' + lang)}
                                 </Tag>
@@ -186,7 +205,7 @@ const LanguageSettings: React.FC = () => {
                     description={t('这些语言不会被自动翻译')}
                 >
                     <div>
-                        <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12}}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                             <Select
                                 key={i18n.language}
                                 value={addNever}
@@ -195,14 +214,14 @@ const LanguageSettings: React.FC = () => {
                                     value: l.code
                                 }))}
                                 onChange={setAddNever}
-                                style={{width: 200}}
+                                style={{ width: 200 }}
                                 size="middle"
                                 placeholder={t('选择语言')}
                                 allowClear
                             />
-                            <Button 
-                                icon={<Icon name="plus" size={16} />} 
-                                onClick={handleAddNever} 
+                            <Button
+                                icon={<Icon name="plus" size={16} />}
+                                onClick={handleAddNever}
                                 disabled={!addNever}
                                 size="middle"
                             >
@@ -216,7 +235,7 @@ const LanguageSettings: React.FC = () => {
                                     closable
                                     onClose={() => handleRemoveNever(lang)}
                                     color="red"
-                                    style={{marginBottom: 4}}
+                                    style={{ marginBottom: 4 }}
                                 >
                                     {t('lang.' + lang)}
                                 </Tag>
@@ -230,7 +249,7 @@ const LanguageSettings: React.FC = () => {
                     description={t('这些语言会被自动翻译为你的目标语言')}
                 >
                     <div>
-                        <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12}}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                             <Select
                                 key={i18n.language}
                                 value={addAlways}
@@ -239,14 +258,14 @@ const LanguageSettings: React.FC = () => {
                                     value: l.code
                                 }))}
                                 onChange={setAddAlways}
-                                style={{width: 200}}
+                                style={{ width: 200 }}
                                 size="middle"
                                 placeholder={t('选择语言')}
                                 allowClear
                             />
-                            <Button 
-                                icon={<Icon name="plus" size={16} />} 
-                                onClick={handleAddAlways} 
+                            <Button
+                                icon={<Icon name="plus" size={16} />}
+                                onClick={handleAddAlways}
                                 disabled={!addAlways}
                                 size="middle"
                             >
@@ -260,7 +279,7 @@ const LanguageSettings: React.FC = () => {
                                     closable
                                     onClose={() => handleRemoveAlways(lang)}
                                     color="green"
-                                    style={{marginBottom: 4}}
+                                    style={{ marginBottom: 4 }}
                                 >
                                     {t('lang.' + lang)}
                                 </Tag>

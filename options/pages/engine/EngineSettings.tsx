@@ -203,7 +203,7 @@ const EngineSettings: React.FC = () => {
               value: option.value,
               label: (
                 <Space>
-                  {option.icon && <img src={option.icon} alt={option.label} style={{ width: 16, height: 16 }} />}
+                  {option.icon && <Icon name={option.icon} size={16} />}
                   <span>{option.label}</span>
                   <span style={{ fontSize: 12, color: '#999' }}>{option.description}</span>
                 </Space>
@@ -271,35 +271,35 @@ const EngineSettings: React.FC = () => {
 
       </SettingsGroup>
 
-      {/* TTS 引擎设置（简化版） */}
-      <SettingsGroup title={t('语音引擎')}>
+      {/* TTS 引擎设置 */}
+      <SettingsGroup title={t('语音合成引擎')}>
         <SettingsItem
           label={t('语音合成引擎')}
-          description={t('选择用于朗读的语音合成引擎，详细参数请在朗读设置中配置')}
+          description={t('选择用于朗读的语音合成引擎')}
         >
           <ConfigProvider
-                theme={{
-                  components: {
-                    Segmented: {
-                      itemSelectedBg: 'transparent',
-                      itemSelectedColor: 'var(--ant-color-primary)',
-                      itemColor: 'var(--ant-color-text)',
-                      itemHoverBg: 'var(--ant-color-primary-bg)',
-                      itemHoverColor: 'var(--ant-color-primary)',
-                      trackBg: 'var(--ant-color-fill-quaternary)',
-                    },
-                  },
-                }}
-              >
-                <Segmented
-                  value={ttsEngine}
-                  onChange={async (value) => {
-                    await updateSpeech({ engine: value as TTSEngine });
-                    message.success(t('语音合成引擎已切换到 {{engine}}', { engine: value }));
-                  }}
-                  options={[...TTS_ENGINES]}
-                />
-              </ConfigProvider>
+            theme={{
+              components: {
+                Segmented: {
+                  itemColor: isDark ? '#fff' : undefined,
+                  itemHoverColor: isDark ? '#fff' : undefined,
+                  itemSelectedColor: isDark ? '#fff' : undefined,
+                }
+              }
+            }}
+          >
+            <Segmented
+              value={speechSettings?.engine || 'google'}
+              onChange={async (value) => {
+                await updateSpeech({ engine: value as any });
+                message.success(t('语音合成引擎已切换'));
+              }}
+              options={TTS_ENGINES.map(engine => ({
+                label: engine.label,
+                value: engine.value,
+              }))}
+            />
+          </ConfigProvider>
         </SettingsItem>
       </SettingsGroup>
 
