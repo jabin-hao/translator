@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useImmer } from 'use-immer';
 import { List, Button, Input, message, Modal, Card, Tag, Space, Tooltip, Popconfirm, Select, Empty, Switch } from 'antd';
-import { DeleteOutlined, EditOutlined, ExportOutlined, ImportOutlined } from '@ant-design/icons';
+import Icon from '~lib/components/Icon';
 import { useTranslation } from 'react-i18next';
 import { useFavoritesSettings } from '~lib/settings/settings';
 import SettingsPageContainer from '../../components/SettingsPageContainer';
@@ -63,14 +63,6 @@ const FavoritesSettings: React.FC = () => {
     await updateFavorites({ words: [] });
     message.success(t('已清空所有收藏'));
   };
-
-  // 编辑收藏（简化版，不再支持编辑）
-  const handleEdit = (word: FavoriteWord) => {
-    // 由于简化了数据结构，暂时禁用编辑功能
-    message.info(t('数据结构已简化，暂不支持编辑功能'));
-  };
-
-
 
   // 导出收藏
   const handleExport = () => {
@@ -157,14 +149,14 @@ const FavoritesSettings: React.FC = () => {
                 
                 <Space>
                   <Button
-                    icon={<ExportOutlined />}
+                    icon={<Icon name="export" size={16} />}
                     onClick={handleExport}
                     disabled={favorites.length === 0}
                   >
                     {t('导出收藏')}
                   </Button>
               <Button
-                icon={<ImportOutlined />}
+                icon={<Icon name="import" size={16} />}
                 onClick={() => setImportModalVisible(true)}
               >
                 {t('导入收藏')}
@@ -203,9 +195,6 @@ const FavoritesSettings: React.FC = () => {
                     size="small"
                     hoverable
                     actions={[
-                      <Tooltip title={t('编辑')}>
-                        <EditOutlined onClick={() => handleEdit(item)} />
-                      </Tooltip>,
                       <Tooltip title={t('删除')}>
                         <Popconfirm
                           title={t('确定要删除这个收藏吗？')}
@@ -213,7 +202,7 @@ const FavoritesSettings: React.FC = () => {
                           okText={t('确定')}
                           cancelText={t('取消')}
                         >
-                          <DeleteOutlined />
+                          <Icon name="delete" size={16} />
                         </Popconfirm>
                       </Tooltip>
                     ]}

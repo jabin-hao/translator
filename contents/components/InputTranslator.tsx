@@ -10,10 +10,7 @@ import {
   Typography, 
   Divider
 } from 'antd';
-import { 
-  SwapOutlined, 
-  CloseOutlined 
-} from '@ant-design/icons';
+import Icon from '~lib/components/Icon';
 import { getBrowserLang, LANGUAGES } from '~lib/constants/languages';
 import { TRANSLATE_ENGINES } from '~lib/constants/engines';
 import { useTranslation } from 'react-i18next';
@@ -127,7 +124,7 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage,
       extra={
         <Button 
           type="text" 
-          icon={<CloseOutlined />} 
+          icon={<Icon name="close" size={16} />} 
           onClick={onClose}
           size="small"
         />
@@ -152,7 +149,7 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage,
 
           <Button 
             type="default" 
-            icon={<SwapOutlined />} 
+            icon={<Icon name="swap" size={16} />} 
             onClick={handleSwapLanguages}
             disabled={sourceLang === 'auto'}
             size="small"
@@ -186,7 +183,7 @@ const InputTranslator: React.FC<InputTranslatorProps> = ({ onClose, showMessage,
           >
             {TRANSLATE_ENGINES.map(e => (
               <Option key={e.value} value={e.value} disabled={e.disabled}>
-                {e.icon && <img src={e.icon} alt={e.label} style={{ width: 16, height: 16, verticalAlign: 'middle', marginRight: 6 }} />}
+                {e.icon && <Icon name={e.icon} size={16} style={{ verticalAlign: 'middle', marginRight: 6 }} />}
                 {e.label}
               </Option>
             ))}

@@ -1,7 +1,7 @@
 import { useImmer } from 'use-immer';
 import React, { useEffect } from 'react';
 import { Button, Modal, Switch, InputNumber, App } from 'antd';
-import { Icon } from '@iconify/react';
+import Icon from '~lib/components/Icon';
 import { useTranslation } from 'react-i18next';
 import { produce } from 'immer';
 import { useCacheSettings } from '~lib/settings/settings';
@@ -279,7 +279,7 @@ const CacheSettings: React.FC = () => {
                 danger
                 onClick={handleClearCache}
                 loading={loading}
-                icon={<Icon icon="material-symbols:delete-outline" />}
+                icon={<Icon name="delete" size={16} />}
               >
                 {t('清空所有缓存')}
               </Button>

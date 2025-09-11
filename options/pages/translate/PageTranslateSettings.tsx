@@ -6,7 +6,7 @@ import {
   usePageTranslateSettings,
 } from '~lib/settings/settings';
 import { type CustomDictionaryEntry } from '~lib/storage/chrome_storage';
-import { DeleteOutlined } from '@ant-design/icons';
+import Icon from '~lib/components/Icon';
 import SettingsPageContainer from '../../components/SettingsPageContainer';
 import SettingsGroup from '../../components/SettingsGroup';
 import SettingsItem from '../../components/SettingsItem';
@@ -348,7 +348,7 @@ const PageTranslateSettings: React.FC = () => {
                   <Button
                     size="small"
                     type="text"
-                    icon={<DeleteOutlined />}
+                    icon={<Icon name="delete" size={16} />}
                     danger
                     onClick={async () => {
                       try {

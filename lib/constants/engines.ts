@@ -1,27 +1,18 @@
-// @ts-ignore
-import googleIcon from '../../assets/google.svg?url';
-// @ts-ignore
-import bingIcon from '../../assets/bing.svg?url';
-// @ts-ignore
-import deeplIcon from '../../assets/deepl.svg?url';
-// @ts-ignore
-import yandexIcon from '../../assets/yandex.svg?url';
-
 // 翻译引擎接口
 export interface TranslateEngine {
     label: string;
     value: string;
-    icon: string;
+    icon: string; // Tabler icon name
     description: string;
     disabled?: boolean;
 }
 
 // 翻译引擎统一配置
 export const TRANSLATE_ENGINES: TranslateEngine[] = [
-    { label: 'Bing', value: 'bing', icon: bingIcon, description: '免费，支持多语言' },
-    { label: 'Google', value: 'google', icon: googleIcon, description: '免费，支持多语言' },
-    { label: 'DeepL', value: 'deepl', icon: deeplIcon, description: '高质量翻译，需要API密钥' },
-    { label: 'Yandex', value: 'yandex', icon: yandexIcon, description: '俄语翻译效果好' },
+    { label: 'Bing', value: 'bing', icon: 'brand-edge', description: '免费，支持多语言' },
+    { label: 'Google', value: 'google', icon: 'brand-google', description: '免费，支持多语言' },
+    { label: 'DeepL', value: 'deepl', icon: 'language', description: '高质量翻译，需要API密钥' },
+    { label: 'Yandex', value: 'yandex', icon: 'brand-yandex', description: '俄语翻译效果好' },
 ];
 
 // TTS引擎统一配置

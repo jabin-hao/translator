@@ -4,8 +4,7 @@ import { Select, Switch, Divider, message, Button, Tooltip, Space, Typography } 
 import { TRANSLATE_ENGINES } from '~lib/constants/engines';
 import { LANGUAGES } from '~lib/constants/languages';
 import { useTranslation } from 'react-i18next';
-import { ReloadOutlined, TranslationOutlined } from '@ant-design/icons';
-import { Icon } from '@iconify/react';
+import Icon from '~lib/components/Icon';
 
 // 使用新的全局配置系统
 import { useTheme } from '~lib/theme/theme';
@@ -21,9 +20,9 @@ import {
 const { Text, Title } = Typography;
 
 const themeIconMap = {
-  auto: <Icon icon="material-symbols:brightness-auto-outline" width={16} height={16} />,
-  light: <Icon icon="material-symbols:light-mode-outline" width={16} height={16} />,
-  dark: <Icon icon="material-symbols:dark-mode-outline" width={16} height={16} />,
+  auto: <Icon name="brightness-auto" size={16} />,
+  light: <Icon name="sun" size={16} />,
+  dark: <Icon name="moon" size={16} />,
 };
 const themeTextMap = {
   auto: '跟随系统',
@@ -307,7 +306,7 @@ const PopupInner: React.FC = () => {
             <Button
               type="text"
               shape="circle"
-              icon={<Icon icon="material-symbols:translate" width={16} height={16} />}
+              icon={<Icon name="translate" size={16} />}
               onClick={() => {
                 chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                   const tabId = tabs[0]?.id;
@@ -327,7 +326,7 @@ const PopupInner: React.FC = () => {
             <Button
               type="text"
               shape="circle"
-              icon={<Icon icon="material-symbols:settings-outline" width={16} height={16} />}
+              icon={<Icon name="settings" size={16} />}
               onClick={() => {
                 chrome.runtime.openOptionsPage();
               }}
@@ -373,7 +372,7 @@ const PopupInner: React.FC = () => {
             >
               {TRANSLATE_ENGINES.map(e => (
                 <Select.Option key={e.value} value={e.value} disabled={e.disabled}>
-                  {e.icon && <img src={e.icon} alt={e.label} style={{ width: 16, height: 16, verticalAlign: 'middle', marginRight: 8 }} />}
+                  {e.icon && <Icon name={e.icon} size={16} style={{ verticalAlign: 'middle', marginRight: 8 }} />}
                   {e.label}
                 </Select.Option>
               ))}
@@ -472,7 +471,7 @@ const PopupInner: React.FC = () => {
           <div style={{ paddingTop: 4 }}>
             <Button
               type={isPageTranslated ? 'default' : 'primary'}
-              icon={isPageTranslated ? <ReloadOutlined /> : <TranslationOutlined />}
+              icon={isPageTranslated ? <Icon name="reload" size={16} /> : <Icon name="translate" size={16} />}
               loading={isPageTranslating}
               onClick={isPageTranslated ? handleRestorePage : handleFullPageTranslate}
               block

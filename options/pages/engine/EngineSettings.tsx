@@ -2,7 +2,7 @@ import {useImmer} from 'use-immer';
 import React from 'react';
 import { produce } from 'immer';
 import { Switch, Select, Radio, Space, Card, Divider, Button, Input, Modal, Form, message, ConfigProvider, Segmented } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import Icon from '~lib/components/Icon';
 import { useTranslation } from 'react-i18next';
 import {
   useEngineSettings,
@@ -354,13 +354,13 @@ const EngineSettings: React.FC = () => {
                         />
                         <Button
                           size="small"
-                          icon={<EditOutlined />}
+                          icon={<Icon name="edit" size={16} />}
                           onClick={() => handleEditEngine(engine)}
                         />
                         <Button
                           size="small"
                           danger
-                          icon={<DeleteOutlined />}
+                          icon={<Icon name="delete" size={16} />}
                           onClick={() => handleDeleteEngine(engine.id)}
                         />
                       </div>
@@ -379,7 +379,7 @@ const EngineSettings: React.FC = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <Button
               type="primary"
-              icon={<PlusOutlined />}
+              icon={<Icon name="plus" size={16} />}
               onClick={() => handleAddEngine()}
             >
               {t('添加自定义引擎')}

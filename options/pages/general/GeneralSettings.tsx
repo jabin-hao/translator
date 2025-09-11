@@ -2,7 +2,7 @@ import React, { useCallback, useEffect } from 'react';
 import { useImmer } from 'use-immer';
 import { Select, Button, message, Upload, Modal, ConfigProvider, Segmented } from 'antd';
 import { UI_LANGUAGES } from '~/lib/constants/languages';
-import { UploadOutlined, DownloadOutlined } from '@ant-design/icons';
+import Icon from '~lib/components/Icon';
 import { useTranslation } from 'react-i18next';
 import { useGlobalSettings, useThemeSettings } from '~lib/settings/settings';
 import { GLOBAL_SETTINGS_KEY } from '~lib/settings/settings';
@@ -170,7 +170,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
           description={t('将所有设置导出为文件，方便备份和迁移')}
         >
           <Button 
-            icon={<DownloadOutlined />} 
+            icon={<Icon name="download" size={16} />} 
             onClick={handleExportConfig}
           >
             {t('导出配置文件')}
@@ -186,7 +186,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
             showUploadList={false}
             beforeUpload={handleImportConfig}
           >
-            <Button icon={<UploadOutlined />}>
+            <Button icon={<Icon name="upload" size={16} />}>
               {t('选择配置文件')}
             </Button>
           </Upload>

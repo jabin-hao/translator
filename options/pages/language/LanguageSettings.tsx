@@ -1,7 +1,7 @@
 import React from 'react';
 import { useImmer } from 'use-immer';
 import {Select, Button, Tag, App} from 'antd';
-import {PlusOutlined} from '@ant-design/icons';
+import Icon from '~lib/components/Icon';
 import {LANGUAGES} from '~lib/constants/languages';
 import {useTranslation} from 'react-i18next';
 import {
@@ -157,7 +157,7 @@ const LanguageSettings: React.FC = () => {
                                 allowClear
                             />
                             <Button 
-                                icon={<PlusOutlined/>} 
+                                icon={<Icon name="plus" size={16} />} 
                                 onClick={handleAddFav} 
                                 disabled={!addFav || favoriteLangs.length >= 3}
                                 size="middle"
@@ -201,7 +201,7 @@ const LanguageSettings: React.FC = () => {
                                 allowClear
                             />
                             <Button 
-                                icon={<PlusOutlined/>} 
+                                icon={<Icon name="plus" size={16} />} 
                                 onClick={handleAddNever} 
                                 disabled={!addNever}
                                 size="middle"
@@ -245,7 +245,7 @@ const LanguageSettings: React.FC = () => {
                                 allowClear
                             />
                             <Button 
-                                icon={<PlusOutlined/>} 
+                                icon={<Icon name="plus" size={16} />} 
                                 onClick={handleAddAlways} 
                                 disabled={!addAlways}
                                 size="middle"

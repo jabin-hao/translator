@@ -2,7 +2,7 @@ import 'antd/dist/reset.css';
 import { useImmer } from 'use-immer';
 import React, { useEffect } from 'react';
 import { Menu, Button, Tooltip, Space, Avatar, Typography, App, Layout } from 'antd';
-import { Icon } from '@iconify/react';
+import Icon from '~lib/components/Icon';
 import { useTheme } from '~lib/theme/theme';
 import GeneralSettings from './pages/general/GeneralSettings';
 import About from './pages/about/About';
@@ -22,9 +22,9 @@ const { Title } = Typography;
 const { Sider, Content, Header } = Layout;
 
 const themeIconMap = {
-  auto: <Icon icon="material-symbols:brightness-auto-outline" width={20} height={20} />,
-  light: <Icon icon="material-symbols:light-mode-outline" width={20} height={20} />,
-  dark: <Icon icon="material-symbols:dark-mode-outline" width={20} height={20} />,
+  auto: <Icon name="brightness-auto" size={20} />,
+  light: <Icon name="sun" size={20} />,
+  dark: <Icon name="moon" size={20} />,
 };
 const themeTextMap = {
   auto: '跟随系统',
@@ -69,24 +69,24 @@ const OptionsInner = () => {
   };
 
   const menuItems = [
-    { key: 'general', icon: <Icon icon="material-symbols:settings-outline" width={22} />, label: t('通用设置') },
-    { key: 'language', icon: <Icon icon="material-symbols:language" width={22} />, label: t('语言设置') },
-    { key: 'engine', icon: <Icon icon="material-symbols:precision-manufacturing" width={22} />, label: t('引擎设置') },
+    { key: 'general', icon: <Icon name="settings" size={22} />, label: t('通用设置') },
+    { key: 'language', icon: <Icon name="language" size={22} />, label: t('语言设置') },
+    { key: 'engine', icon: <Icon name="manufacturing" size={22} />, label: t('引擎设置') },
     {
       key: 'translate',
-      icon: <Icon icon="material-symbols:g-translate" width={22} />,
+      icon: <Icon name="translate" size={22} />,
       label: t('翻译设置'),
       children: [
-        { key: 'translate-text', icon: <Icon icon="material-symbols:select-all" width={18} />, label: t('划词翻译') },
-        { key: 'translate-page', icon: <Icon icon="material-symbols:web" width={18} />, label: t('网页翻译') },
-        { key: 'translate-input', icon: <Icon icon="material-symbols:keyboard" width={18} />, label: t('输入翻译') },
-        { key: 'translate-speech', icon: <Icon icon="material-symbols:volume-up" width={18} />, label: t('朗读设置') },
+        { key: 'translate-text', icon: <Icon name="select-all" size={18} />, label: t('划词翻译') },
+        { key: 'translate-page', icon: <Icon name="web" size={18} />, label: t('网页翻译') },
+        { key: 'translate-input', icon: <Icon name="keyboard" size={18} />, label: t('输入翻译') },
+        { key: 'translate-speech', icon: <Icon name="volume" size={18} />, label: t('朗读设置') },
       ]
     },
-    { key: 'favorites', icon: <Icon icon="material-symbols:favorite-outline" width={22} />, label: t('收藏管理') },
-    { key: 'cache', icon: <Icon icon="material-symbols:storage" width={22} />, label: t('缓存管理') },
-    { key: 'shortcut', icon: <Icon icon="material-symbols:keyboard-outline" width={22} />, label: t('快捷键设置') },
-    { key: 'about', icon: <Icon icon="material-symbols:info-outline" width={22} />, label: t('关于') },
+    { key: 'favorites', icon: <Icon name="favorite" size={22} />, label: t('收藏管理') },
+    { key: 'cache', icon: <Icon name="storage" size={22} />, label: t('缓存管理') },
+    { key: 'shortcut', icon: <Icon name="keyboard" size={22} />, label: t('快捷键设置') },
+    { key: 'about', icon: <Icon name="info" size={22} />, label: t('关于') },
   ];
 
   let content = null;
@@ -167,7 +167,7 @@ const OptionsInner = () => {
                   type="text"
                   shape="circle"
                   size="large"
-                  icon={<Icon icon="mdi:github" width={20} height={20} />}
+                  icon={<Icon name="brand-github" size={20} />}
                   onClick={() => window.open('https://github.com/Bugbyebyebye/translator', '_blank')}
                   style={{ 
                     color: isDark ? '#a6a6a6' : '#666666',
