@@ -20,6 +20,7 @@ const ShortcutSettings: React.FC = () => {
       toggleTranslate?: string;
       translateSelection?: string;
       translateInput?: string;
+      textTranslate?: string;
       pageTranslate?: string;
       openPopup?: string;
       openInput?: string;
@@ -114,9 +115,9 @@ const ShortcutSettings: React.FC = () => {
       description: t('快速启用/禁用翻译功能')
     },
     {
-      key: 'translateSelection' as const,
+      key: 'textTranslate' as const,
       label: t('翻译选中文本'),
-      description: t('翻译当前选中的文本')
+      description: t('选中文字后按快捷键进行翻译')
     },
     {
       key: 'translateInput' as const,

@@ -172,6 +172,7 @@ const ContentScript = () => {
     const textTranslateEnabled = textTranslateSettings.enabled; // 是否启用划词翻译功能
     const selectTranslateEnabled = textTranslateSettings.selectTranslate; // 是否在选择时自动翻译
     const quickTranslateEnabled = textTranslateSettings.quickTranslate; // 悬浮翻译
+    const pressKeyTranslateEnabled = textTranslateSettings.pressKeyTranslate; // 快捷键翻译
     const textTargetLang = settings.languages.textTarget;
     const pageTargetLang = settings.languages.pageTarget;
     const uiLang = themeSettings.uiLanguage;
@@ -207,7 +208,13 @@ const ContentScript = () => {
     // 显示翻译图标或直接翻译
     const showTranslationIcon = (text: string, rect: DOMRect, forceTranslate?: boolean) => {
         if (!showInputTranslator && !result) {
-            // 如果开启了选择时自动翻译，或强制翻译（双击、快速翻译），直接触发翻译
+            // 如果开启了快捷键翻译模式，选中文字后不显示图标，等待快捷键触发
+            if (pressKeyTranslateEnabled && !forceTranslate) {
+                // 快捷键翻译模式：选中文字后什么都不做，等待快捷键
+                return;
+            }
+            
+            // 如果开启了选择时自动翻译，或强制翻译（快速翻译），直接触发翻译
             if (selectTranslateEnabled || forceTranslate) {
                 // 计算翻译结果位置 - 使用视口坐标（fixed定位）
                 const resultWidth = 400;
@@ -405,27 +412,28 @@ const ContentScript = () => {
             {
                 selectTranslate: selectTranslateEnabled,
                 quickTranslate: quickTranslateEnabled,
-                pressKeyTranslate: false, // 快捷键翻译在 setupShortcutHandler 中处理
+                pressKeyTranslate: pressKeyTranslateEnabled,
             }
         );
-    }, [showInputTranslator, result, icon, textTranslateEnabled, selectTranslateEnabled, quickTranslateEnabled]);
+    }, [showInputTranslator, result, icon, textTranslateEnabled, selectTranslateEnabled, quickTranslateEnabled, pressKeyTranslateEnabled]);
 
     // 设置快捷键处理器
     useEffect(() => {
         return setupShortcutHandler(
             triggerTranslation,
             setShowInputTranslator,
-            textTranslateEnabled, // 传入划词翻译启用状态
+            textTranslateEnabled && pressKeyTranslateEnabled, // 只有当划词翻译和快捷键翻译都启用时才处理
             {
                 enabled: shortcutEnabled,
-                openPopup: shortcutSettings.openPopup
+                openPopup: shortcutSettings.textTranslate // 使用文本翻译快捷键设置
             }
         );
     }, [
         shortcutEnabled,
-        shortcutSettings.openPopup,
+        shortcutSettings.textTranslate,
         triggerTranslation,
-        textTranslateEnabled
+        textTranslateEnabled,
+        pressKeyTranslateEnabled
     ]);
 
     // 设置消息处理器，确保只注册一次

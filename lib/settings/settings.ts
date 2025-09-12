@@ -194,7 +194,7 @@ export const DEFAULT_SETTINGS: GlobalSettings = {
     toggleTranslate: 'Alt+T',
     pageTranslate: 'Alt+P',
     openPopup: 'Alt+Q',
-    textTranslate: 'Ctrl+Space', // 原 textTranslate.hotkey
+    textTranslate: 'Alt+S', // 原 textTranslate.hotkey
     inputTranslate: 'Ctrl+T', // 原 inputTranslate.hotkey
   },
 
