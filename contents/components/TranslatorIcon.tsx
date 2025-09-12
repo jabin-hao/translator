@@ -1,6 +1,6 @@
 import React from 'react';
 import '../styles/index.css';
-import { IconLanguage } from '@tabler/icons-react';
+import Icon from '~lib/components/Icon';
 import { useTheme } from '~lib/theme/theme';
 
 interface TranslatorIconProps {
@@ -51,7 +51,7 @@ const TranslatorIcon: React.FC<TranslatorIconProps> = ({ x, y, onClick }) => {
         onClick();
       }}
     >
-      <IconLanguage size={24} style={{ color: '#2386e1' }} />
+      <Icon name="language" size={24} />
     </div>
   );
 };

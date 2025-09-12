@@ -177,7 +177,7 @@ const ContentScript = () => {
 
     // 快捷键设置
     const shortcutEnabled = shortcutSettings.enabled;
-    const customShortcut = shortcutSettings.translateSelection;
+    const customShortcut = shortcutSettings.textTranslate;
 
     const engineRef = useRef(engine);
     const autoReadRef = useRef(autoRead);
@@ -203,15 +203,37 @@ const ContentScript = () => {
         textTargetLangRef.current = textTargetLang
     }, [textTargetLang]);
 
-    // 显示翻译图标
-    const showTranslationIcon = (text: string, rect: DOMRect) => {
+    // 显示翻译图标或直接翻译
+    const showTranslationIcon = (text: string, rect: DOMRect, forceTranslate?: boolean) => {
         if (!showInputTranslator && !result) {
-            // 如果开启了选择时自动翻译，直接触发翻译
-            if (selectTranslateEnabled) {
-                // 将翻译结果显示在选中文字的正下方
+            // 如果开启了选择时自动翻译，或强制翻译（双击、快速翻译），直接触发翻译
+            if (selectTranslateEnabled || forceTranslate) {
+                // 调试信息
+                console.log('选择区域信息:', {
+                    text,
+                    rect: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height },
+                    viewport: { width: window.innerWidth, height: window.innerHeight }
+                });
+                
+                // 简化位置计算 - 直接使用选中文字的下方位置
+                let resultX = rect.left;
+                let resultY = rect.bottom + 10; // 在选中文字下方10px
+                
+                // 简单的边界检查
+                const maxWidth = 400;
+                if (resultX + maxWidth > window.innerWidth) {
+                    resultX = window.innerWidth - maxWidth - 10;
+                }
+                if (resultX < 10) {
+                    resultX = 10;
+                }
+                
+                console.log('最终位置:', { x: resultX, y: resultY });
+                
+                // 将翻译结果显示在计算好的位置
                 setResult({
-                    x: rect.left + window.scrollX,
-                    y: rect.bottom + window.scrollY,
+                    x: resultX,
+                    y: resultY,
                     originalText: text
                 });
                 setShouldTranslate(true);
@@ -271,10 +293,32 @@ const ContentScript = () => {
             const range = selection.getRangeAt(0);
             const selectionRect = rect || range.getBoundingClientRect();
 
-            // 将翻译结果显示在选中文字的正下方
+            // 计算翻译结果位置，确保在视口内
+            const resultWidth = 400;
+            const resultHeight = 150;
+            const margin = 10;
+            
+            let resultX = selectionRect.left;
+            let resultY = selectionRect.bottom + 5;
+            
+            // 边界检查
+            if (resultX + resultWidth + margin > window.innerWidth) {
+                resultX = window.innerWidth - resultWidth - margin;
+            }
+            if (resultX < margin) {
+                resultX = margin;
+            }
+            if (resultY + resultHeight + margin > window.innerHeight) {
+                resultY = selectionRect.top - resultHeight - 5;
+                if (resultY < margin) {
+                    resultY = margin;
+                }
+            }
+            
+            // 将翻译结果显示在计算好的位置（使用视口相对坐标）
             setResult({
-                x: selectionRect.left + window.scrollX, // 左对齐
-                y: selectionRect.bottom + window.scrollY, // 正下方
+                x: resultX,
+                y: resultY,
                 originalText: selectionText
             });
             setShouldTranslate(true);
@@ -335,10 +379,15 @@ const ContentScript = () => {
             textTranslateEnabled, // 传入划词翻译启用状态
             {
                 enabled: shortcutEnabled,
-                openPopup: customShortcut
+                openPopup: shortcutSettings.openPopup
             }
         );
-    }, [shortcutEnabled, customShortcut, triggerTranslation, textTranslateEnabled]); // 添加textTranslateEnabled依赖
+    }, [
+        shortcutEnabled, 
+        shortcutSettings.openPopup,
+        triggerTranslation, 
+        textTranslateEnabled
+    ]);
 
     // 设置消息处理器，确保只注册一次
     useEffect(() => {

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useMemo, useCallback } from 'react';
 import { Card, Button, Divider, Spin } from 'antd';
-import { CopyOutlined, SoundOutlined, LoadingOutlined, StarOutlined, StarFilled } from '@ant-design/icons';
+import Icon from '~lib/components/Icon';
 import { useImmer } from 'use-immer';
 import '../styles/index.css';
 import { getEngineLangCode, getLangAbbr, getTTSLang, getBrowserLang } from '~lib/constants/languages';
@@ -669,7 +669,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
       className="translator-result-card"
       style={{ 
         left: props.x, 
-        top: props.y + 10,
+        top: props.y, // 直接使用传入的y坐标，不再额外添加偏移
         position: 'fixed',
         maxWidth: 'min(90vw, 480px)',
         minWidth: '320px',
@@ -691,7 +691,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Spin 
                 size="small"
-                indicator={<LoadingOutlined style={{ fontSize: 14, color: '#1890ff' }} spin />}
+                indicator={<Icon name="loader" size={14} style={{ color: '#1890ff' }} />}
               />
               <span style={{ color: '#1890ff' }}>{t('翻译中...')}</span>
             </div>
@@ -750,7 +750,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
             {speechSettings.enabled && (
               <Button
                 type={isSpeaking ? 'primary' : 'text'}
-                icon={<SoundOutlined />}
+                icon={<Icon name="volume-2" />}
                 size="small"
                 onClick={handleSpeak}
                 title={isSpeaking ? t('停止朗读') : t('朗读')}
@@ -763,7 +763,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
             {favoritesSettings.enabled && (
               <Button
                 type={isFavorited ? 'primary' : 'text'}
-                icon={isFavorited ? <StarFilled /> : <StarOutlined />}
+                icon={isFavorited ? <Icon name="star-filled" /> : <Icon name="star" />}
                 size="small"
                 onClick={handleFavorite}
                 title={isFavorited ? t('取消收藏') : t('收藏')}
@@ -774,7 +774,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
             
             <Button
               type="text"
-              icon={<CopyOutlined />}
+              icon={<Icon name="copy" />}
               size="small"
               onClick={handleCopy}
               title={t('复制')}

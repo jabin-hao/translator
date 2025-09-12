@@ -32,9 +32,20 @@ function isClickOnTranslatorComponent(path: EventTarget[], shadowRoot: ShadowRoo
 // 文本选择和翻译触发逻辑
 export const setupSelectionHandler = (
   shadowRoot: ShadowRoot | null,
-  showTranslationIcon: (text: string, rect: DOMRect) => void,
+  showTranslationIcon: (text: string, rect: DOMRect, forceTranslate?: boolean) => void,
   clearTranslationState: () => void,
-  isTextTranslateEnabled: boolean = true // 新增：是否启用划词翻译
+  isTextTranslateEnabled: boolean = true, // 新增：是否启用划词翻译
+  settings: {
+    selectTranslate: boolean; // 选择时自动翻译
+    doubleClickTranslate: boolean; // 双击翻译
+    quickTranslate: boolean; // 悬停翻译
+    pressKeyTranslate: boolean; // 快捷键翻译
+  } = {
+    selectTranslate: false,
+    doubleClickTranslate: false,
+    quickTranslate: false,
+    pressKeyTranslate: false,
+  }
 ) => {
   let currentSelectionRange: Range | null = null;
   let iconUpdateTimer: NodeJS.Timeout | null = null;
@@ -325,12 +336,165 @@ export const setupSelectionHandler = (
     }
   };
 
+  // 双击翻译处理器
+  const handleDoubleClick = (e: MouseEvent) => {
+    if (!isTextTranslateEnabled || !settings.doubleClickTranslate) {
+      return;
+    }
+
+    const path = e.composedPath();
+    
+    // 如果双击在输入元素或翻译组件内部，不处理
+    if (pathContainsInputElement(path) || isClickOnTranslatorComponent(path, shadowRoot)) {
+      return;
+    }
+
+    // 获取双击位置的单词
+    const selection = window.getSelection();
+    let text = '';
+    let rect: DOMRect | null = null;
+
+    if (selection && selection.toString().trim()) {
+      // 如果有选中文本，使用选中的文本
+      text = selection.toString().trim();
+      if (selection.rangeCount > 0) {
+        rect = selection.getRangeAt(0).getBoundingClientRect();
+      }
+    } else {
+      // 如果没有选中文本，尝试选择双击位置的单词
+      const range = document.caretRangeFromPoint(e.clientX, e.clientY);
+      if (range) {
+        // 扩展选区到完整单词
+        const textNode = range.startContainer;
+        if (textNode.nodeType === Node.TEXT_NODE) {
+          const textContent = textNode.textContent || '';
+          const offset = range.startOffset;
+          
+          // 向前查找单词边界
+          let start = offset;
+          while (start > 0 && /\w/.test(textContent[start - 1])) {
+            start--;
+          }
+          
+          // 向后查找单词边界
+          let end = offset;
+          while (end < textContent.length && /\w/.test(textContent[end])) {
+            end++;
+          }
+          
+          if (start < end) {
+            range.setStart(textNode, start);
+            range.setEnd(textNode, end);
+            text = range.toString().trim();
+            if (text) {
+              selection?.removeAllRanges();
+              selection?.addRange(range);
+              rect = range.getBoundingClientRect();
+            }
+          }
+        }
+      }
+    }
+
+    if (text && rect && rect.width > 0 && rect.height > 0) {
+      currentSelectionRange = selection?.rangeCount ? selection.getRangeAt(0).cloneRange() : null;
+      // 双击翻译应该直接显示翻译结果
+      showTranslationIcon(text, rect, true); // 传入 forceTranslate=true
+    }
+  };
+
+  // 悬停翻译处理器
+  let hoverTimer: NodeJS.Timeout | null = null;
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!isTextTranslateEnabled || !settings.quickTranslate) {
+      return;
+    }
+
+    // 清除之前的定时器
+    if (hoverTimer) {
+      clearTimeout(hoverTimer);
+      hoverTimer = null;
+    }
+
+    const path = e.composedPath();
+    
+    // 如果鼠标在输入元素或翻译组件内部，不处理
+    if (pathContainsInputElement(path) || isClickOnTranslatorComponent(path, shadowRoot)) {
+      return;
+    }
+
+    // 设置悬停延迟
+    hoverTimer = setTimeout(() => {
+      const selection = window.getSelection();
+      
+      // 如果已经有选中的文本，使用选中的文本
+      if (selection && selection.toString().trim()) {
+        const text = selection.toString().trim();
+        if (selection.rangeCount > 0) {
+          const rect = selection.getRangeAt(0).getBoundingClientRect();
+          if (rect.width > 0 && rect.height > 0) {
+            currentSelectionRange = selection.getRangeAt(0).cloneRange();
+            // 悬停翻译应该直接显示翻译结果
+            showTranslationIcon(text, rect, true); // 传入 forceTranslate=true
+          }
+        }
+      } else {
+        // 尝试获取鼠标位置的单词
+        const range = document.caretRangeFromPoint(e.clientX, e.clientY);
+        if (range) {
+          // 扩展选区到完整单词
+          const textNode = range.startContainer;
+          if (textNode.nodeType === Node.TEXT_NODE) {
+            const textContent = textNode.textContent || '';
+            const offset = range.startOffset;
+            
+            // 向前查找单词边界
+            let start = offset;
+            while (start > 0 && /\w/.test(textContent[start - 1])) {
+              start--;
+            }
+            
+            // 向后查找单词边界
+            let end = offset;
+            while (end < textContent.length && /\w/.test(textContent[end])) {
+              end++;
+            }
+            
+            if (start < end) {
+              range.setStart(textNode, start);
+              range.setEnd(textNode, end);
+              const text = range.toString().trim();
+              if (text && text.length > 1) { // 至少2个字符才触发
+                const rect = range.getBoundingClientRect();
+                if (rect.width > 0 && rect.height > 0) {
+                  selection?.removeAllRanges();
+                  selection?.addRange(range);
+                  currentSelectionRange = range.cloneRange();
+                  // 悬停翻译应该直接显示翻译结果
+                  showTranslationIcon(text, rect, true); // 传入 forceTranslate=true
+                }
+              }
+            }
+          }
+        }
+      }
+    }, 800); // 800ms 悬停延迟
+  };
+
   // 添加事件监听器
   document.addEventListener('mouseup', handleMouseUp, { passive: true });
   document.addEventListener('mousedown', handleMouseDown, { passive: true });
   document.addEventListener('selectionchange', handleSelectionChange, { passive: true });
   document.addEventListener('scroll', handleScroll, { passive: true });
   window.addEventListener('resize', handleResize, { passive: true });
+  
+  // 添加双击和悬停事件监听器
+  if (settings.doubleClickTranslate) {
+    document.addEventListener('dblclick', handleDoubleClick, { passive: true });
+  }
+  if (settings.quickTranslate) {
+    document.addEventListener('mousemove', handleMouseMove, { passive: true });
+  }
   
   // 设置DOM变化监听
   setupMutationObserver();
@@ -339,6 +503,9 @@ export const setupSelectionHandler = (
     // 清理定时器
     if (iconUpdateTimer) {
       clearTimeout(iconUpdateTimer);
+    }
+    if (hoverTimer) {
+      clearTimeout(hoverTimer);
     }
     
     // 断开 MutationObserver
@@ -353,6 +520,8 @@ export const setupSelectionHandler = (
     document.removeEventListener('selectionchange', handleSelectionChange);
     document.removeEventListener('scroll', handleScroll);
     window.removeEventListener('resize', handleResize);
+    document.removeEventListener('dblclick', handleDoubleClick);
+    document.removeEventListener('mousemove', handleMouseMove);
     
     // 清理状态
     currentSelectionRange = null;

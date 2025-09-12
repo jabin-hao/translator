@@ -18,6 +18,7 @@ import {
   IconFileExport,
   IconFileImport,
   IconVolume,
+  IconVolume2,
   IconVolumeOff,
   IconPlayerPlay,
   IconPlayerPause,
@@ -41,6 +42,9 @@ import {
   IconWorld,
   IconCursorText,
   IconTool,
+  IconStar,
+  IconStarFilled,
+  IconLoader,
   IconArrowsLeftRight,
 } from '@tabler/icons-react';
 
@@ -101,6 +105,12 @@ const iconMap: { [key: string]: React.ComponentType<any> } = {
   'select-all': IconCursorText,
   'tool': IconTool,
   'manufacturing': IconTool,
+  
+  // 缺失的图标
+  'volume-2': IconVolume2,
+  'star': IconStar,
+  'star-filled': IconStarFilled,
+  'loader': IconLoader,
   'swap': IconArrowsLeftRight,
 };
 
