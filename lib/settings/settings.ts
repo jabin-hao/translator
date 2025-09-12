@@ -56,7 +56,6 @@ export interface GlobalSettings {
   textTranslate: {
     enabled: boolean;
     showOriginal: boolean;
-    doubleClickTranslate: boolean;
     selectTranslate: boolean;
     quickTranslate: boolean;
     pressKeyTranslate: boolean;
@@ -151,7 +150,6 @@ export const DEFAULT_SETTINGS: GlobalSettings = {
   textTranslate: {
     enabled: true,
     showOriginal: false,
-    doubleClickTranslate: false,
     selectTranslate: false, // 默认不自动翻译，显示图标
     quickTranslate: false,
     pressKeyTranslate: false,
@@ -413,7 +411,7 @@ export function useTextTranslateSettings() {
     updateTextTranslate({ enabled: !textTranslateSettings.enabled });
   }, [textTranslateSettings.enabled, updateTextTranslate]);
 
-  const setTriggerMode = useCallback((mode: keyof Pick<GlobalSettings['textTranslate'], 'doubleClickTranslate' | 'selectTranslate' | 'quickTranslate' | 'pressKeyTranslate'>, enabled: boolean) => {
+  const setTriggerMode = useCallback((mode: keyof Pick<GlobalSettings['textTranslate'], 'selectTranslate' | 'quickTranslate' | 'pressKeyTranslate'>, enabled: boolean) => {
     updateTextTranslate({ [mode]: enabled });
   }, [updateTextTranslate]);
 

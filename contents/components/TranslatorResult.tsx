@@ -730,7 +730,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
                     padding: '0 8px', 
                     marginRight: idx !== favoriteLangs.length - 1 ? '8px' : 0 
                   }}
-                  loading={loading && targetLang === lang}
+                  // loading={loading && targetLang === lang}
                 >
                   {getLangAbbr(lang)}
                 </Button>

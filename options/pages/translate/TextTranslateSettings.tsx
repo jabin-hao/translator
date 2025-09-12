@@ -50,16 +50,6 @@ const TextTranslateSettings: React.FC = () => {
             </SettingsItem>
 
             <SettingsItem
-              label={t('双击翻译')}
-              description={t('双击单词进行翻译')}
-            >
-              <Switch
-                checked={textTranslateSettings.doubleClickTranslate}
-                onChange={(checked) => handleSwitchChange('doubleClickTranslate', checked)}
-              />
-            </SettingsItem>
-
-            <SettingsItem
               label={t('快捷键翻译')}
               description={t('选中文本后按快捷键进行翻译')}
             >

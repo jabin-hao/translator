@@ -171,6 +171,7 @@ const ContentScript = () => {
     const autoRead = settings.speech.autoPlay;
     const textTranslateEnabled = textTranslateSettings.enabled; // 是否启用划词翻译功能
     const selectTranslateEnabled = textTranslateSettings.selectTranslate; // 是否在选择时自动翻译
+    const quickTranslateEnabled = textTranslateSettings.quickTranslate; // 悬浮翻译
     const textTargetLang = settings.languages.textTarget;
     const pageTargetLang = settings.languages.pageTarget;
     const uiLang = themeSettings.uiLanguage;
@@ -367,9 +368,14 @@ const ContentScript = () => {
             shadowRoot,
             showTranslationIcon,
             clearTranslationState,
-            textTranslateEnabled // 传入划词翻译启用状态
+            textTranslateEnabled, // 传入划词翻译启用状态
+            {
+                selectTranslate: selectTranslateEnabled,
+                quickTranslate: quickTranslateEnabled,
+                pressKeyTranslate: false, // 快捷键翻译在 setupShortcutHandler 中处理
+            }
         );
-    }, [showInputTranslator, result, icon, textTranslateEnabled, selectTranslateEnabled]);
+    }, [showInputTranslator, result, icon, textTranslateEnabled, selectTranslateEnabled, quickTranslateEnabled]);
 
     // 设置快捷键处理器
     useEffect(() => {
