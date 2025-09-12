@@ -161,10 +161,10 @@ const ContentScript = () => {
     // 使用新的全局配置系统
     const { settings } = useGlobalSettings();
     const { engineSettings } = useEngineSettings();
-    const { textTranslateSettings } = useTextTranslateSettings();
+    const { textTranslateSettings, toggleEnabled: toggleTextTranslateEnabled } = useTextTranslateSettings();
     const { themeSettings } = useThemeSettings();
     const { shortcutSettings } = useShortcutSettings();
-    const { pageTranslateSettings, domainSettings, getWhitelistedDomains } = usePageTranslateSettings();
+    const { pageTranslateSettings, getWhitelistedDomains } = usePageTranslateSettings();
 
     // 从全局设置中提取值
     const engine = engineSettings.default;
@@ -179,7 +179,6 @@ const ContentScript = () => {
 
     // 快捷键设置
     const shortcutEnabled = shortcutSettings.enabled;
-    const customShortcut = shortcutSettings.textTranslate;
 
     const engineRef = useRef(engine);
     const autoReadRef = useRef(autoRead);
@@ -213,7 +212,7 @@ const ContentScript = () => {
                 // 快捷键翻译模式：选中文字后什么都不做，等待快捷键
                 return;
             }
-            
+
             // 如果开启了选择时自动翻译，或强制翻译（快速翻译），直接触发翻译
             if (selectTranslateEnabled || forceTranslate) {
                 // 计算翻译结果位置 - 使用视口坐标（fixed定位）
@@ -422,18 +421,72 @@ const ContentScript = () => {
         return setupShortcutHandler(
             triggerTranslation,
             setShowInputTranslator,
-            textTranslateEnabled && pressKeyTranslateEnabled, // 只有当划词翻译和快捷键翻译都启用时才处理
+            shortcutEnabled, // 使用快捷键设置中的是否开启快捷键
             {
                 enabled: shortcutEnabled,
-                openPopup: shortcutSettings.textTranslate // 使用文本翻译快捷键设置
+                toggleTranslate: shortcutSettings.toggleTranslate,
+                textTranslate: shortcutSettings.textTranslate,
+                inputTranslate: shortcutSettings.inputTranslate,
+                pageTranslate: shortcutSettings.pageTranslate,
+                openInput: shortcutSettings.openInput
+            },
+            {
+                toggleTranslate: () => {
+                    // 切换翻译功能 - 切换划词翻译启用状态
+                    console.log('切换翻译功能');
+                    try {
+                        // 直接使用 toggleTextTranslateEnabled 方法
+                        toggleTextTranslateEnabled();
+                        console.log(`划词翻译已${textTranslateEnabled ? '关闭' : '开启'}`);
+                    } catch (error) {
+                        console.error('切换划词翻译设置失败:', error);
+                    }
+                },
+                textTranslate: () => {
+                    // 快捷键划词翻译 - 需要检查划词翻译和快捷键翻译是否都启用
+                    if (textTranslateEnabled && pressKeyTranslateEnabled) {
+                        triggerTranslation();
+                        console.log('快捷键划词翻译');
+                    }
+                },
+                inputTranslate: () => {
+                    // 翻译输入框内容 - 打开输入翻译器
+                    setShowInputTranslator(true);
+                    console.log('翻译输入框内容');
+                },
+                pageTranslate: () => {
+                    // 翻译整个页面 - 触发整页翻译
+                    console.log('翻译整个页面');
+                    // 发送消息给background进行整页翻译
+                    try {
+                        chrome.runtime.sendMessage({
+                            type: 'FULL_PAGE_TRANSLATE',
+                            lang: pageTargetLang,
+                            engine: engine
+                        });
+                    } catch (error) {
+                        console.error('发送整页翻译消息失败:', error);
+                    }
+                },
+                openInput: () => {
+                    // 打开输入翻译 - 打开输入翻译器
+                    setShowInputTranslator(true);
+                    console.log('打开输入翻译');
+                }
             }
         );
     }, [
         shortcutEnabled,
+        shortcutSettings.toggleTranslate,
         shortcutSettings.textTranslate,
+        shortcutSettings.inputTranslate,
+        shortcutSettings.pageTranslate,
+        shortcutSettings.openInput,
         triggerTranslation,
         textTranslateEnabled,
-        pressKeyTranslateEnabled
+        pressKeyTranslateEnabled,
+        toggleTextTranslateEnabled,
+        setShowInputTranslator
     ]);
 
     // 设置消息处理器，确保只注册一次

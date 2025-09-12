@@ -7,28 +7,24 @@ export const setupShortcutHandler = (
   isTextTranslateEnabled: boolean = true, // 新增：是否启用划词翻译
   shortcutSettings: {
     enabled: boolean;
-    openPopup?: string;
+    toggleTranslate?: string;
+    textTranslate?: string;
+    inputTranslate?: string;
+    pageTranslate?: string;
+    openInput?: string;
+  },
+  callbacks?: {
+    toggleTranslate?: () => void;
+    textTranslate?: () => void;
+    inputTranslate?: () => void;
+    pageTranslate?: () => void;
+    openInput?: () => void;
   }
 ) => {
   let isTranslating = false;
 
-  const handleKeyDown = async (e: KeyboardEvent) => {
-    // 如果当前焦点在输入元素上，不处理快捷键
-    const activeElement = document.activeElement;
-    if (activeElement && isInputElement(activeElement)) {
-      return;
-    }
-
-    // 使用传入的快捷键设置
-    const shortcutEnabled = shortcutSettings.enabled;
-    const customShortcut = shortcutSettings.openPopup;
-
-    // 如果没有启用快捷键或没有设置自定义快捷键，不处理任何快捷键
-    if (!shortcutEnabled || !customShortcut) {
-      return;
-    }
-
-    // 检查自定义快捷键
+  // 生成当前按键组合的函数
+  const getCurrentKeyCombination = (e: KeyboardEvent): string => {
     const isCtrlPressed = e.ctrlKey || e.key === 'Control';
     const isAltPressed = e.altKey || e.key === 'Alt';
     const isShiftPressed = e.shiftKey || e.key === 'Shift';
@@ -58,46 +54,67 @@ export const setupShortcutHandler = (
       pressedKeys.push(keyName);
     }
     
-    const currentCombination = pressedKeys.join('+');
-    const isCustomShortcut = currentCombination === customShortcut;
-    
-    // 调试信息
-    console.log('快捷键检测:', {
-      pressed: currentCombination,
-      expected: customShortcut,
-      match: isCustomShortcut
-    });
+    return pressedKeys.join('+');
+  };
 
+  const handleKeyDown = async (e: KeyboardEvent) => {
+    // 如果当前焦点在输入元素上，不处理快捷键
+    const activeElement = document.activeElement;
+    if (activeElement && isInputElement(activeElement)) {
+      return;
+    }
+
+    // 如果快捷键未启用，不处理
+    if (!shortcutSettings.enabled) {
+      return;
+    }
+
+    const currentCombination = getCurrentKeyCombination(e);
     const selection = window.getSelection();
     const text = selection?.toString().trim();
 
-    if (text && text.length > 0 && selection && selection.rangeCount > 0) {
-      // 有选中文字 - 检查是否启用划词翻译和是否匹配自定义快捷键
-      if (!isTextTranslateEnabled || !isCustomShortcut) {
-        return;
-      }
-      
-      // 防止重复调用
-      if (isTranslating) {
-        return;
-      }
-      
-      const rect = selection.getRangeAt(0).getBoundingClientRect();
-      if (isNaN(rect.left) || isNaN(rect.bottom)) {
-        return;
-      }
-      
-      // 设置翻译状态
-      isTranslating = true;
-      
-      // 触发翻译
-      triggerTranslation(text, rect);
-      
-      // 重置翻译状态
-      setTimeout(() => {
-        isTranslating = false;
-      }, 100);
+    // 检查各种快捷键类型
+    
+    // 1. 切换翻译功能
+    if (shortcutSettings.toggleTranslate && currentCombination === shortcutSettings.toggleTranslate) {
+      e.preventDefault();
+      e.stopPropagation();
+      callbacks?.toggleTranslate?.();
+      return;
     }
+    
+    // 2. 快捷键翻译选中文本
+    if (shortcutSettings.textTranslate && currentCombination === shortcutSettings.textTranslate) {
+      e.preventDefault();
+      e.stopPropagation();
+      callbacks?.textTranslate?.();
+      return;
+    }
+    
+    // 3. 翻译输入框内容
+    if (shortcutSettings.inputTranslate && currentCombination === shortcutSettings.inputTranslate) {
+      e.preventDefault();
+      e.stopPropagation();
+      callbacks?.inputTranslate?.();
+      return;
+    }
+    
+    // 4. 翻译整个页面
+    if (shortcutSettings.pageTranslate && currentCombination === shortcutSettings.pageTranslate) {
+      e.preventDefault();
+      e.stopPropagation();
+      callbacks?.pageTranslate?.();
+      return;
+    }
+    
+    // 5. 打开输入翻译
+    if (shortcutSettings.openInput && currentCombination === shortcutSettings.openInput) {
+      e.preventDefault();
+      e.stopPropagation();
+      callbacks?.openInput?.();
+      return;
+    }
+
   };
 
   document.addEventListener('keydown', handleKeyDown);

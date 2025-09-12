@@ -104,7 +104,7 @@ export interface GlobalSettings {
     enabled: boolean;
     toggleTranslate: string;
     pageTranslate: string;
-    openPopup: string;
+    openInput: string;
     textTranslate: string; // 原 textTranslate.hotkey
     inputTranslate: string; // 原 inputTranslate.hotkey
   };
@@ -193,7 +193,7 @@ export const DEFAULT_SETTINGS: GlobalSettings = {
     enabled: true,
     toggleTranslate: 'Alt+T',
     pageTranslate: 'Alt+P',
-    openPopup: 'Alt+Q',
+    openInput: 'Alt+I',
     textTranslate: 'Alt+S', // 原 textTranslate.hotkey
     inputTranslate: 'Ctrl+T', // 原 inputTranslate.hotkey
   },
