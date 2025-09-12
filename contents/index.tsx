@@ -209,28 +209,32 @@ const ContentScript = () => {
         if (!showInputTranslator && !result) {
             // 如果开启了选择时自动翻译，或强制翻译（双击、快速翻译），直接触发翻译
             if (selectTranslateEnabled || forceTranslate) {
-                // 调试信息
-                console.log('选择区域信息:', {
-                    text,
-                    rect: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height },
-                    viewport: { width: window.innerWidth, height: window.innerHeight }
-                });
-                
-                // 简化位置计算 - 直接使用选中文字的下方位置
+                // 计算翻译结果位置 - 使用视口坐标（fixed定位）
+                const resultWidth = 400;
+                const resultHeight = 150;
+                const margin = 10;
+
                 let resultX = rect.left;
                 let resultY = rect.bottom + 10; // 在选中文字下方10px
-                
-                // 简单的边界检查
-                const maxWidth = 400;
-                if (resultX + maxWidth > window.innerWidth) {
-                    resultX = window.innerWidth - maxWidth - 10;
+
+                // 边界检查 - 确保在视口内
+                if (resultX + resultWidth > window.innerWidth) {
+                    resultX = window.innerWidth - resultWidth - margin;
                 }
-                if (resultX < 10) {
-                    resultX = 10;
+                if (resultX < margin) {
+                    resultX = margin;
                 }
-                
-                console.log('最终位置:', { x: resultX, y: resultY });
-                
+
+                // 检查下方是否有足够空间
+                if (resultY + resultHeight > window.innerHeight) {
+                    // 如果下方空间不够，显示在选中文字上方
+                    resultY = rect.top - resultHeight - 10;
+                    // 如果上方也没有足够空间，则显示在视口顶部
+                    if (resultY < margin) {
+                        resultY = margin;
+                    }
+                }
+
                 // 将翻译结果显示在计算好的位置
                 setResult({
                     x: resultX,
@@ -298,24 +302,28 @@ const ContentScript = () => {
             const resultWidth = 400;
             const resultHeight = 150;
             const margin = 10;
-            
+
             let resultX = selectionRect.left;
-            let resultY = selectionRect.bottom + 5;
-            
+            let resultY = selectionRect.bottom + 10;
+
             // 边界检查
-            if (resultX + resultWidth + margin > window.innerWidth) {
+            if (resultX + resultWidth > window.innerWidth) {
                 resultX = window.innerWidth - resultWidth - margin;
             }
             if (resultX < margin) {
                 resultX = margin;
             }
-            if (resultY + resultHeight + margin > window.innerHeight) {
-                resultY = selectionRect.top - resultHeight - 5;
+
+            // 检查下方是否有足够空间
+            if (resultY + resultHeight > window.innerHeight) {
+                // 如果下方空间不够，显示在选中文字上方
+                resultY = selectionRect.top - resultHeight - 10;
+                // 如果上方也没有足够空间，则显示在视口顶部
                 if (resultY < margin) {
                     resultY = margin;
                 }
             }
-            
+
             // 将翻译结果显示在计算好的位置（使用视口相对坐标）
             setResult({
                 x: resultX,
@@ -335,9 +343,34 @@ const ContentScript = () => {
                 const range = selection.getRangeAt(0);
                 const rect = range.getBoundingClientRect();
 
+                // 计算位置，加入边界检查
+                const resultWidth = 400;
+                const resultHeight = 150;
+                const margin = 10;
+
+                let resultX = rect.left;
+                let resultY = rect.bottom + 10;
+
+                // 边界检查
+                if (resultX + resultWidth > window.innerWidth) {
+                    resultX = window.innerWidth - resultWidth - margin;
+                }
+                if (resultX < margin) {
+                    resultX = margin;
+                }
+
+                // 检查下方是否有足够空间
+                if (resultY + resultHeight > window.innerHeight) {
+                    // 如果下方空间不够，显示在选中文字上方
+                    resultY = rect.top - resultHeight - 10;
+                    if (resultY < margin) {
+                        resultY = margin;
+                    }
+                }
+
                 setResult({
-                    x: rect.left, // 使用视窗相对坐标，因为结果组件也使用fixed定位
-                    y: rect.bottom + 5, // 选中文字的下方
+                    x: resultX,
+                    y: resultY,
                     originalText: selection.toString().trim()
                 });
             } else {
@@ -389,9 +422,9 @@ const ContentScript = () => {
             }
         );
     }, [
-        shortcutEnabled, 
+        shortcutEnabled,
         shortcutSettings.openPopup,
-        triggerTranslation, 
+        triggerTranslation,
         textTranslateEnabled
     ]);
 
@@ -428,10 +461,10 @@ const ContentScript = () => {
         const setupAutoTranslation = async () => {
             // 异步获取白名单站点列表
             const whitelistedSites = await getWhitelistedDomains();
-            
+
             return setupAutoTranslate(
-                pageTargetLang, 
-                engine, 
+                pageTargetLang,
+                engine,
                 stopTTSAPICallback,
                 pageTranslateSettings.autoTranslate,
                 whitelistedSites,

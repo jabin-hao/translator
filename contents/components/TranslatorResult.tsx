@@ -51,14 +51,14 @@ interface TranslatorResultProps {
 const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
   // =============== 最关键：useTranslation 必须在最前面，无条件调用 ===============
   const { t } = useTranslation();
-  
+
   // =============== 使用新的全局配置系统 ===============
   const { languageSettings } = useLanguageSettings();
   const { speechSettings } = useSpeechSettings();
   const { favoritesSettings, addFavoriteWord, removeFavoriteWord } = useFavoritesSettings();
-  
+
   const favorites = favoritesSettings.words;
-  
+
   const favoriteLangs = languageSettings.favorites;
   const speechConfig = {
     speed: speechSettings.speed,
@@ -70,9 +70,9 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
   // =============== 早期验证：检查基本props的合法性 ===============
   const isPropsValid = useMemo(() => {
     return (
-      typeof props.x === 'number' && 
+      typeof props.x === 'number' &&
       typeof props.y === 'number' &&
-      !isNaN(props.x) && 
+      !isNaN(props.x) &&
       !isNaN(props.y) &&
       typeof props.text === 'string' &&
       props.text.length > 0
@@ -87,7 +87,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
   const [usedEngine, setUsedEngine] = useImmer(props.engine);
   const [shouldRender, setShouldRender] = useImmer(false);
   const [isFavorited, setIsFavorited] = useImmer(false);
-  
+
   // refs - 也必须无条件调用
   const originalTextRef = useRef(props.text);
   const hasTranslatedRef = useRef(false);
@@ -98,7 +98,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
   const isLanguageSwitchingRef = useRef(false); // 新增：跟踪是否正在切换语言
 
   // =============== 所有 useEffect 也必须无条件调用 ===============
-  
+
   // 1. 设置渲染状态
   useEffect(() => {
     setShouldRender(isPropsValid);
@@ -107,12 +107,12 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
   // 2. 设置目标语言
   useEffect(() => {
     if (!shouldRender) return;
-    
+
     // 如果正在语言切换，不要被父组件的 props.targetLang 覆盖
     if (isLanguageSwitchingRef.current) {
       return;
     }
-    
+
     if (props.targetLang) {
       setTargetLang(props.targetLang);
       return;
@@ -132,7 +132,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
     setLoading(true);
     hasTranslatedRef.current = true;
     isLanguageSwitchingRef.current = false; // 重置语言切换标志
-    
+
     // 直接传递 targetLang，让 callTranslateAPI 处理语言映射
     props.callTranslateAPI(srcText, 'auto', targetLang, props.engine)
       .then(res => {
@@ -158,12 +158,12 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
     if (!shouldRender || !targetLang || !props.callTranslateAPI) {
       return;
     }
-    
+
     // 检查是否应该开始翻译
     if (props.shouldTranslate === false) {
       return;
     }
-    
+
     const srcText = props.originalText || props.text;
     // 检查文本或目标语言是否变化
     if (
@@ -175,27 +175,27 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
       originalTextRef.current = srcText;
       lastTargetLangRef.current = targetLang;
     }
-    
+
     // 如果已经翻译过相同内容，跳过
     if (hasTranslatedRef.current && !isLanguageSwitchingRef.current) {
       return;
     }
-    
+
     // 如果正在语言切换，强制重新翻译
     if (isLanguageSwitchingRef.current) {
       hasTranslatedRef.current = false;
     }
-    
+
     // 清除之前的定时器
     if (translationTimeoutRef.current) {
       clearTimeout(translationTimeoutRef.current);
     }
-    
+
     // 设置防抖定时器，延迟100ms执行翻译
     translationTimeoutRef.current = setTimeout(() => {
       doTranslation(srcText, targetLang);
     }, 100);
-    
+
     // 清理定时器
     return () => {
       if (translationTimeoutRef.current) {
@@ -209,18 +209,18 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
     if (!shouldRender || !props.autoRead || !translatedText || translatedText === t('翻译失败') || loading) {
       return;
     }
-    
+
     // 如果正在语言切换过程中，等翻译完成后再朗读
     if (isLanguageSwitchingRef.current) {
       return;
     }
-    
+
     // 检查翻译文本是否与当前目标语言匹配
     // 如果目标语言刚改变，翻译文本可能还是旧的，不要朗读
     if (targetLang !== lastTargetLangRef.current) {
       return;
     }
-    
+
     handleAutoRead();
   }, [props.autoRead, translatedText, loading, shouldRender, t, targetLang]);
 
@@ -242,11 +242,11 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
     if (!shouldRender || !translatedText || !targetLang || translatedText === t('翻译失败')) {
       return;
     }
-    
+
     const checkFavoriteStatus = () => {
       try {
         const sourceText = props.originalText || props.text;
-        const isAlreadyFavorited = favorites.some(fav => 
+        const isAlreadyFavorited = favorites.some(fav =>
           fav.originalText === sourceText &&
           fav.translatedText === translatedText
         );
@@ -256,7 +256,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
         setIsFavorited(false);
       }
     };
-    
+
     checkFavoriteStatus();
   }, [shouldRender, translatedText, targetLang, props.originalText, props.text, t]);
 
@@ -272,7 +272,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
   }, []);
 
   // =============== 事件处理函数 ===============
-  
+
   // 停止朗读的统一函数
   const stopSpeaking = async () => {
     if (props.stopTTSAPI && typeof props.stopTTSAPI === 'function') {
@@ -301,21 +301,21 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
         utterance.rate = speechConfig.speed || 1;
         utterance.pitch = speechConfig.pitch || 1;
         utterance.volume = speechConfig.volume || 1;
-        
+
         utterance.onstart = () => {
           setIsSpeaking(true);
         };
-        
+
         utterance.onend = () => {
           setIsSpeaking(false);
           resolve();
         };
-        
+
         utterance.onerror = (event) => {
           setIsSpeaking(false);
           reject(new Error(`Web Speech API 错误: ${event.error}`));
         };
-        
+
         window.speechSynthesis.speak(utterance);
       } catch (error) {
         console.error('[Web Speech API] 获取设置失败:', error);
@@ -342,12 +342,12 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
         try {
           // 确保 audioData 是 ArrayBuffer 类型
           let audioBuffer: ArrayBuffer;
-          
+
           if (result.audioData instanceof ArrayBuffer) {
             audioBuffer = result.audioData;
           } else if ((result.audioData as any) instanceof Uint8Array) {
             const uint8Array = result.audioData as Uint8Array;
-            audioBuffer = uint8Array.buffer instanceof ArrayBuffer 
+            audioBuffer = uint8Array.buffer instanceof ArrayBuffer
               ? uint8Array.buffer.slice(uint8Array.byteOffset, uint8Array.byteOffset + uint8Array.byteLength)
               : new ArrayBuffer(0);
           } else if (result.audioData && typeof result.audioData === 'object') {
@@ -369,7 +369,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
               }
             } else {
               console.error('未知的音频数据格式:', obj);
-              
+
               // 如果是空对象，给出更具体的错误信息
               if (Object.keys(obj).length === 0) {
                 console.error('TTS 服务返回了空的音频数据，可能是网络问题或 API 限制');
@@ -382,12 +382,12 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
             console.error('无法识别的音频数据类型:', typeof result.audioData, result.audioData);
             throw new Error('音频数据格式不支持');
           }
-          
+
           // 检查音频数据是否有效
           if (audioBuffer.byteLength === 0) {
             throw new Error('音频数据为空');
           }
-          
+
           // 使用 Web Audio API 播放
           await playAudioFromArrayBuffer(audioBuffer);
           return;
@@ -396,25 +396,25 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
           // 如果播放失败，回退到本地Web Speech API
         }
       }
-      
+
       // 检查是否需要使用Web Speech API (browser TTS)
       if (result.error === 'browser_tts_required' || !result.success) {
         await speakWithWebSpeechAPI(text, lang);
         return;
       }
-      
+
       // 如果没有音频数据但标记为成功，也回退到Web Speech API
       if (result.success && !result.audioData) {
         await speakWithWebSpeechAPI(text, lang);
         return;
       }
-      
+
       // 其他情况抛出错误
       throw new Error(result.error || 'TTS服务失败');
-      
+
     } catch (error) {
       console.error('[TTS] TTS服务完全失败:', error);
-      
+
       // 最后的回退方案：直接使用Web Speech API
       await speakWithWebSpeechAPI(text, lang);
     }
@@ -428,9 +428,9 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
         reject(new Error('音频正在播放中'));
         return;
       }
-      
+
       let audioContext: AudioContext | null = null;
-      
+
       try {
         // 清理之前的音频
         if (currentAudioRef.current) {
@@ -450,14 +450,14 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
 
         // 使用 Web Audio API 播放音频
         audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      
+
         audioContext.decodeAudioData(audioData)
           .then((audioBuffer) => {
 
             const source = audioContext!.createBufferSource();
             source.buffer = audioBuffer;
             source.connect(audioContext!.destination);
-            
+
             // 设置事件监听器
             source.onended = () => {
               setIsSpeaking(false);
@@ -471,10 +471,10 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
               }
               resolve();
             };
-            
+
             setIsSpeaking(true);
             source.start(0);
-            
+
             // 保存引用以便停止
             currentAudioRef.current = {
               pause: () => {
@@ -543,27 +543,27 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
     e.stopPropagation();
     e.preventDefault();
     if (lang === targetLang) return;
-    
+
     // 标记正在切换语言
     isLanguageSwitchingRef.current = true;
-    
+
     // 停止当前的朗读
     if (isSpeaking) {
       await stopSpeaking();
     }
-    
+
     // 重置翻译状态，触发重新翻译
     hasTranslatedRef.current = false;
     setTranslatedText('');
     setLoading(true); // 立即显示加载状态
     setUsedEngine(''); // 重置引擎状态
-    
+
     // 设置新的目标语言
     setTargetLang(lang);
-    
+
     // 立即更新 lastTargetLangRef，确保翻译逻辑能检测到变化
     lastTargetLangRef.current = lang;
-    
+
     // 切换语言后触发翻译
     props.setShouldTranslate?.(true);
   };
@@ -572,7 +572,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
   const handleSpeak = async (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    
+
     if (isSpeaking) {
       // 停止朗读
       await stopSpeaking();
@@ -620,22 +620,22 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
   const handleFavorite = async (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    
+
     if (!translatedText || translatedText === t('翻译失败') || !targetLang) {
       props.showMessage('warning', t('没有可收藏的内容'));
       return;
     }
-    
+
     try {
       const sourceText = props.originalText || props.text;
-      
+
       if (isFavorited) {
         // 取消收藏 - 查找对应的收藏项
         const favoriteItem = favorites.find(
-          item => item.originalText === sourceText && 
-                  item.translatedText === translatedText
+          item => item.originalText === sourceText &&
+            item.translatedText === translatedText
         );
-        
+
         if (favoriteItem) {
           const success = await removeFavoriteWord(favoriteItem.id);
           if (success) {
@@ -661,15 +661,15 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
   };
 
   // =============== 渲染逻辑 ===============
-  
+
   // 使用条件渲染而不是早期返回，避免违反 React Hooks 规则
   return (!shouldRender || !targetLang) ? null : (
     <Card
       data-translator-result
       className="translator-result-card"
-      style={{ 
-        left: props.x, 
-        top: props.y, // 直接使用传入的y坐标，不再额外添加偏移
+      style={{
+        left: `${props.x}px`,
+        top: `${props.y}px`,
         position: 'fixed',
         maxWidth: 'min(90vw, 480px)',
         minWidth: '320px',
@@ -677,7 +677,9 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
         fontSize: '14px',
         lineHeight: 1.4,
         pointerEvents: 'auto',
-        padding: 0
+        padding: 0,
+        transform: 'none',
+        margin: 0
       }}
       styles={{ body: { padding: '12px 16px' } }}
       variant="outlined"
@@ -689,7 +691,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
         <div className="translator-result-text">
           {loading ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Spin 
+              <Spin
                 size="small"
                 indicator={<Icon name="loader" size={14} style={{ color: '#1890ff' }} />}
               />
@@ -697,11 +699,11 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
             </div>
           ) : translatedText}
         </div>
-        
+
         {/* Footer区域 */}
         <Divider style={{ margin: '12px 0 8px 0' }} />
         <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
-          {usedEngine && translatedText !== t('翻译失败') && 
+          {usedEngine && translatedText !== t('翻译失败') &&
             `${t('本次翻译由')} ${getEngineDisplayName(usedEngine)} ${t('提供')}`
           }
         </div>
@@ -725,12 +727,12 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
                   type={targetLang === lang ? 'primary' : 'default'}
                   size="small"
                   onClick={(e) => handleLangClick(e, lang)}
-                  style={{ 
-                    minWidth: '32px', 
-                    padding: '0 8px', 
-                    marginRight: idx !== favoriteLangs.length - 1 ? '8px' : 0 
+                  style={{
+                    minWidth: '32px',
+                    padding: '0 8px',
+                    marginRight: idx !== favoriteLangs.length - 1 ? '8px' : 0
                   }}
-                  // loading={loading && targetLang === lang}
+                // loading={loading && targetLang === lang}
                 >
                   {getLangAbbr(lang)}
                 </Button>
@@ -758,7 +760,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
                 disabled={!translatedText || loading}
               />
             )}
-            
+
             {/* 收藏按钮 - 根据收藏功能开关显示 */}
             {favoritesSettings.enabled && (
               <Button
@@ -771,7 +773,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
                 disabled={!translatedText || loading}
               />
             )}
-            
+
             <Button
               type="text"
               icon={<Icon name="copy" />}
@@ -789,7 +791,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = (props) => {
 
 // 设置默认属性
 TranslatorResult.defaultProps = {
-  onClose: () => {},
+  onClose: () => { },
 };
 
 export default TranslatorResult;
