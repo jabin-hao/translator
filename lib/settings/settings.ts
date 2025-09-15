@@ -69,6 +69,7 @@ export interface GlobalSettings {
     minTextLength: number;
     enabledInputTypes: string[]; // text, textarea, contenteditable 等
     excludeSelectors: string[]; // CSS选择器，排除某些输入框
+    autoReplace: boolean; // 是否直接替换文字，不显示弹窗
   };
 
   // 网页翻译设置
@@ -162,6 +163,7 @@ export const DEFAULT_SETTINGS: GlobalSettings = {
     minTextLength: 2,
     enabledInputTypes: ['text', 'textarea', 'email', 'search', 'url'],
     excludeSelectors: ['.no-translate', '[data-no-translate]'],
+    autoReplace: true, // 默认直接替换文字
   },
 
   pageTranslate: {

@@ -15,6 +15,7 @@ import { ThemeProvider } from '~lib/theme/theme';
 // 引入拆分后的模块
 import { setupSelectionHandler } from '~lib/translate/selection';
 import { setupShortcutHandler } from '~lib/translate/shortcuts';
+import { setupInputTranslateHandler } from '~lib/translate/input_translate';
 import { setupMessageHandler } from '~lib/messages/message';
 import { setupAutoTranslate } from '~lib/translate/page_translate_trigger';
 
@@ -23,6 +24,7 @@ import {
     useGlobalSettings,
     useEngineSettings,
     useTextTranslateSettings,
+    useInputTranslateSettings,
     useThemeSettings,
     useShortcutSettings,
     usePageTranslateSettings
@@ -162,6 +164,7 @@ const ContentScript = () => {
     const { settings } = useGlobalSettings();
     const { engineSettings } = useEngineSettings();
     const { textTranslateSettings, toggleEnabled: toggleTextTranslateEnabled } = useTextTranslateSettings();
+    const { inputTranslateSettings } = useInputTranslateSettings();
     const { themeSettings } = useThemeSettings();
     const { shortcutSettings } = useShortcutSettings();
     const { pageTranslateSettings, getWhitelistedDomains } = usePageTranslateSettings();
@@ -450,9 +453,15 @@ const ContentScript = () => {
                     }
                 },
                 inputTranslate: () => {
-                    // 翻译输入框内容 - 打开输入翻译器
-                    setShowInputTranslator(true);
-                    console.log('翻译输入框内容');
+                    // 翻译输入框内容 - 触发当前焦点输入框的翻译
+                    if (inputTranslateSettings.enabled && triggerInputTranslateRef.current) {
+                        triggerInputTranslateRef.current();
+                        console.log('触发输入框翻译');
+                    } else {
+                        // 如果没有启用输入框翻译，则打开输入翻译器
+                        setShowInputTranslator(true);
+                        console.log('打开输入翻译器');
+                    }
                 },
                 pageTranslate: () => {
                     // 翻译整个页面 - 触发整页翻译
@@ -489,10 +498,79 @@ const ContentScript = () => {
         setShowInputTranslator
     ]);
 
+    // 输入框翻译触发函数引用
+    const triggerInputTranslateRef = useRef<(() => void) | null>(null);
+
+    // 设置输入框翻译处理器
+    useEffect(() => {
+        if (!inputTranslateSettings.enabled) {
+            triggerInputTranslateRef.current = null;
+            return; // 如果未启用，直接返回
+        }
+
+        const inputTranslateHandler = setupInputTranslateHandler(
+            shadowRoot,
+            inputTranslateSettings,
+            {
+                callTranslateAPI: callTranslateAPI,
+                showMessage: (type, content) => {
+                    // 创建一个临时的Toast提示
+                    const toast = document.createElement('div');
+                    toast.style.cssText = `
+                        position: fixed;
+                        top: 20px;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        background: ${type === 'success' ? '#52c41a' : type === 'error' ? '#ff4d4f' : type === 'warning' ? '#faad14' : '#1890ff'};
+                        color: white;
+                        padding: 8px 16px;
+                        border-radius: 4px;
+                        z-index: 2147483647;
+                        font-size: 14px;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+                        transition: opacity 0.3s;
+                    `;
+                    toast.textContent = content;
+                    document.body.appendChild(toast);
+                    
+                    // 3秒后自动移除
+                    setTimeout(() => {
+                        toast.style.opacity = '0';
+                        setTimeout(() => {
+                            if (toast.parentNode) {
+                                toast.parentNode.removeChild(toast);
+                            }
+                        }, 300);
+                    }, 3000);
+                },
+                getTargetLanguage: () => settings.languages.inputTarget,
+                getEngine: () => engine,
+            }
+        );
+
+        // 保存触发函数引用
+        triggerInputTranslateRef.current = inputTranslateHandler.triggerInputTranslate;
+
+        // 返回清理函数
+        return inputTranslateHandler.cleanup;
+    }, [
+        inputTranslateSettings.enabled,
+        inputTranslateSettings.triggerMode,
+        inputTranslateSettings.autoTranslateDelay,
+        inputTranslateSettings.minTextLength,
+        inputTranslateSettings.enabledInputTypes,
+        inputTranslateSettings.excludeSelectors,
+        inputTranslateSettings.autoReplace,
+        settings.languages.inputTarget,
+        engine
+    ]);
+
     // 设置消息处理器，确保只注册一次
     useEffect(() => {
         setupMessageHandler(setShowInputTranslator);
     }, []);
+
+
 
     // 监听 result 状态变化，result 出现后再 setIcon(null)
     useEffect(() => {

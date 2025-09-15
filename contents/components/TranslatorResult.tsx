@@ -6,7 +6,6 @@ import '../styles/index.css';
 import { getEngineLangCode, getLangAbbr, getTTSLang, getBrowserLang } from '~lib/constants/languages';
 import { useTranslation } from 'react-i18next';
 import { useLanguageSettings, useSpeechSettings, useFavoritesSettings } from '~lib/settings/settings';
-import { useFavorites } from '~lib/storage/chrome_storage_hooks';
 
 // 获取友好的引擎名称
 const getEngineDisplayName = (engine: string) => {

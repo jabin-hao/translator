@@ -1,9 +1,8 @@
 import React from 'react';
 import { produce } from 'immer';
-import { Switch, Select, Radio, Input, InputNumber, Button, message, Tag, Space } from 'antd';
+import { Switch, Select, Radio, Input, InputNumber, message, Tag, Space } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { useInputTranslateSettings } from '~lib/settings/settings';
-import { LANGUAGES } from '~lib/constants/languages';
 import SettingsPageContainer from '../../components/SettingsPageContainer';
 import SettingsGroup from '../../components/SettingsGroup';
 import SettingsItem from '../../components/SettingsItem';
@@ -35,6 +34,11 @@ const InputTranslateSettings: React.FC = () => {
     if (minTextLength !== null) {
       await updateInputTranslate({ minTextLength });
     }
+  };
+
+  const handleAutoReplaceChange = async (autoReplace: boolean) => {
+    await updateInputTranslate({ autoReplace });
+    message.success(autoReplace ? t('已开启自动替换') : t('已关闭自动替换'));
   };
 
   const handleAddInputType = async (inputType: string) => {
@@ -90,7 +94,6 @@ const InputTranslateSettings: React.FC = () => {
           />
         </SettingsItem>
 
-
       </SettingsGroup>
 
       {/* 触发设置 */}
@@ -139,6 +142,16 @@ const InputTranslateSettings: React.FC = () => {
               </SettingsItem>
             </>
           )}
+
+          <SettingsItem
+            label={t('自动替换')}
+            description={t('翻译完成后直接替换输入框文字，不显示确认弹窗')}
+          >
+            <Switch
+              checked={inputTranslateSettings.autoReplace}
+              onChange={handleAutoReplaceChange}
+            />
+          </SettingsItem>
         </SettingsGroup>
       )}
 
