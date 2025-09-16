@@ -197,5 +197,8 @@
   "原文对照": "Original & Translated",
   "选择整页翻译时的显示方式：仅显示译文或原文与译文对照": "Choose how to display full page translation: only translated or original with translation side by side",
   "整页翻译模式已保存": "Full page translation mode saved",
-  "划词自动翻译设置已保存": "Text selection auto-translate setting saved"
+  "划词自动翻译设置已保存": "Text selection auto-translate setting saved",
+  "输入框翻译语言": "Input Translation Language",
+  "输入框翻译目标语言已保存": "Input translation target language saved",
+  "选择输入框目标语言": "Select input target language"
 } 

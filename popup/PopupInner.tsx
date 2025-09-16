@@ -42,28 +42,29 @@ const PopupInner: React.FC = () => {
   const {
     pageTranslateSettings,
     updatePageTranslateSettings,
+    domainSettings,
+    setDomainSetting,
+    deleteDomainSetting,
+    refreshDomainSettings
   } = usePageTranslateSettings();
   const { textTranslateSettings, toggleEnabled: toggleTextTranslate } = useTextTranslateSettings();
   const { speechSettings, toggleEnabled: toggleSpeech } = useSpeechSettings();
 
-  // 使用新的域名设置 Hook
-  const {
-    domainSettings,
-    setDomainSetting,
-    deleteDomainSetting
-  } = usePageTranslateSettings();
-
-  // 创建黑白名单操作函数
+  // 创建黑白名单操作函数（与options页面保持一致）
   const addToAlwaysList = async (domain: string) => {
+    console.log('[Popup] addToAlwaysList 开始:', { domain });
     await setDomainSetting({
       domain,
       enabled: true,
       type: 'whitelist'
     });
+    console.log('[Popup] addToAlwaysList 完成:', { domain });
   };
 
   const removeFromAlwaysList = async (domain: string) => {
+    console.log('[Popup] removeFromAlwaysList 开始:', { domain });
     await deleteDomainSetting(domain);
+    console.log('[Popup] removeFromAlwaysList 完成:', { domain });
   };
 
   // 匹配站点列表函数
@@ -97,6 +98,7 @@ const PopupInner: React.FC = () => {
   const cacheEnabled = cacheSettings.enabled;
   const pageTargetLang = languageSettings.pageTarget;
   const textTargetLang = languageSettings.textTarget;
+  const inputTargetLang = languageSettings.inputTarget;
 
   const [isPageTranslated, setIsPageTranslated] = useImmer(false);
   const [isPageTranslating, setIsPageTranslating] = useImmer(false);
@@ -105,17 +107,19 @@ const PopupInner: React.FC = () => {
   const [siteKey, setSiteKey] = useImmer('');
   const [siteSettings, setSiteSettings] = useImmer({ always: false });
 
-  // 获取当前 tab 的 host+path
+  // 获取当前 tab 的 host（只使用域名，不包含路径）
   useEffect(() => {
     chrome.tabs && chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
       const url = tabs[0]?.url;
+      console.log('[Popup] 获取当前标签页URL:', url);
       if (url) {
         try {
           const u = new URL(url);
           const host = u.hostname;
-          const path = u.pathname;
-          const key = path === '/' ? host : host + path;
+          // 只使用域名，与白名单存储格式保持一致
+          const key = host;
 
+          console.log('[Popup] URL解析结果:', { url, host, key });
           setSiteKey(key);
         } catch (error) {
           console.error('[Popup] URL解析失败:', error);
@@ -127,13 +131,25 @@ const PopupInner: React.FC = () => {
   // 监听域名设置变化，重新计算站点设置
   useEffect(() => {
     if (siteKey && domainSettings.length >= 0) {
-      const alwaysList = domainSettings.filter(setting => setting.enabled).map(s => s.domain);
+      console.log('[Popup] 域名设置更新触发:', { siteKey, domainSettingsLength: domainSettings.length });
 
+      const alwaysList = domainSettings.filter(setting => setting.enabled).map(s => s.domain);
+      console.log('[Popup] 当前域名设置:', {
+        domainSettings,
+        alwaysList,
+        siteKey,
+        enabledSettings: domainSettings.filter(setting => setting.enabled)
+      });
 
       const isAlways = matchSiteList(alwaysList, siteKey);
+      console.log('[Popup] 白名单状态更新:', { siteKey, isAlways, alwaysList, previousState: siteSettings.always });
 
-      setSiteSettings({
-        always: isAlways,
+      setSiteSettings(prev => {
+        console.log('[Popup] 设置状态更新:', { from: prev.always, to: isAlways });
+        return {
+          ...prev,
+          always: isAlways,
+        };
       });
     }
   }, [domainSettings, siteKey]);
@@ -209,6 +225,11 @@ const PopupInner: React.FC = () => {
     message.success(t('划词翻译目标语言已保存'));
   };
 
+  const handleInputLangChange = async (val: string) => {
+    await updateLanguages({ inputTarget: val });
+    message.success(t('输入框翻译目标语言已保存'));
+  };
+
   // 主题切换处理
   const handleThemeSwitch = () => {
     const idx = themeOrder.indexOf(themeMode);
@@ -224,22 +245,41 @@ const PopupInner: React.FC = () => {
   };
 
   const handleAlways = async () => {
-    if (!siteKey) return;
-    if (siteSettings.always) {
-      await removeFromAlwaysList(siteKey);
-    } else {
-      await addToAlwaysList(siteKey);
+    if (!siteKey) {
+      console.log('[Popup] siteKey为空，无法操作');
+      return;
     }
 
-    // 重新检查匹配状态
-    const alwaysList = domainSettings.filter(setting => setting.enabled).map(s => s.domain);
-
-    const isAlways = matchSiteList(alwaysList, siteKey);
-
-    setSiteSettings({
-      always: isAlways,
+    const isCurrentlyInAlwaysList = siteSettings.always;
+    console.log('[Popup] 白名单操作开始:', {
+      siteKey,
+      isCurrentlyInAlwaysList,
+      currentDomainSettings: domainSettings,
+      domainSettingsCount: domainSettings.length
     });
-    message.success(siteSettings.always ? t('已移除总是翻译该网站') : t('已添加到总是翻译该网站'));
+
+    try {
+      if (isCurrentlyInAlwaysList) {
+        console.log('[Popup] 执行移除操作:', siteKey);
+        await removeFromAlwaysList(siteKey);
+        message.success(t('已移除总是翻译该网站'));
+      } else {
+        console.log('[Popup] 执行添加操作:', siteKey);
+        await addToAlwaysList(siteKey);
+        message.success(t('已添加到总是翻译该网站'));
+      }
+
+      // 操作完成后刷新域名设置
+      console.log('[Popup] 操作完成，刷新域名设置');
+      await refreshDomainSettings();
+
+    } catch (error) {
+      console.error('[Popup] 白名单操作失败:', error);
+      const errorText = isCurrentlyInAlwaysList ?
+        t('移除失败，请重试') :
+        t('添加失败，请重试');
+      message.error(errorText);
+    }
   };
 
   // 按钮点击逻辑
@@ -409,6 +449,21 @@ const PopupInner: React.FC = () => {
                   onChange={handleTextLangChange}
                   style={{ width: '100%' }}
                   placeholder={t('选择划词目标语言')}
+                >
+                  {langOptions.map(opt => (
+                    <Select.Option key={opt.value} value={opt.value}>{opt.label}</Select.Option>
+                  ))}
+                </Select>
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: '13px', marginBottom: 4, display: 'block' }}>
+                  {t('输入框翻译语言')}
+                </Text>
+                <Select
+                  value={inputTargetLang}
+                  onChange={handleInputLangChange}
+                  style={{ width: '100%' }}
+                  placeholder={t('选择输入框目标语言')}
                 >
                   {langOptions.map(opt => (
                     <Select.Option key={opt.value} value={opt.value}>{opt.label}</Select.Option>

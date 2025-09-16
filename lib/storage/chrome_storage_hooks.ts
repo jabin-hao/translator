@@ -7,12 +7,9 @@ import {
   favoritesManager,
   customDictionaryManager,
   domainSettingsManager,
-  translationCacheManager,
   type FavoriteWord,
   type CustomDictionaryEntry,
-  type DomainSetting,
-  type TranslationCacheEntry
-} from './chrome_storage';
+  type DomainSetting} from './chrome_storage';
 
 // 收藏夹Hook
 export function useFavorites() {
