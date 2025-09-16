@@ -9,13 +9,13 @@ import type { PlasmoGetShadowHostId } from "plasmo"
 import TranslatorIcon from './components/TranslatorIcon';
 import TranslatorResult from './components/TranslatorResult';
 import InputTranslator from './components/InputTranslator';
+import InputTranslateHandler from './components/InputTranslateHandler';
 import i18n, { initI18n } from '../i18n';
 import { ThemeProvider } from '~lib/theme/theme';
 
 // 引入拆分后的模块
 import { setupSelectionHandler } from '~lib/translate/selection';
 import { setupShortcutHandler } from '~lib/translate/shortcuts';
-import { setupInputTranslateHandler } from '~lib/translate/input_translate';
 import { setupMessageHandler } from '~lib/messages/message';
 import { setupAutoTranslate } from '~lib/translate/page_translate_trigger';
 
@@ -60,6 +60,8 @@ const AppContent = ({
     stopTTSAPI,
     onCloseResult,
     onTranslationComplete,
+    inputTranslateSettings,
+    inputTargetLang,
 }: {
     icon: { x: number; y: number; text: string } | null;
     result: { x: number; y: number; originalText: string } | null;
@@ -79,6 +81,8 @@ const AppContent = ({
     stopTTSAPI: () => Promise<void>;
     onCloseResult: () => void;
     onTranslationComplete: () => void;
+    inputTranslateSettings: any;
+    inputTargetLang: string;
 }) => {
     // 在 App 组件内部使用 App.useApp() 获取 messages 实例
     const { message } = App.useApp();
@@ -140,6 +144,13 @@ const AppContent = ({
                     callTranslateAPI={callTranslateAPI}
                 />
             )}
+            <InputTranslateHandler
+                settings={inputTranslateSettings}
+                targetLanguage={inputTargetLang}
+                engine={engine}
+                callTranslateAPI={callTranslateAPI}
+                showMessage={showMessage}
+            />
         </>
     );
 };
@@ -501,69 +512,19 @@ const ContentScript = () => {
     // 输入框翻译触发函数引用
     const triggerInputTranslateRef = useRef<(() => void) | null>(null);
 
-    // 设置输入框翻译处理器
+    // 设置输入框翻译触发函数引用（由 InputTranslateHandler 组件设置到全局）
     useEffect(() => {
-        if (!inputTranslateSettings.enabled) {
+        if (inputTranslateSettings.enabled) {
+            // 从全局获取触发函数
+            triggerInputTranslateRef.current = () => {
+                if ((window as any).triggerInputTranslate) {
+                    (window as any).triggerInputTranslate();
+                }
+            };
+        } else {
             triggerInputTranslateRef.current = null;
-            return; // 如果未启用，直接返回
         }
-
-        const inputTranslateHandler = setupInputTranslateHandler(
-            shadowRoot,
-            inputTranslateSettings,
-            {
-                callTranslateAPI: callTranslateAPI,
-                showMessage: (type, content) => {
-                    // 创建一个临时的Toast提示
-                    const toast = document.createElement('div');
-                    toast.style.cssText = `
-                        position: fixed;
-                        top: 20px;
-                        left: 50%;
-                        transform: translateX(-50%);
-                        background: ${type === 'success' ? '#52c41a' : type === 'error' ? '#ff4d4f' : type === 'warning' ? '#faad14' : '#1890ff'};
-                        color: white;
-                        padding: 8px 16px;
-                        border-radius: 4px;
-                        z-index: 2147483647;
-                        font-size: 14px;
-                        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-                        transition: opacity 0.3s;
-                    `;
-                    toast.textContent = content;
-                    document.body.appendChild(toast);
-                    
-                    // 3秒后自动移除
-                    setTimeout(() => {
-                        toast.style.opacity = '0';
-                        setTimeout(() => {
-                            if (toast.parentNode) {
-                                toast.parentNode.removeChild(toast);
-                            }
-                        }, 300);
-                    }, 3000);
-                },
-                getTargetLanguage: () => settings.languages.inputTarget,
-                getEngine: () => engine,
-            }
-        );
-
-        // 保存触发函数引用
-        triggerInputTranslateRef.current = inputTranslateHandler.triggerInputTranslate;
-
-        // 返回清理函数
-        return inputTranslateHandler.cleanup;
-    }, [
-        inputTranslateSettings.enabled,
-        inputTranslateSettings.triggerMode,
-        inputTranslateSettings.autoTranslateDelay,
-        inputTranslateSettings.minTextLength,
-        inputTranslateSettings.enabledInputTypes,
-        inputTranslateSettings.excludeSelectors,
-        inputTranslateSettings.autoReplace,
-        settings.languages.inputTarget,
-        engine
-    ]);
+    }, [inputTranslateSettings.enabled]);
 
     // 设置消息处理器，确保只注册一次
     useEffect(() => {
@@ -683,6 +644,8 @@ const ContentScript = () => {
                         stopTTSAPI={stopTTSAPICallback}
                         onCloseResult={onCloseResultCallback}
                         onTranslationComplete={onTranslationCompleteCallback}
+                        inputTranslateSettings={inputTranslateSettings}
+                        inputTargetLang={settings.languages.inputTarget}
                     />
                 </App>
             </StyleProvider>
