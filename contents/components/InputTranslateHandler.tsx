@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { useImmer } from 'use-immer';
 import { Card, Button, Typography, message } from 'antd';
+import { useTheme } from '../../lib/theme/theme';
 import Icon from '../../lib/components/Icon';
 import { isInputElement } from '../../lib/utils/domUtil';
 import type { GlobalSettings } from '../../lib/settings/settings';
@@ -34,6 +35,7 @@ const TranslateResultCard: React.FC<{
     engine: string;
     onReplace: () => void;
 }> = ({ x, y, originalText, translatedText, onReplace }) => {
+    const { isDark } = useTheme();
     const containerRef = useRef<HTMLDivElement>(null);
     const [position, setPosition] = useImmer({ x, y });
 
@@ -110,9 +112,10 @@ const TranslateResultCard: React.FC<{
                 zIndex: 2147483647,
                 minWidth: '280px',
                 maxWidth: '400px',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                boxShadow: isDark ? '0 4px 12px rgba(0,0,0,0.6)' : '0 4px 12px rgba(0,0,0,0.15)',
                 borderRadius: '8px',
-                background: 'white',
+                background: isDark ? '#1f1f1f' : 'white',
+                border: isDark ? '1px solid #434343' : '1px solid #d9d9d9',
             }}
             styles={{
                 body: { padding: '16px' }
@@ -121,10 +124,11 @@ const TranslateResultCard: React.FC<{
             {/* 原文 */}
             <div
                 style={{
-                    background: '#f5f5f5',
+                    background: isDark ? '#262626' : '#f5f5f5',
                     padding: '10px 12px',
                     borderRadius: '6px',
                     marginBottom: '10px',
+                    border: isDark ? '1px solid #434343' : 'none',
                 }}
             >
                 <Typography.Text
@@ -134,7 +138,7 @@ const TranslateResultCard: React.FC<{
                         display: 'block',
                         maxHeight: '60px',
                         overflow: 'auto',
-                        color: '#666',
+                        color: isDark ? '#a6a6a6' : '#666',
                         lineHeight: '1.4'
                     }}
                 >
@@ -145,16 +149,17 @@ const TranslateResultCard: React.FC<{
             {/* 译文 */}
             <div
                 style={{
-                    background: '#e6f7ff',
+                    background: isDark ? '#0f1419' : '#e6f7ff',
                     padding: '10px 12px',
                     borderRadius: '6px',
                     marginBottom: '16px',
+                    border: isDark ? '1px solid #1890ff' : 'none',
                 }}
             >
                 <Typography.Text
                     style={{
                         fontSize: '14px',
-                        color: '#262626',
+                        color: isDark ? '#ffffff' : '#262626',
                         wordBreak: 'break-word',
                         display: 'block',
                         maxHeight: '80px',

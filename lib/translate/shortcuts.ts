@@ -58,20 +58,29 @@ export const setupShortcutHandler = (
   };
 
   const handleKeyDown = async (e: KeyboardEvent) => {
-    // 如果当前焦点在输入元素上，不处理快捷键
-    const activeElement = document.activeElement;
-    if (activeElement && isInputElement(activeElement)) {
-      return;
-    }
-
     // 如果快捷键未启用，不处理
     if (!shortcutSettings.enabled) {
       return;
     }
 
+    const activeElement = document.activeElement;
+    const isInInputElement = activeElement && isInputElement(activeElement);
     const currentCombination = getCurrentKeyCombination(e);
     const selection = window.getSelection();
     const text = selection?.toString().trim();
+
+    // 对于输入框翻译快捷键，即使在输入元素中也要处理
+    if (shortcutSettings.inputTranslate && currentCombination === shortcutSettings.inputTranslate) {
+      e.preventDefault();
+      e.stopPropagation();
+      callbacks?.inputTranslate?.();
+      return;
+    }
+
+    // 其他快捷键：如果当前焦点在输入元素上，不处理
+    if (isInInputElement) {
+      return;
+    }
 
     // 检查各种快捷键类型
     
@@ -91,15 +100,7 @@ export const setupShortcutHandler = (
       return;
     }
     
-    // 3. 翻译输入框内容
-    if (shortcutSettings.inputTranslate && currentCombination === shortcutSettings.inputTranslate) {
-      e.preventDefault();
-      e.stopPropagation();
-      callbacks?.inputTranslate?.();
-      return;
-    }
-    
-    // 4. 翻译整个页面
+    // 3. 翻译整个页面
     if (shortcutSettings.pageTranslate && currentCombination === shortcutSettings.pageTranslate) {
       e.preventDefault();
       e.stopPropagation();

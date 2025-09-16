@@ -506,7 +506,10 @@ const ContentScript = () => {
         textTranslateEnabled,
         pressKeyTranslateEnabled,
         toggleTextTranslateEnabled,
-        setShowInputTranslator
+        setShowInputTranslator,
+        inputTranslateSettings.enabled,
+        pageTargetLang,
+        engine
     ]);
 
     // 输入框翻译触发函数引用
