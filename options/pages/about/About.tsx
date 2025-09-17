@@ -35,19 +35,19 @@ const About: React.FC = () => {
         <SettingsItem
           label={t('作者')}
         >
-          <span>Bugbyebyebye</span>
+          <span>Jason Hao</span>
         </SettingsItem>
 
         <SettingsItem
           label={t('开源地址')}
         >
           <a 
-            href="https://github.com/Bugbyebyebye/translator" 
+            href="https://github.com/jabin-hao/translator" 
             target="_blank" 
             rel="noopener noreferrer"
             style={{ color: 'var(--ant-color-primary)' }}
           >
-            https://github.com/Bugbyebyebye/translator
+            https://github.com/jabin-hao/translator
           </a>
         </SettingsItem>
       </SettingsGroup>

@@ -15,6 +15,8 @@ import TextTranslateSettings from './pages/translate/TextTranslateSettings';
 import PageTranslateSettings from './pages/translate/PageTranslateSettings';
 import InputTranslateSettings from './pages/translate/InputTranslateSettings';
 import SpeechSettings from './pages/translate/SpeechSettings';
+import PdfTranslateSettings from './pages/translate/PdfTranslateSettings';
+import SubtitleTranslateSettings from './pages/translate/SubtitleTranslateSettings';
 import EngineSettings from './pages/engine/EngineSettings';
 import FavoritesSettings from './pages/favorite/FavoritesSettings';
 
@@ -44,7 +46,12 @@ const OptionsInner = () => {
   // 确保翻译相关页面时，翻译菜单保持打开
   useEffect(() => {
     if (selectedKey.startsWith('translate-')) {
-      setOpenKeys(draft => draft.includes('translate') ? draft : draft.push('translate'));
+      setOpenKeys(draft => {
+        if (!draft.includes('translate')) {
+          draft.push('translate');
+        }
+        return draft;
+      });
     }
   }, [selectedKey]);
 
@@ -81,6 +88,8 @@ const OptionsInner = () => {
         { key: 'translate-page', icon: <Icon name="web" size={18} />, label: t('网页翻译') },
         { key: 'translate-input', icon: <Icon name="keyboard" size={18} />, label: t('输入翻译') },
         { key: 'translate-speech', icon: <Icon name="volume" size={18} />, label: t('朗读设置') },
+        { key: 'translate-pdf', icon: <Icon name="book" size={18} />, label: t('PDF翻译') },
+        { key: 'translate-subtitle', icon: <Icon name="edit" size={18} />, label: t('字幕翻译') },
       ]
     },
     { key: 'favorites', icon: <Icon name="favorite" size={22} />, label: t('收藏管理') },
@@ -104,6 +113,10 @@ const OptionsInner = () => {
     content = <InputTranslateSettings />;
   } else if (selectedKey === 'translate-speech') {
     content = <SpeechSettings />;
+  } else if (selectedKey === 'translate-pdf') {
+    content = <PdfTranslateSettings />;
+  } else if (selectedKey === 'translate-subtitle') {
+    content = <SubtitleTranslateSettings />;
   } else if (selectedKey === 'favorites') {
     content = <FavoritesSettings />;
   } else if (selectedKey === 'cache') {
