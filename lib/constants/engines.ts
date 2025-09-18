@@ -1,14 +1,8 @@
-// 翻译引擎接口
-export interface TranslateEngine {
-    label: string;
-    value: string;
-    icon: string; // Tabler icon name
-    description: string;
-    disabled?: boolean;
-}
+// 导入统一的类型定义
+import type { TranslateEngineConfig, TTSEngineConfig } from './types';
 
 // 翻译引擎统一配置
-export const TRANSLATE_ENGINES: TranslateEngine[] = [
+export const TRANSLATE_ENGINES: TranslateEngineConfig[] = [
     { label: 'Bing', value: 'bing', icon: 'brand-edge', description: '免费，支持多语言' },
     { label: 'Google', value: 'google', icon: 'brand-google', description: '免费，支持多语言' },
     { label: 'DeepL', value: 'deepl', icon: 'language', description: '高质量翻译，需要API密钥' },
@@ -16,7 +10,7 @@ export const TRANSLATE_ENGINES: TranslateEngine[] = [
 ];
 
 // TTS引擎统一配置
-export const TTS_ENGINES = [
+export const TTS_ENGINES: TTSEngineConfig[] = [
     {
         value: 'google',
         label: 'Google TTS',
@@ -29,4 +23,4 @@ export const TTS_ENGINES = [
         description: '使用浏览器内置的 Web Speech API',
         priority: 3
     }
-] as const;
+];

@@ -1,7 +1,7 @@
 import { lazyFullPageTranslate, getPageTranslationStatus, restoreOriginalPage } from '~lib/translate/page_translate';
 import { Storage } from '@plasmohq/storage';
 import { GLOBAL_SETTINGS_KEY, DEFAULT_SETTINGS } from '~lib/settings/settings';
-import type { GlobalSettings } from '~lib/settings/settings';
+import type { GlobalSettings } from '~lib/constants/types';
 
 const storage = new Storage();
 

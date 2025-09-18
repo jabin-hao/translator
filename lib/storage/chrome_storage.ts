@@ -3,41 +3,13 @@
  * 替代 IndexedDB，使用更稳定的 chrome.storage.local
  */
 
-export interface FavoriteWord {
-  id: string;
-  originalText: string;
-  translatedText: string;
-  timestamp: number;
-}
-
-export interface CustomDictionaryEntry {
-  id: string;
-  domain: string;
-  original: string;
-  translation: string;
-  isActive: boolean;
-  timestamp: number;
-}
-
-export interface DomainSetting {
-  domain: string;
-  enabled: boolean;
-  type: 'whitelist' | 'blacklist';
-  timestamp: number;
-}
-
-export interface TranslationCacheEntry {
-  id: string; // 使用id作为主键，与其他实体保持一致
-  key: string; // 保留key用于快速查找
-  text: string;
-  translation: string;
-  from: string;
-  to: string;
-  engine: string;
-  timestamp: number;
-  lastAccessed: number;
-  accessCount: number;
-}
+// 导入统一的类型定义
+import type {
+  FavoriteWord,
+  CustomDictionaryEntry,
+  DomainSetting,
+  TranslationCacheEntry
+} from '../constants/types';
 
 // Storage Keys
 const STORAGE_KEYS = {

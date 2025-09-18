@@ -4,9 +4,7 @@ import { Card, Button, Typography, message } from 'antd';
 import { useTheme } from '../../lib/theme/theme';
 import Icon from '../../lib/components/Icon';
 import { isInputElement } from '../../lib/utils/domUtil';
-import type { GlobalSettings } from '../../lib/settings/settings';
-
-type InputTranslateSettings = GlobalSettings['inputTranslate'];
+import type { GlobalSettings, InputTranslateSettings } from '../../lib/constants/types';
 
 interface InputTranslateHandlerProps {
     settings: InputTranslateSettings;

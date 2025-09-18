@@ -1,4 +1,4 @@
-import {useImmer} from 'use-immer';
+import { useImmer } from 'use-immer';
 import React from 'react';
 import { produce } from 'immer';
 import { Switch, Select, Radio, Space, Card, Divider, Button, Input, Modal, Form, message, ConfigProvider, Segmented } from 'antd';
@@ -14,13 +14,13 @@ import SettingsItem from '../../components/SettingsItem';
 import { useTheme } from '~lib/theme/theme';
 
 // 使用全局设置中的自定义引擎类型
-import type { CustomEngine, TTSEngine } from '~lib/settings/settings';
+import type { CustomEngine, TTSEngineType, TranslateEngineType } from '~lib/constants/types';
 import { TRANSLATE_ENGINES, TTS_ENGINES } from '~lib/constants/engines';
 
 const EngineSettings: React.FC = () => {
   const { t } = useTranslation();
   const { isDark } = useTheme();
-  
+
   const { engineSettings, setDefaultEngine, updateApiKey, updateEngine } = useEngineSettings();
   const { speechSettings, updateSpeech } = useSpeechSettings();
 
@@ -29,10 +29,10 @@ const EngineSettings: React.FC = () => {
   const customEngines = engineSettings.customEngines;
   const deepLApiKey = engineSettings.apiKeys.deepl;
   const yandexApiKey = engineSettings.apiKeys.yandex;
-  
+
   // TTS引擎设置（从全局设置中获取）
   const ttsEngine = speechSettings.engine;
-  
+
   // 模态框状态
   const [engineModalVisible, setEngineModalVisible] = useImmer(false);
   const [editingEngine, setEditingEngine] = useImmer<CustomEngine | null>(null);
@@ -85,7 +85,7 @@ const EngineSettings: React.FC = () => {
   ];
 
   const handleEngineChange = async (value: string) => {
-    await setDefaultEngine(value);
+    await setDefaultEngine(value as TranslateEngineType);
   };
 
   const testApiKey = async (str) => {
@@ -157,7 +157,7 @@ const EngineSettings: React.FC = () => {
         await updateEngine({ customEngines: newEngines });
         message.success('引擎已添加');
       }
-      
+
       setEngineModalVisible(false);
       form.resetFields();
     } catch (error) {
@@ -171,17 +171,17 @@ const EngineSettings: React.FC = () => {
       return draft.filter(engine => engine.id !== engineId);
     });
     await updateEngine({ customEngines: newEngines });
-    
+
     // 如果删除的是当前选中的引擎，切换到Google
     if (engine === engineId) {
       await setDefaultEngine('google');
     }
-    
+
     message.success('引擎已删除');
   };
 
   const toggleEngineEnabled = async (engineId: string) => {
-    const newEngines = customEngines.map(engine => 
+    const newEngines = customEngines.map(engine =>
       engine.id === engineId ? { ...engine, enabled: !engine.enabled } : engine
     );
     await updateEngine({ customEngines: newEngines });
@@ -311,8 +311,8 @@ const EngineSettings: React.FC = () => {
         >
           <div style={{ marginBottom: 16 }}>
             {customEngines.length === 0 ? (
-              <div style={{ 
-                textAlign: 'center', 
+              <div style={{
+                textAlign: 'center',
                 color: isDark ? '#a6a6a6' : '#999999',
                 padding: '20px 0'
               }}>
@@ -337,8 +337,8 @@ const EngineSettings: React.FC = () => {
                           </span>
                           <div>
                             <div style={{ fontWeight: 500 }}>{engine.name}</div>
-                            <div style={{ 
-                              fontSize: 12, 
+                            <div style={{
+                              fontSize: 12,
                               color: isDark ? '#a6a6a6' : '#999999'
                             }}>
                               {engine.type === 'llm' ? t('大语言模型') : t('自定义API')} · {engine.model || engine.apiUrl}
@@ -384,19 +384,19 @@ const EngineSettings: React.FC = () => {
             >
               {t('添加自定义引擎')}
             </Button>
-            
+
             <Divider style={{ margin: '12px 0' }}>{t('快速添加大模型引擎')}</Divider>
-            
+
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {llmEngineTemplates.map((template, index) => (
                 <Button
                   key={index}
                   size="small"
                   onClick={() => handleAddEngine(template)}
-                  style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: 4 
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4
                   }}
                 >
                   🤖 {template.name}

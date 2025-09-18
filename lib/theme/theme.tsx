@@ -29,12 +29,12 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   // 使用全局配置中的主题设置
   const { themeSettings, setThemeMode: updateThemeMode } = useThemeSettings();
   const themeMode = themeSettings?.mode || 'auto';
-  
+
   // 如果主题设置还没有加载完成，显示加载状态
   if (!themeSettings) {
     return <div>Loading...</div>;
   }
-  
+
   const [isDark, setIsDark] = useImmer(() => {
     // 初始化时计算一次
     if (themeMode === 'auto') {
@@ -142,7 +142,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
           shadowContainer.setAttribute('data-theme', 'light');
         }
       }
-      
+
       // 也设置到shadowRoot本身，如果需要的话
       const shadowRoot = hostElement.shadowRoot as any;
       if (shadowRoot.host) {
@@ -153,7 +153,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         }
       }
     }
-    
+
     // 同时设置到document.body作为备选
     if (isDark) {
       document.body.setAttribute('data-theme', 'dark');
@@ -183,7 +183,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
   return (
     <ThemeContext.Provider value={value}>
-      <ConfigProvider 
+      <ConfigProvider
         theme={themeConfig}
         getPopupContainer={(triggerNode) => {
           // 在Shadow DOM环境中，优先使用触发节点的父容器

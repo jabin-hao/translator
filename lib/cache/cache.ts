@@ -2,7 +2,7 @@
 // option | background 调用
 import { storageApi } from '~lib/storage/storage';
 import { GLOBAL_SETTINGS_KEY } from '../settings/settings';
-import type { GlobalSettings } from '../settings/settings';
+import type { GlobalSettings } from '../constants/types';
 import { translationCacheManager } from '../storage/chrome_storage';
 
 // 缓存条目接口 (向后兼容)

@@ -6,10 +6,13 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   favoritesManager,
   customDictionaryManager,
-  domainSettingsManager,
-  type FavoriteWord,
-  type CustomDictionaryEntry,
-  type DomainSetting} from './chrome_storage';
+  domainSettingsManager
+} from './chrome_storage';
+import type {
+  FavoriteWord,
+  CustomDictionaryEntry,
+  DomainSetting
+} from '../constants/types';
 
 // 收藏夹Hook
 export function useFavorites() {

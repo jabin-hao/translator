@@ -5,9 +5,8 @@ import {bingTranslate, bingTranslateBatch} from "~background/translate/bing"
 import {deeplTranslate, deeplTranslateBatch} from "~background/translate/deepl"
 import {yandexTranslate, yandexTranslateBatch} from "~background/translate/yandex"
 import { GLOBAL_SETTINGS_KEY } from "../settings/settings"
-import type { GlobalSettings } from "../settings/settings"
+import type { GlobalSettings, CustomDictionaryEntry } from "../constants/types"
 import { customDictionaryManager, translationCacheManager } from "../storage/chrome_storage"
-import type { CustomDictionaryEntry } from "../storage/chrome_storage"
 
 // 创建字典查询的独立函数
 async function getDictionaryByDomain(domain: string): Promise<CustomDictionaryEntry[]> {
@@ -19,24 +18,11 @@ async function getDictionaryByDomain(domain: string): Promise<CustomDictionaryEn
   }
 }
 
-export interface TranslateOptions {
-  from: string;
-  to: string;
-  engine: string;
-  useCache?: boolean;
-}
+// 导入统一的类型定义
+import type { TranslateOptions, TranslateResult } from '../constants/types';
 
-export interface TranslateResult {
-  text: string;
-  translation: string;
-  engine: string;
-  from: string;
-  to: string;
-  cached: boolean;
-}
-
-// 翻译引擎映射
-const TRANSLATE_ENGINES = {
+// 翻译引擎函数映射
+const TRANSLATE_ENGINE_FUNCTIONS = {
   google: googleTranslate,
   bing: bingTranslate,
   deepl: deeplTranslate,
@@ -112,7 +98,7 @@ export async function translate(
     }
 
     // 4. 获取翻译引擎函数
-    const translateFunction = TRANSLATE_ENGINES[engine as keyof typeof TRANSLATE_ENGINES];
+    const translateFunction = TRANSLATE_ENGINE_FUNCTIONS[engine as keyof typeof TRANSLATE_ENGINE_FUNCTIONS];
     if (!translateFunction) {
       throw new Error(`不支持的翻译引擎: ${engine}`);
     }
@@ -157,7 +143,7 @@ export async function translate(
     for (const fallbackEngine of enginePriority) {
       if (fallbackEngine === engine) continue; // 跳过已经尝试过的引擎
       
-      const fallbackFunction = TRANSLATE_ENGINES[fallbackEngine as keyof typeof TRANSLATE_ENGINES];
+      const fallbackFunction = TRANSLATE_ENGINE_FUNCTIONS[fallbackEngine as keyof typeof TRANSLATE_ENGINE_FUNCTIONS];
       if (!fallbackFunction) continue;
       
       try {

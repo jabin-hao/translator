@@ -1,7 +1,7 @@
 // 处理缓存清理和定时任务
 import { cacheManager } from '~lib/cache/cache';
 import { GLOBAL_SETTINGS_KEY } from '~lib/settings/settings';
-import type { GlobalSettings } from '~lib/settings/settings';
+import type { GlobalSettings } from '~lib/constants/types';
 import {storageApi} from "~lib/storage/storage";
 
 let cleanupTimer: ReturnType<typeof setInterval> | null = null;

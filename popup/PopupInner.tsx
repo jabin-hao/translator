@@ -3,6 +3,7 @@ import { useImmer } from 'use-immer';
 import { Select, Switch, Divider, message, Button, Tooltip, Space, Typography } from 'antd';
 import { TRANSLATE_ENGINES } from '~lib/constants/engines';
 import { LANGUAGES } from '~lib/constants/languages';
+import type { TranslateEngineType } from '~lib/constants/types';
 import { useTranslation } from 'react-i18next';
 import Icon from '~lib/components/Icon';
 
@@ -194,7 +195,7 @@ const PopupInner: React.FC = () => {
   }, []);
 
   const handleEngineChange = async (val: string) => {
-    await setDefaultEngine(val);
+    await setDefaultEngine(val as TranslateEngineType);
     message.success(t('翻译引擎已保存'));
   };
 

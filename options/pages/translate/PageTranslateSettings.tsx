@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import {
   usePageTranslateSettings,
 } from '~lib/settings/settings';
-import { type CustomDictionaryEntry } from '~lib/storage/chrome_storage';
+import type { CustomDictionaryEntry } from '~lib/constants/types';
 import Icon from '~lib/components/Icon';
 import SettingsPageContainer from '../../components/SettingsPageContainer';
 import SettingsGroup from '../../components/SettingsGroup';

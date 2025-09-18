@@ -1,13 +1,5 @@
-export interface LanguageItem {
-  label: string;      // 中文名
-  abbr: string;       // 按钮缩写
-  code: string;       // 统一内部 code（用于翻译）
-  google?: string;    // Google API code
-  bing?: string;      // Bing API code
-  deepl?: string;     // DeepL API code
-  yandex?: string;    // Yandex API code
-  tts?: string;       // TTS 语音代码（全部用简写）
-}
+// 导入统一的类型定义
+import type { LanguageItem, UILanguageItem } from './types';
 
 // 将微软 Edge TTS 的语言代码映射到通用语言代码
 export const LANGUAGES: LanguageItem[] = [
@@ -23,7 +15,7 @@ export const LANGUAGES: LanguageItem[] = [
   { code: 'pt', label: '葡萄牙语', abbr: 'PT', google: 'pt', bing: 'pt', deepl: 'PT', yandex: 'pt', tts: 'pt' },
 ];
 
-export const UI_LANGUAGES = LANGUAGES.map(l => ({ code: l.code, label: l.label }));
+export const UI_LANGUAGES: UILanguageItem[] = LANGUAGES.map(l => ({ code: l.code, label: l.label }));
 // 通用语言前缀到标准 code 的映射
 const LANG_PREFIX_MAP: Record<string, string> = {
   'zh-TW': 'zh-TW',

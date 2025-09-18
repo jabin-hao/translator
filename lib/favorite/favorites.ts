@@ -3,7 +3,7 @@
 import { useImmer } from 'use-immer';
 import { useFavorites as useFavoritesHook } from '../storage/chrome_storage_hooks';
 import { favoritesManager } from '../storage/chrome_storage';
-import type { FavoriteWord } from '../storage/chrome_storage';
+import type { FavoriteWord } from '../constants/types';
 
 // 收藏相关的工具函数 - 使用 Chrome Storage API
 export class FavoritesManager {
