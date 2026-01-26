@@ -149,7 +149,7 @@ export class SpeechManager {
     // 停止朗读
     stop(): void {
         // 停止所有服务的朗读
-        for (const service of this.services.values()) {
+        for (const service of Array.from(this.services.values())) {
             service.stop();
         }
 
