@@ -34,3 +34,4 @@ dist/
 .tsbuildinfo
 
 .idea
+.vscode
