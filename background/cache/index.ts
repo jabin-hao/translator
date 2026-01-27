@@ -28,16 +28,12 @@ export async function scheduleCacheCleanup() {
 export async function cleanCache() {
   try {
     await cacheManager.initDB(); // 确保数据库已初始化
-    
-    // 获取清理前的统计信息
-    const beforeStats = await cacheManager.getStats();
 
+    await cacheManager.getStats();
     // 调用正确的清理过期缓存方法
     await cacheManager.cleanupExpiredCache();
-    
-    // 获取清理后的统计信息
-    const afterStats = await cacheManager.getStats();
-    
+
+    await cacheManager.getStats();
   } catch (error) {
     console.error('[缓存清理] 清理过期缓存失败:', error);
   }

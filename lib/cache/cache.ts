@@ -5,17 +5,6 @@ import { GLOBAL_SETTINGS_KEY } from '../settings/settings';
 import type { GlobalSettings } from '../constants/types';
 import { translationCacheManager } from '../storage/chrome_storage';
 
-// 缓存条目接口 (向后兼容)
-export interface TranslationCache {
-  originalText: string;
-  translatedText: string;
-  detectedLanguage: string;
-  key: string;
-  timestamp: number;
-  accessCount?: number;
-  lastAccessed?: number;
-}
-
 // 缓存配置接口
 export interface CacheConfig {
   maxAge: number;
@@ -69,31 +58,6 @@ class CacheManager {
     }
   }
 
-  // 获取缓存
-  async get(text: string, from: string, to: string, engine: string): Promise<string | null> {
-    this.totalRequests++;
-
-    try {
-      const result = await translationCacheManager.get(text, from, to, engine);
-      if (result) {
-        this.hitCount++;
-      }
-      return result;
-    } catch (error) {
-      console.error('获取缓存失败:', error);
-      return null;
-    }
-  }
-
-  // 设置缓存
-  async set(text: string, translatedText: string, from: string, to: string, engine: string): Promise<void> {
-    try {
-      await translationCacheManager.set(text, translatedText, from, to, engine);
-    } catch (error) {
-      console.error('设置缓存失败:', error);
-    }
-  }
-
   // 清空缓存
   async clear(): Promise<void> {
     try {
@@ -129,17 +93,7 @@ class CacheManager {
     }
   }
 
-  // 优化缓存大小
-  async optimizeCache(): Promise<void> {
-    try {
-      // Chrome Storage API 内部已处理缓存大小优化
-      await this.cleanupExpiredCache();
-    } catch (error) {
-      console.error('优化缓存失败:', error);
-    }
-  }
-
-  // 更新缓存配置
+// 更新缓存配置
   async updateConfig(newConfig: Partial<CacheConfig>): Promise<void> {
     if (newConfig.maxAge !== undefined) this.config.maxAge = newConfig.maxAge;
     if (newConfig.maxSize !== undefined) this.config.maxSize = newConfig.maxSize;
@@ -160,12 +114,6 @@ class CacheManager {
     } catch (error) {
       console.error('更新缓存配置失败:', error);
     }
-  }
-
-  // 重置统计信息
-  resetStats(): void {
-    this.hitCount = 0;
-    this.totalRequests = 0;
   }
 }
 

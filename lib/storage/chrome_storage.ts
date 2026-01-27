@@ -140,7 +140,7 @@ export class FavoritesManager {
   async addFavorite(favorite: Omit<FavoriteWord, 'id' | 'timestamp'>): Promise<boolean> {
     const newFavorite: FavoriteWord = {
       ...favorite,
-      id: `fav_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `fav_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
       timestamp: Date.now(),
     };
     return await chromeStorage.addItem(STORAGE_KEYS.FAVORITES, newFavorite);
@@ -171,7 +171,7 @@ export class CustomDictionaryManager {
   async addEntry(entry: Omit<CustomDictionaryEntry, 'id' | 'timestamp'>): Promise<boolean> {
     const newEntry: CustomDictionaryEntry = {
       ...entry,
-      id: `dict_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `dict_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
       timestamp: Date.now(),
     };
     return await chromeStorage.addItem(STORAGE_KEYS.CUSTOM_DICTIONARY, newEntry);

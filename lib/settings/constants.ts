@@ -60,7 +60,7 @@ export const DEFAULT_SETTINGS: GlobalSettings = {
     always: [],
     pageTarget: 'zh-CN',
     textTarget: 'zh-CN',
-    inputTarget: 'zh-CN'
+    inputTarget: 'en'
   },
 
   shortcuts: {
@@ -75,7 +75,7 @@ export const DEFAULT_SETTINGS: GlobalSettings = {
   cache: {
     enabled: true,
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30天
-    maxSize: 2000,
+    maxSize: 5000,
   },
 
   favorites: {
