@@ -9,6 +9,7 @@ declare global {
   interface Window {
     __translationState?: TranslationState;
     __originalPageTextMap?: Map<Node, string>;
+    __originalPageHtmlMap?: Map<HTMLElement, string>;
     __autoFullPageTranslated?: boolean;
     triggerInputTranslate?: () => void;
     callTranslateAPI?: (

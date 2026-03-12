@@ -1,6 +1,22 @@
 import { lazyFullPageTranslate } from '~lib/translate/page_translate';
 import { resolvePageTranslationPolicy } from '~lib/translate/page_language';
 
+const notifyTranslationDone = () => {
+  if (!chrome?.runtime?.id) {
+    return;
+  }
+
+  void chrome.runtime.sendMessage({ type: 'FULL_PAGE_TRANSLATE_DONE' }).catch((error) => {
+    const message = error instanceof Error ? error.message : String(error);
+
+    if (message.includes('message channel closed before a response was received')) {
+      return;
+    }
+
+    console.error('Failed to notify auto translation completion:', error);
+  });
+};
+
 export const setupAutoTranslate = (
   pageTargetLang: string,
   engine: string,
@@ -36,9 +52,7 @@ export const setupAutoTranslate = (
         window.__translationState.isPageTranslated = true;
       }
 
-      if (chrome?.runtime?.id) {
-        await chrome.runtime.sendMessage({ type: 'FULL_PAGE_TRANSLATE_DONE' });
-      }
+      notifyTranslationDone();
     } catch (error) {
       console.error('Auto page translation failed:', error);
     }

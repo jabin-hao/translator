@@ -25,6 +25,22 @@ const getGlobalSettings = async (): Promise<GlobalSettings> => {
   return settings || DEFAULT_SETTINGS;
 };
 
+const notifyRuntimeMessage = (type: 'FULL_PAGE_TRANSLATE_DONE' | 'RESTORE_ORIGINAL_PAGE_DONE') => {
+  if (!chrome?.runtime?.id) {
+    return;
+  }
+
+  void chrome.runtime.sendMessage({ type }).catch((error) => {
+    const message = error instanceof Error ? error.message : String(error);
+
+    if (message.includes('message channel closed before a response was received')) {
+      return;
+    }
+
+    console.error(`Failed to notify runtime message "${type}":`, error);
+  });
+};
+
 type RuntimeMessage =
   | { type: 'FULL_PAGE_TRANSLATE'; lang: string; engine: string }
   | { type: 'RESTORE_ORIGINAL_PAGE' }
@@ -78,13 +94,7 @@ export const setupMessageHandler = () => {
 
           sendResponse({ success: true });
 
-          if (chrome?.runtime?.id) {
-            try {
-              await chrome.runtime.sendMessage({ type: 'FULL_PAGE_TRANSLATE_DONE' });
-            } catch (error) {
-              console.error('Failed to notify translation completion:', error);
-            }
-          }
+          notifyRuntimeMessage('FULL_PAGE_TRANSLATE_DONE');
         } catch (error) {
           console.error('Full page translation failed:', error);
           sendResponse({
@@ -101,13 +111,7 @@ export const setupMessageHandler = () => {
       restoreOriginalPage();
       sendResponse({ success: true });
 
-      if (chrome?.runtime?.id) {
-        void chrome.runtime
-          .sendMessage({ type: 'RESTORE_ORIGINAL_PAGE_DONE' })
-          .catch((error) => {
-            console.error('Failed to notify page restore completion:', error);
-          });
-      }
+      notifyRuntimeMessage('RESTORE_ORIGINAL_PAGE_DONE');
 
       return true;
     }

@@ -22,6 +22,14 @@ function ensureOriginalPageTextMap() {
   return window.__originalPageTextMap;
 }
 
+function ensureOriginalElementHtmlMap() {
+  if (!window.__originalPageHtmlMap) {
+    window.__originalPageHtmlMap = new Map();
+  }
+
+  return window.__originalPageHtmlMap;
+}
+
 export function getTranslationState(): PageTranslationRuntimeState {
   return ensureTranslationState();
 }
@@ -46,6 +54,14 @@ export function saveOriginalTextMap() {
 
 export function restoreOriginalTextMap() {
   const originalMap = ensureOriginalPageTextMap();
+  const originalHtmlMap = ensureOriginalElementHtmlMap();
+
+  for (const [element, html] of originalHtmlMap.entries()) {
+    try {
+      element.innerHTML = html;
+      element.removeAttribute('data-block-translated');
+    } catch {}
+  }
 
   for (const [node, text] of originalMap.entries()) {
     try {
@@ -70,7 +86,24 @@ export function restoreOriginalTextMap() {
       }
     });
 
+  document
+    .querySelectorAll('[data-inline-translated="1"]')
+    .forEach((span) => {
+      const originalText = span.getAttribute('data-inline-original');
+      if (originalText && span.parentNode) {
+        span.parentNode.replaceChild(document.createTextNode(originalText), span);
+      }
+    });
+
   originalMap.clear();
+  originalHtmlMap.clear();
+}
+
+export function rememberOriginalElementHtml(element: HTMLElement) {
+  const originalHtmlMap = ensureOriginalElementHtmlMap();
+  if (!originalHtmlMap.has(element)) {
+    originalHtmlMap.set(element, element.innerHTML);
+  }
 }
 
 export function resetAutoTranslateFlag() {
