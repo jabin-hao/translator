@@ -2,7 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Button, Divider, message, Select, Space, Switch, Tooltip, Typography } from 'antd';
 import { useTranslation } from 'react-i18next';
 
+import EngineOptionLabel from '~lib/components/EngineOptionLabel';
 import Icon from '~lib/components/Icon';
+import SelectOptionLabel from '~lib/components/SelectOptionLabel';
 import { TRANSLATE_ENGINES } from '~lib/constants/engines';
 import { getLocalizedLangLabel, LANGUAGES } from '~lib/constants/languages';
 import type { DomainSetting, TranslateEngineType } from '~lib/constants/types';
@@ -51,8 +53,15 @@ const withActiveTab = async (
 };
 
 const sendMessageToActiveTab = async (messageBody: Record<string, unknown>) => {
-  await withActiveTab((tabId) => {
-    chrome.tabs.sendMessage(tabId, messageBody);
+  const tab = await getActiveTab();
+  if (!tab?.id) {
+    return undefined;
+  }
+
+  return new Promise<unknown>((resolve) => {
+    chrome.tabs.sendMessage(tab.id!, messageBody, (response) => {
+      resolve(response);
+    });
   });
 };
 
@@ -234,13 +243,24 @@ const PopupInner: React.FC = () => {
     }
   };
 
-  const handleFullPageTranslate = () => {
+  const handleFullPageTranslate = async () => {
     setIsPageTranslating(true);
-    void sendMessageToActiveTab({
+    const response = (await sendMessageToActiveTab({
       type: 'FULL_PAGE_TRANSLATE',
       lang: pageTargetLang,
       engine
-    });
+    })) as { success?: boolean; error?: string } | undefined;
+
+    if (response?.success === false) {
+      setIsPageTranslating(false);
+      message.warning(
+        response.error === 'Page language is excluded from translation'
+          ? t('This page language is excluded from translation')
+          : response.error === 'Page is already in the target language'
+            ? t('This page is already in the target language')
+          : response.error || t('Failed to translate current page')
+      );
+    }
   };
 
   const handleRestorePage = () => {
@@ -283,21 +303,6 @@ const PopupInner: React.FC = () => {
           {t('Quick settings')}
         </Title>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <Tooltip
-            title={t('Open input translator')}
-            placement="bottom"
-            getPopupContainer={(triggerNode) => triggerNode.parentElement || document.body}
-          >
-            <Button
-              type="text"
-              shape="circle"
-              icon={<Icon name="translate" size={16} />}
-              onClick={() => {
-                void sendMessageToActiveTab({ type: 'SHOW_INPUT_TRANSLATOR' });
-              }}
-              style={{ border: 'none' }}
-            />
-          </Tooltip>
           <Tooltip
             title={t('Open settings page')}
             placement="bottom"
@@ -352,10 +357,11 @@ const PopupInner: React.FC = () => {
             >
               {TRANSLATE_ENGINES.map((entry) => (
                 <Select.Option key={entry.value} value={entry.value} disabled={entry.disabled}>
-                  {entry.icon && (
-                    <Icon name={entry.icon} size={16} style={{ verticalAlign: 'middle', marginRight: 8 }} />
-                  )}
-                  {entry.label}
+                  <EngineOptionLabel
+                    value={entry.value}
+                    label={entry.label}
+                    icon={entry.icon}
+                  />
                 </Select.Option>
               ))}
             </Select>
@@ -378,7 +384,9 @@ const PopupInner: React.FC = () => {
                 >
                   {langOptions.map((option) => (
                     <Select.Option key={option.value} value={option.value}>
-                      {option.label}
+                      <SelectOptionLabel
+                        label={option.label}
+                      />
                     </Select.Option>
                   ))}
                 </Select>
@@ -395,7 +403,9 @@ const PopupInner: React.FC = () => {
                 >
                   {langOptions.map((option) => (
                     <Select.Option key={option.value} value={option.value}>
-                      {option.label}
+                      <SelectOptionLabel
+                        label={option.label}
+                      />
                     </Select.Option>
                   ))}
                 </Select>
@@ -412,7 +422,9 @@ const PopupInner: React.FC = () => {
                 >
                   {langOptions.map((option) => (
                     <Select.Option key={option.value} value={option.value}>
-                      {option.label}
+                      <SelectOptionLabel
+                        label={option.label}
+                      />
                     </Select.Option>
                   ))}
                 </Select>

@@ -16,6 +16,7 @@ import {
 } from 'antd';
 import { useTranslation } from 'react-i18next';
 
+import EngineOptionLabel from '~lib/components/EngineOptionLabel';
 import Icon from '~lib/components/Icon';
 import { TRANSLATE_ENGINES, TTS_ENGINES } from '~lib/constants/engines';
 import type { CustomEngine, TTSEngineType, TranslateEngineType } from '~lib/constants/types';
@@ -202,11 +203,11 @@ const EngineSettings: React.FC = () => {
             options={translateEngineOptions.map((option) => ({
               value: option.value,
               label: (
-                <Space>
-                  {option.icon && <Icon name={option.icon} size={16} />}
-                  <span>{option.label}</span>
-                  <span style={{ fontSize: 12, color: '#999' }}>{option.description}</span>
-                </Space>
+                <EngineOptionLabel
+                  value={option.value}
+                  label={option.label}
+                  icon={option.icon}
+                />
               )
             }))}
           />
@@ -214,17 +215,11 @@ const EngineSettings: React.FC = () => {
 
         {engine === 'deepl' && (
           <SettingsItem
-            label={t('DeepL API key')}
-            description={t('Provide your DeepL API key')}
+            label={t('DeepL free web translation')}
+            description={t('This engine uses the DeepL web endpoint and does not require an API key')}
           >
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <Input.Password
-                value={engineSettings.apiKeys.deepl}
-                onChange={(event) => updateApiKey('deepl', event.target.value)}
-                placeholder={t('Enter DeepL API key')}
-                style={{ width: 300 }}
-              />
-              <Button onClick={testApiKey}>{t('Test')}</Button>
+            <div style={{ color: isDark ? '#a6a6a6' : '#666666' }}>
+              {t('Using an unofficial free web implementation inspired by open-source projects.')}
             </div>
           </SettingsItem>
         )}
@@ -248,17 +243,11 @@ const EngineSettings: React.FC = () => {
 
         {engine === 'yandex' && (
           <SettingsItem
-            label={t('Yandex API key')}
-            description={t('Provide your Yandex API key')}
+            label={t('Yandex free web translation')}
+            description={t('This engine uses the Yandex website widget endpoint and does not require an API key')}
           >
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <Input.Password
-                value={engineSettings.apiKeys.yandex}
-                onChange={(event) => updateApiKey('yandex', event.target.value)}
-                placeholder={t('Enter Yandex API key')}
-                style={{ width: 300 }}
-              />
-              <Button onClick={testApiKey}>{t('Test')}</Button>
+            <div style={{ color: isDark ? '#a6a6a6' : '#666666' }}>
+              {t('Using an unofficial free web implementation inspired by open-source projects.')}
             </div>
           </SettingsItem>
         )}

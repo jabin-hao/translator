@@ -45,11 +45,6 @@
   color: var(--text-primary) !important;
 }
 
-.input-translator-result-textarea {
-  background-color: var(--result-bg) !important;
-  color: var(--text-primary) !important;
-}
-
 .translator-icon {
   background: var(--card-bg) !important;
   border: 2px solid #2386e1 !important;

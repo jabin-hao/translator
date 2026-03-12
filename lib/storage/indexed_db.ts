@@ -382,6 +382,23 @@ export class TranslationCacheRepository {
     return true;
   }
 
+  async deleteByParams(
+    text: string,
+    from: string,
+    to: string,
+    engine: string
+  ): Promise<boolean> {
+    const key = this.buildKey(text, from, to, engine);
+
+    await withStore(TRANSLATION_CACHE_STORE, 'readwrite', async (store) => {
+      await requestToPromise(store.delete(key));
+      return undefined;
+    });
+
+    await notifyRuntime(CACHE_UPDATED_EVENT);
+    return true;
+  }
+
   async setMany(
     items: Array<{
       text: string;

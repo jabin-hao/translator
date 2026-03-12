@@ -211,7 +211,6 @@ export interface EngineSettings {
  */
 export interface TextTranslateSettings {
   enabled: boolean;
-  showOriginal: boolean;
   selectTranslate: boolean;
   quickTranslate: boolean;
   pressKeyTranslate: boolean;
@@ -234,7 +233,6 @@ export interface InputTranslateSettings {
  * 页面翻译设置
  */
 export interface PageTranslateSettings {
-  enabled: boolean;
   mode: PageTranslateMode;
   autoTranslate: boolean;
 }
@@ -271,7 +269,6 @@ export interface ShortcutSettings {
   enabled: boolean;
   toggleTranslate: string;
   pageTranslate: string;
-  openInput: string;
   textTranslate: string;
   inputTranslate: string;
 }

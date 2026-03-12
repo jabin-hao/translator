@@ -7,6 +7,7 @@ import {
   lazyFullPageTranslate,
   restoreOriginalPage,
 } from '~lib/translate/page_translate';
+import { resolvePageTranslationPolicy } from '~lib/translate/page_language';
 
 const storage = new Storage();
 
@@ -25,12 +26,11 @@ const getGlobalSettings = async (): Promise<GlobalSettings> => {
 };
 
 type RuntimeMessage =
-  | { type: 'SHOW_INPUT_TRANSLATOR' }
   | { type: 'FULL_PAGE_TRANSLATE'; lang: string; engine: string }
   | { type: 'RESTORE_ORIGINAL_PAGE' }
   | { type: 'CHECK_PAGE_TRANSLATED' };
 
-export const setupMessageHandler = (setShowInputTranslator?: (show: boolean) => void) => {
+export const setupMessageHandler = () => {
   if (typeof window === 'undefined' || !chrome?.runtime?.onMessage) {
     return () => {};
   }
@@ -40,17 +40,6 @@ export const setupMessageHandler = (setShowInputTranslator?: (show: boolean) => 
     _sender: chrome.runtime.MessageSender,
     sendResponse: (response?: unknown) => void
   ) => {
-    if (msg.type === 'SHOW_INPUT_TRANSLATOR') {
-      if (!setShowInputTranslator) {
-        sendResponse({ success: false, error: 'Input translator handler unavailable' });
-        return true;
-      }
-
-      setShowInputTranslator(true);
-      sendResponse({ success: true });
-      return true;
-    }
-
     if (msg.type === 'FULL_PAGE_TRANSLATE') {
       void (async () => {
         try {
@@ -58,9 +47,29 @@ export const setupMessageHandler = (setShowInputTranslator?: (show: boolean) => 
           const mode = (settings.pageTranslate.mode || 'translated') as
             | 'translated'
             | 'compare';
-          const result = await lazyFullPageTranslate(msg.lang, mode, msg.engine);
+          const policy = resolvePageTranslationPolicy({
+            alwaysLanguages: settings.languages.always,
+            neverLanguages: settings.languages.never,
+            targetLanguage: msg.lang,
+          });
+
+          if (!policy.canTranslatePage) {
+            sendResponse({
+              success: false,
+              error:
+                policy.reason === 'already_target_language'
+                  ? 'Page is already in the target language'
+                  : 'Page language is excluded from translation',
+            });
+            return;
+          }
+
           const state = (window as unknown as { __translationState?: TranslationState })
             .__translationState;
+
+          state?.stopTranslation?.();
+
+          const result = await lazyFullPageTranslate(msg.lang, mode, msg.engine);
 
           if (state) {
             state.stopTranslation = result.stop;

@@ -22,7 +22,6 @@ export const DEFAULT_SETTINGS: GlobalSettings = {
 
   textTranslate: {
     enabled: true,
-    showOriginal: false,
     selectTranslate: false,
     quickTranslate: false,
     pressKeyTranslate: false,
@@ -39,7 +38,6 @@ export const DEFAULT_SETTINGS: GlobalSettings = {
   },
 
   pageTranslate: {
-    enabled: true,
     mode: 'translated',
     autoTranslate: false,
   },
@@ -67,7 +65,6 @@ export const DEFAULT_SETTINGS: GlobalSettings = {
     enabled: true,
     toggleTranslate: 'Alt+T',
     pageTranslate: 'Alt+P',
-    openInput: 'Alt+I',
     textTranslate: 'Alt+S',
     inputTranslate: 'Ctrl+T',
   },

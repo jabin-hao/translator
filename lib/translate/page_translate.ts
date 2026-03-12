@@ -16,6 +16,7 @@ import {
   saveOriginalTextMap,
   setTranslationState,
 } from './pageTranslateRuntime';
+import { detectPageLanguage } from './page_language';
 
 type PageTranslateMode = 'translated' | 'compare';
 
@@ -77,94 +78,110 @@ export async function lazyFullPageTranslate(
   let isStopped = false;
   let totalNodes = 0;
   let completedNodes = 0;
+  let isPassRunning = false;
+  let rerunRequested = false;
   let progressCallback: ((total: number, completed: number) => void) | null = null;
+  const sourceLang = detectPageLanguage() || 'auto';
 
   saveOriginalTextMap();
 
   async function translateVisible() {
-    if (isStopped) {
+    if (isStopped || isPassRunning) {
+      rerunRequested = rerunRequested || !isStopped;
       return;
     }
 
-    const nodes = collectAllTextNodes(document.body, translatedSet, mode);
-    const visibleNodes = nodes.filter((node) => isInViewport(node));
+    isPassRunning = true;
 
-    if (visibleNodes.length === 0) {
-      return;
-    }
+    try {
+      do {
+        rerunRequested = false;
 
-    const validNodes = visibleNodes.filter(
-      (node) =>
-        !!node.parentNode &&
-        !(mode === 'compare' && (hasCompareAncestor(node) || hasSiblingCompareSpan(node)))
-    );
+        const nodes = collectAllTextNodes(document.body, translatedSet, mode);
+        const visibleNodes = nodes.filter((node) => isInViewport(node));
+        const deferredNodes = nodes.filter((node) => !isInViewport(node));
+        const orderedNodes = [...visibleNodes, ...deferredNodes];
 
-    if (validNodes.length === 0) {
-      return;
-    }
-
-    totalNodes = Math.max(totalNodes, validNodes.length);
-    progressCallback?.(totalNodes, completedNodes);
-
-    const batchSize = 20;
-
-    for (let index = 0; index < validNodes.length; index += batchSize) {
-      if (isStopped) {
-        break;
-      }
-
-      const batch = validNodes.slice(index, index + batchSize);
-      batch.forEach((node) => {
-        addLoadingIndicatorSafely(node);
-      });
-
-      const texts = batch.map((node) => node.nodeValue || '');
-      let translatedTexts = texts;
-
-      try {
-        translatedTexts = await batchTranslateTexts(texts, 'auto', targetLang, engine);
-      } catch {
-        translatedTexts = texts;
-      }
-
-      for (let batchIndex = 0; batchIndex < batch.length; batchIndex += 1) {
-        if (isStopped) {
-          break;
-        }
-
-        const node = batch[batchIndex];
-        const translatedText = translatedTexts[batchIndex];
-
-        if (!node?.parentNode || !node.nodeValue) {
+        if (orderedNodes.length === 0) {
           continue;
         }
 
-        removeLoadingIndicatorSafely(node);
+        const validNodes = orderedNodes.filter(
+          (node) =>
+            !!node.parentNode &&
+            !(mode === 'compare' && (hasCompareAncestor(node) || hasSiblingCompareSpan(node)))
+        );
 
-        const originalText = node.nodeValue;
-
-        if (mode === 'translated') {
-          if (translatedText?.trim()) {
-            node.nodeValue = translatedText;
-            translatedSet.add(node);
-            completedNodes += 1;
-            node.parentElement?.setAttribute('data-translated', 'true');
-          }
-        } else {
-          const originalColor = node.parentElement
-            ? window.getComputedStyle(node.parentElement).color || ''
-            : '';
-          const compareNode = createCompareReplacement(
-            originalText,
-            translatedText || originalText,
-            originalColor
-          );
-          node.parentNode.replaceChild(compareNode, node);
-          completedNodes += 1;
+        if (validNodes.length === 0) {
+          continue;
         }
 
+        totalNodes = Math.max(totalNodes, completedNodes + validNodes.length);
         progressCallback?.(totalNodes, completedNodes);
-      }
+
+        const batchSize = 20;
+
+        for (let index = 0; index < validNodes.length; index += batchSize) {
+          if (isStopped) {
+            break;
+          }
+
+          const batch = validNodes.slice(index, index + batchSize);
+          batch.forEach((node) => {
+            addLoadingIndicatorSafely(node);
+          });
+
+          const texts = batch.map((node) => node.nodeValue || '');
+          let translatedTexts = texts;
+
+          try {
+            translatedTexts = await batchTranslateTexts(texts, sourceLang, targetLang, engine);
+          } catch {
+            translatedTexts = texts;
+          }
+
+          for (let batchIndex = 0; batchIndex < batch.length; batchIndex += 1) {
+            if (isStopped) {
+              break;
+            }
+
+            const node = batch[batchIndex];
+            const translatedText = translatedTexts[batchIndex];
+
+            if (!node?.parentNode || !node.nodeValue) {
+              continue;
+            }
+
+            removeLoadingIndicatorSafely(node);
+
+            const originalText = node.nodeValue;
+
+            if (mode === 'translated') {
+              if (translatedText?.trim()) {
+                node.nodeValue = translatedText;
+                translatedSet.add(node);
+                completedNodes += 1;
+                node.parentElement?.setAttribute('data-translated', 'true');
+              }
+            } else {
+              const originalColor = node.parentElement
+                ? window.getComputedStyle(node.parentElement).color || ''
+                : '';
+              const compareNode = createCompareReplacement(
+                originalText,
+                translatedText || originalText,
+                originalColor
+              );
+              node.parentNode.replaceChild(compareNode, node);
+              completedNodes += 1;
+            }
+
+            progressCallback?.(totalNodes, completedNodes);
+          }
+        }
+      } while (!isStopped && rerunRequested);
+    } finally {
+      isPassRunning = false;
     }
   }
 

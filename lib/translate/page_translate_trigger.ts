@@ -1,17 +1,5 @@
 import { lazyFullPageTranslate } from '~lib/translate/page_translate';
-
-const matchSiteList = (list: string[], url: string): boolean =>
-  list.some((item) => {
-    if (item === url) {
-      return true;
-    }
-
-    if (item.includes('*')) {
-      return new RegExp(item.replace(/\*/g, '.*')).test(url);
-    }
-
-    return url.startsWith(item);
-  });
+import { resolvePageTranslationPolicy } from '~lib/translate/page_language';
 
 export const setupAutoTranslate = (
   pageTargetLang: string,
@@ -19,18 +7,23 @@ export const setupAutoTranslate = (
   stopTTSAPI: () => Promise<void>,
   autoTranslateEnabled = false,
   whitelistedSites: string[] = [],
-  mode: 'translated' | 'compare' = 'translated'
+  mode: 'translated' | 'compare' = 'translated',
+  alwaysLanguages: string[] = [],
+  neverLanguages: string[] = []
 ) => {
   const triggerFullPageTranslation = async () => {
     if (!autoTranslateEnabled || window.__autoFullPageTranslated) {
       return;
     }
 
-    const host = window.location.hostname;
-    const path = window.location.pathname;
-    const fullUrl = path === '/' ? host : `${host}${path}`;
+    const policy = resolvePageTranslationPolicy({
+      alwaysLanguages,
+      neverLanguages,
+      whitelistedSites,
+      targetLanguage: pageTargetLang,
+    });
 
-    if (!matchSiteList(whitelistedSites, fullUrl)) {
+    if (!policy.shouldAutoTranslate) {
       return;
     }
 

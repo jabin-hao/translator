@@ -3,7 +3,7 @@ import { Button, ConfigProvider, message, Modal, Select, Segmented, Upload } fro
 import { useTranslation } from 'react-i18next';
 
 import Icon from '~lib/components/Icon';
-import { mapUiLangToI18nKey, UI_LANGUAGES } from '~/lib/constants/languages';
+import { getLocalizedLangLabel, mapUiLangToI18nKey, UI_LANGUAGES } from '~/lib/constants/languages';
 import { GLOBAL_SETTINGS_KEY, useGlobalSettings, useThemeSettings } from '~lib/settings/settings';
 import SettingsGroup from '../../components/SettingsGroup';
 import SettingsItem from '../../components/SettingsItem';
@@ -20,6 +20,10 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
   const { themeSettings, setThemeMode: saveThemeMode, setUiLanguage } = useThemeSettings();
   const [clearConfigModalVisible, setClearConfigModalVisible] = useState(false);
   const uiLang = themeSettings.uiLanguage;
+  const uiLanguageOptions = UI_LANGUAGES.map((language) => ({
+    value: language.code,
+    label: getLocalizedLangLabel(language.code, i18n.language)
+  }));
   const themeOptions = [
     { label: t('Light'), value: 'light' as const },
     { label: t('Dark'), value: 'dark' as const },
@@ -119,10 +123,7 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
           <Select
             key={i18n.language}
             value={uiLang || 'zh-CN'}
-            options={UI_LANGUAGES.map((language) => ({
-              value: language.code,
-              label: language.label
-            }))}
+            options={uiLanguageOptions}
             onChange={saveUiLang}
             style={{ width: 200 }}
             size="middle"

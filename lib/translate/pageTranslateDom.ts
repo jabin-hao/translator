@@ -18,6 +18,18 @@ export function isInViewport(node: Text): boolean {
   return rect.bottom > 0 && rect.top < window.innerHeight;
 }
 
+const FORM_CONTROL_CLASS_TOKENS = [
+  'input',
+  'textarea',
+  'select',
+  'ant-input',
+  'ant-select',
+  'form-control',
+  'search-input',
+  'search-box',
+  'editor-input'
+];
+
 export function hasCompareAncestor(node: Node): boolean {
   let parent = node.parentElement;
 
@@ -199,8 +211,9 @@ function shouldSkipNode(node: Text, parent: HTMLElement) {
     if (
       tag === 'input' ||
       tag === 'textarea' ||
+      tag === 'select' ||
       current.hasAttribute('contenteditable') ||
-      className.toLowerCase().includes('input')
+      hasFormControlClass(className)
     ) {
       return true;
     }
@@ -217,6 +230,25 @@ function shouldSkipNode(node: Text, parent: HTMLElement) {
     isPureNumber(content) ||
     isCopyrightText(content)
   );
+}
+
+function hasFormControlClass(className: string) {
+  const tokens = className
+    .toLowerCase()
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter(Boolean);
+
+  return tokens.some((token) => {
+    if (FORM_CONTROL_CLASS_TOKENS.includes(token)) {
+      return true;
+    }
+
+    return (
+      (token.endsWith('-input') || token.endsWith('_input')) &&
+      !token.startsWith('language-')
+    );
+  });
 }
 
 function isCodeFileName(text: string): boolean {

@@ -9,7 +9,7 @@ import SettingsPageContainer from '../../components/SettingsPageContainer';
 
 const { Title, Paragraph, Text } = Typography;
 
-type ShortcutKey = 'toggleTranslate' | 'textTranslate' | 'inputTranslate' | 'pageTranslate' | 'openInput';
+type ShortcutKey = 'toggleTranslate' | 'textTranslate' | 'inputTranslate' | 'pageTranslate';
 
 const normalizeShortcut = (event: KeyboardEvent) => {
   const modifiers: string[] = [];
@@ -99,11 +99,6 @@ const ShortcutSettings: React.FC = () => {
         key: 'pageTranslate' as const,
         label: t('Translate full page'),
         description: t('Translate the current page')
-      },
-      {
-        key: 'openInput' as const,
-        label: t('Open input translator'),
-        description: t('Open the floating input translator')
       }
     ],
     [t]

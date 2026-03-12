@@ -9,12 +9,6 @@ export function usePageTranslateSettings() {
     updateSettings: updatePageTranslateSettings,
   } = useSettingsModule('pageTranslate');
 
-  const toggleEnabled = useCallback(() => {
-    updatePageTranslateSettings({
-      enabled: !pageTranslateSettings.enabled,
-    } as PartialDeep<GlobalSettings['pageTranslate']>);
-  }, [pageTranslateSettings.enabled, updatePageTranslateSettings]);
-
   const toggleAutoTranslate = useCallback(() => {
     updatePageTranslateSettings({
       autoTranslate: !pageTranslateSettings.autoTranslate,
@@ -33,7 +27,6 @@ export function usePageTranslateSettings() {
   return {
     pageTranslateSettings,
     updatePageTranslateSettings,
-    toggleEnabled,
     toggleAutoTranslate,
     setTranslateMode,
   };

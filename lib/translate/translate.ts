@@ -13,7 +13,6 @@ type TranslateFunction = (text: string, from: string, to: string) => Promise<str
 type BatchTranslateFunction = (texts: string[], from: string, to: string) => Promise<string[]>;
 
 const TRANSLATE_TIMEOUT_MS = 30_000;
-const FALLBACK_ENGINES = ['bing', 'google'] as const;
 
 const TRANSLATE_ENGINE_FUNCTIONS: Record<string, TranslateFunction> = {
   google: googleTranslate,
@@ -28,6 +27,8 @@ const BATCH_TRANSLATE_ENGINE_FUNCTIONS: Record<string, BatchTranslateFunction | 
   deepl: deeplTranslateBatch,
   yandex: yandexTranslateBatch,
 };
+
+const FALLBACK_ENGINE_ORDER = ['deepl', 'google', 'bing', 'yandex'] as const;
 
 async function isCacheEnabled(): Promise<boolean> {
   try {
@@ -64,14 +65,22 @@ async function getCachedTranslation(
   }
 
   const cachedTranslation = await translationCacheRepository.get(text, from, to, engine);
-  const isHit = Boolean(cachedTranslation);
+  const isSuspiciousHit =
+    typeof cachedTranslation === 'string' &&
+    shouldRetryIndividually(text, cachedTranslation);
+  const isHit = Boolean(cachedTranslation) && !isSuspiciousHit;
   cacheManager.recordRequest(isHit);
 
   if (isHit) {
     void translationCacheRepository.touch(text, from, to, engine);
+    return cachedTranslation;
   }
 
-  return cachedTranslation;
+  if (isSuspiciousHit) {
+    void translationCacheRepository.deleteByParams(text, from, to, engine);
+  }
+
+  return null;
 }
 
 async function saveTranslationCache(
@@ -82,7 +91,7 @@ async function saveTranslationCache(
   engine: string,
   shouldUseCache: boolean
 ) {
-  if (!shouldUseCache) {
+  if (!shouldUseCache || shouldRetryIndividually(text, translation)) {
     return;
   }
 
@@ -111,6 +120,7 @@ async function withTimeout<T>(task: Promise<T>) {
 }
 
 function assertValidTranslationResult(
+  sourceText: string,
   translation: string | null | undefined,
   engine: string
 ) {
@@ -120,7 +130,60 @@ function assertValidTranslationResult(
     throw new Error(`Engine "${engine}" returned an empty translation result`);
   }
 
+  if (shouldRetryIndividually(sourceText, translation)) {
+    throw new Error(`Engine "${engine}" returned unchanged translation text`);
+  }
+
   return translation;
+}
+
+function looksLikeBatchPassThrough(
+  originals: string[],
+  translations: string[]
+) {
+  if (originals.length === 0 || originals.length !== translations.length) {
+    return false;
+  }
+
+  const comparableIndexes = originals
+    .map((text, index) => ({ text, index }))
+    .filter(({ text }) => text.trim().length >= 12);
+
+  if (comparableIndexes.length === 0) {
+    return false;
+  }
+
+  const unchangedCount = comparableIndexes.filter(({ text, index }) => {
+    return text.trim() === (translations[index] || '').trim();
+  }).length;
+
+  // Treat near-complete pass-through as a failed batch call so we can fall back
+  // to single-item translation with engine fallback logic.
+  return unchangedCount / comparableIndexes.length >= 0.8;
+}
+
+function shouldRetryIndividually(
+  original: string,
+  translation: string
+) {
+  const originalTrimmed = original.trim();
+  const translationTrimmed = translation.trim();
+
+  if (!originalTrimmed || !translationTrimmed) {
+    return true;
+  }
+
+  if (originalTrimmed !== translationTrimmed) {
+    return false;
+  }
+
+  if (originalTrimmed.length < 12) {
+    return false;
+  }
+
+  // Sentences and longer prose segments should rarely survive a successful
+  // translation request unchanged unless the engine silently passed them through.
+  return /[a-zA-Z]/.test(originalTrimmed) && /\s/.test(originalTrimmed);
 }
 
 async function translateWithEngine(
@@ -135,7 +198,7 @@ async function translateWithEngine(
   }
 
   const translation = await withTimeout(translateFunction(text, from, to));
-  return assertValidTranslationResult(translation, engine);
+  return assertValidTranslationResult(text, translation, engine);
 }
 
 function createResult(
@@ -162,8 +225,13 @@ async function translateWithFallbacks(
   to: string,
   engine: string
 ) {
-  // Keep the requested engine first, but fall back to a small stable set when it fails.
-  const enginesToTry = [engine, ...FALLBACK_ENGINES.filter((item) => item !== engine)];
+  // Keep the requested engine first, then walk the remaining built-in engines.
+  const enginesToTry = [
+    engine,
+    ...FALLBACK_ENGINE_ORDER.filter(
+      (item) => item !== engine && item in TRANSLATE_ENGINE_FUNCTIONS
+    ),
+  ];
   let lastError: Error | null = null;
 
   for (const engineToTry of enginesToTry) {
@@ -282,9 +350,23 @@ export async function translateBatch(
         throw new Error('Batch translation returned incomplete results');
       }
 
+      if (looksLikeBatchPassThrough(pendingTexts, translations)) {
+        throw new Error('Batch translation returned mostly unchanged text');
+      }
+
       for (let index = 0; index < pendingTexts.length; index += 1) {
         const originalIndex = pendingIndexes[index];
-        const translation = translations[index] || '';
+        let translation = translations[index] || '';
+
+        if (shouldRetryIndividually(pendingTexts[index], translation)) {
+          const fallbackResult = await translateWithFallbacks(
+            pendingTexts[index],
+            from,
+            to,
+            engine
+          );
+          translation = fallbackResult.translation;
+        }
 
         results[originalIndex] = createResult(
           pendingTexts[index],
@@ -300,13 +382,15 @@ export async function translateBatch(
         // Batched cache writes keep page translation from opening a write transaction
         // for every single segment result.
         await translationCacheRepository.setMany(
-          translations.map((translation, index) => ({
-            text: pendingTexts[index],
-            translation,
-            from,
-            to,
-            engine,
-          }))
+          translations
+            .map((translation, index) => ({
+              text: pendingTexts[index],
+              translation,
+              from,
+              to,
+              engine,
+            }))
+            .filter((item) => !shouldRetryIndividually(item.text, item.translation))
         );
       }
 

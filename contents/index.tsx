@@ -7,7 +7,6 @@ import antdResetCssText from 'data-text:antd/dist/reset.css';
 
 import i18n, { initI18n } from '../i18n';
 import InputTranslateHandler from './components/InputTranslateHandler';
-import InputTranslator from './components/InputTranslator';
 import TranslatorIcon from './components/TranslatorIcon';
 import TranslatorResult from './components/TranslatorResult';
 import { callTranslateAPI, callTTSAPI, stopTTSAPI } from './content';
@@ -59,7 +58,6 @@ export const getStyle = () => {
 interface AppContentProps {
   icon: IconState | null;
   result: ResultState | null;
-  showInputTranslator: boolean;
   autoRead: boolean;
   engine: string;
   textTargetLang: string;
@@ -68,14 +66,12 @@ interface AppContentProps {
   inputTranslateSettings: ReturnType<typeof useInputTranslateSettings>['inputTranslateSettings'];
   handleTranslation: () => void;
   setShouldTranslate: (should: boolean) => void;
-  setShowInputTranslator: (show: boolean) => void;
   onCloseResult: () => void;
 }
 
 const AppContent = ({
   icon,
   result,
-  showInputTranslator,
   autoRead,
   engine,
   textTargetLang,
@@ -84,7 +80,6 @@ const AppContent = ({
   inputTranslateSettings,
   handleTranslation,
   setShouldTranslate,
-  setShowInputTranslator,
   onCloseResult,
 }: AppContentProps) => {
   const { message } = App.useApp();
@@ -125,15 +120,6 @@ const AppContent = ({
           setShouldTranslate={setShouldTranslate}
         />
       )}
-      {showInputTranslator && (
-        <InputTranslator
-          onClose={() => setShowInputTranslator(false)}
-          showMessage={showMessage}
-          engine={engine}
-          defaultTargetLang={textTargetLang}
-          callTranslateAPI={callTranslateAPI}
-        />
-      )}
       <InputTranslateHandler
         settings={inputTranslateSettings}
         targetLanguage={inputTargetLang}
@@ -148,7 +134,6 @@ const AppContent = ({
 const ContentScript = () => {
   const [icon, setIcon] = useState<IconState | null>(null);
   const [result, setResult] = useState<ResultState | null>(null);
-  const [showInputTranslator, setShowInputTranslator] = useState(false);
   const [shouldTranslate, setShouldTranslate] = useState(false);
 
   const { engineSettings } = useEngineSettings();
@@ -172,6 +157,8 @@ const ContentScript = () => {
   const textTargetLang = languageSettings.textTarget;
   const pageTargetLang = languageSettings.pageTarget;
   const inputTargetLang = languageSettings.inputTarget;
+  const alwaysTranslateLanguages = languageSettings.always;
+  const neverTranslateLanguages = languageSettings.never;
 
   const openResult = useCallback((text: string, rect: DOMRect) => {
     setResult({
@@ -197,7 +184,7 @@ const ContentScript = () => {
 
   const showTranslationIcon = useCallback(
     (text: string, rect: DOMRect, forceTranslate = false) => {
-      if (showInputTranslator || result) {
+      if (result) {
         return;
       }
 
@@ -216,7 +203,6 @@ const ContentScript = () => {
       openIcon,
       openResult,
       result,
-      showInputTranslator,
       textTranslateSettings.pressKeyTranslate,
       textTranslateSettings.selectTranslate,
     ]
@@ -280,7 +266,6 @@ const ContentScript = () => {
     // stays generic and this file owns the actual content-script side effects.
     return setupShortcutHandler(
       () => {},
-      setShowInputTranslator,
       shortcutSettings.enabled,
       {
         enabled: shortcutSettings.enabled,
@@ -288,7 +273,6 @@ const ContentScript = () => {
         textTranslate: shortcutSettings.textTranslate,
         inputTranslate: shortcutSettings.inputTranslate,
         pageTranslate: shortcutSettings.pageTranslate,
-        openInput: shortcutSettings.openInput,
       },
       {
         toggleTranslate: () => {
@@ -302,15 +286,9 @@ const ContentScript = () => {
         inputTranslate: () => {
           if (inputTranslateSettings.enabled && triggerInputTranslateRef.current) {
             triggerInputTranslateRef.current();
-            return;
           }
-
-          setShowInputTranslator(true);
         },
         pageTranslate: handlePageTranslate,
-        openInput: () => {
-          setShowInputTranslator(true);
-        },
       }
     );
   }, [
@@ -332,7 +310,7 @@ const ContentScript = () => {
   }, [inputTranslateSettings.enabled]);
 
   useEffect(() => {
-    return setupMessageHandler(setShowInputTranslator);
+    return setupMessageHandler();
   }, []);
 
   useEffect(() => {
@@ -361,7 +339,9 @@ const ContentScript = () => {
         stopTTSAPI,
         pageTranslateSettings.autoTranslate,
         whitelistedSites,
-        pageTranslateSettings.mode || 'translated'
+        pageTranslateSettings.mode || 'translated',
+        alwaysTranslateLanguages,
+        neverTranslateLanguages
       );
     };
 
@@ -370,7 +350,14 @@ const ContentScript = () => {
     return () => {
       cleanup?.();
     };
-  }, [engine, getWhitelistedDomains, pageTargetLang, pageTranslateSettings]);
+  }, [
+    alwaysTranslateLanguages,
+    engine,
+    getWhitelistedDomains,
+    neverTranslateLanguages,
+    pageTargetLang,
+    pageTranslateSettings,
+  ]);
 
   window.callTranslateAPI = callTranslateAPI;
 
@@ -416,7 +403,6 @@ const ContentScript = () => {
           <AppContent
             icon={icon}
             result={result}
-            showInputTranslator={showInputTranslator}
             autoRead={autoRead}
             engine={engine}
             textTargetLang={textTargetLang}
@@ -425,7 +411,6 @@ const ContentScript = () => {
             inputTranslateSettings={inputTranslateSettings}
             handleTranslation={triggerTranslation}
             setShouldTranslate={setShouldTranslate}
-            setShowInputTranslator={setShowInputTranslator}
             onCloseResult={() => {
               setResult(null);
               setShouldTranslate(false);

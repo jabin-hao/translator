@@ -15,15 +15,12 @@ function pathContainsInputElement(path: EventTarget[]): boolean {
 function isClickOnTranslatorComponent(path: EventTarget[], shadowRoot: ShadowRoot | null): boolean {
   if (!shadowRoot) return false;
   
-  const inputTranslatorElement = shadowRoot.querySelector('.input-translator-card');
   const resultElement = shadowRoot.querySelector('[data-translator-result]');
   const iconElement = shadowRoot.querySelector('.translator-icon');
   
   return path.some(target => {
-    return (inputTranslatorElement && target === inputTranslatorElement) ||
-           (resultElement && target === resultElement) ||
+    return (resultElement && target === resultElement) ||
            (iconElement && target === iconElement) ||
-           (inputTranslatorElement && target instanceof Node && inputTranslatorElement.contains(target)) ||
            (resultElement && target instanceof Node && resultElement.contains(target)) ||
            (iconElement && target instanceof Node && iconElement.contains(target));
   });

@@ -1,12 +1,12 @@
-/* 导入主题变量 */
+/* 瀵煎叆涓婚鍙橀噺 */
 @import './theme.css';
 
-/* 全局样式重置 */
+/* 鍏ㄥ眬鏍峰紡閲嶇疆 */
 * {
   box-sizing: border-box;
 }
 
-/* Message容器重置 */
+/* Message瀹瑰櫒閲嶇疆 */
 #message-container {
   writing-mode: horizontal-tb !important;
   direction: ltr !important;
@@ -20,7 +20,7 @@
   text-orientation: mixed !important;
 }
 
-/* 确保Ant Design组件在内容脚本中正确显示 */
+/* 纭繚Ant Design缁勪欢鍦ㄥ唴瀹硅剼鏈腑姝ｇ‘鏄剧ず */
 .ant-card {
   background: var(--card-bg) !important;
   border: 1px solid var(--card-border) !important;
@@ -28,7 +28,7 @@
   box-shadow: var(--shadow) !important;
 }
 
-/* Card body去除默认padding，方便自定义 */
+/* Card body鍘婚櫎榛樿padding锛屾柟渚胯嚜瀹氫箟 */
 .ant-card-body {
   padding: 0 !important;
 }
@@ -43,7 +43,7 @@
   color: var(--text-primary) !important;
 }
 
-/* 按钮样式 */
+/* 鎸夐挳鏍峰紡 */
 .ant-btn {
   color: var(--text-primary) !important;
   border-color: var(--card-border) !important;
@@ -60,7 +60,7 @@
   border-color: var(--button-hover) !important;
 }
 
-/* 输入框样式 */
+/* 杈撳叆妗嗘牱寮?*/
 .ant-input {
   background: var(--select-bg) !important;
   border-color: var(--select-border) !important;
@@ -72,7 +72,7 @@
   box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2) !important;
 }
 
-/* 文本域样式 */
+/* 鏂囨湰鍩熸牱寮?*/
 .ant-input-textarea .ant-input {
   background: var(--select-bg) !important;
   border-color: var(--select-border) !important;
@@ -145,7 +145,7 @@
   border-color: var(--card-border) !important;
 }
 
-/* 确保message组件正确显示 */
+/* 纭繚message缁勪欢姝ｇ‘鏄剧ず */
 .ant-message {
   z-index: 2147483647 !important;
   pointer-events: auto !important;
@@ -189,14 +189,14 @@
   display: inline-block !important;
 }
 
-/* 确保message中的所有文本都是水平方向 */
+/* 纭繚message涓殑鎵€鏈夋枃鏈兘鏄按骞虫柟鍚?*/
 .ant-message * {
   writing-mode: horizontal-tb !important;
   direction: ltr !important;
   text-orientation: mixed !important;
 }
 
-/* TranslatorResult 组件样式 */
+/* TranslatorResult 缁勪欢鏍峰紡 */
 .translator-copy-icon {
   font-size: 18px;
   color: var(--text-secondary);
@@ -224,52 +224,7 @@
   color: var(--text-primary);
 }
 
-/* InputTranslator 组件样式 */
-.input-translator-content {
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.input-translator-language-selector {
-  margin-bottom: 0;
-  margin-top: 0;
-}
-
-.input-translator-translation-area {
-  display: flex;
-  gap: 16px;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.input-translator-text-area {
-  flex: 1;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.input-translator-result-area {
-  flex: 1;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.input-translator-result-textarea {
-  background-color: var(--result-bg) !important;
-  color: var(--text-primary) !important;
-}
-
-.input-translator-actions {
-  margin-top: 24px;
-  width: 100%;
-}
-
-.input-translator-actions-space {
-  justify-content: center;
-  width: 100%;
-}
-
-/* Select 组件自定义样式 */
+/* Select 缁勪欢鑷畾涔夋牱寮?*/
 .custom-select .ant-select-selector {
   min-height: 28px !important;
   height: 28px !important;
@@ -285,21 +240,21 @@
   margin-top: -4px;
 }
 
-/* TranslatorIcon 组件样式 */
+/* TranslatorIcon 缁勪欢鏍峰紡 */
 .translator-icon {
   background: var(--card-bg) !important;
   border: 2px solid #2386e1 !important;
   box-shadow: var(--shadow) !important;
 }
 
-/* TranslatorResult 组件强制定位样式 */
+/* TranslatorResult 缁勪欢寮哄埗瀹氫綅鏍峰紡 */
 .translator-result-card {
   position: fixed !important;
   transform: none !important;
   margin: 0 !important;
 }
 
-/* 输入框翻译动画定义 */
+/* 杈撳叆妗嗙炕璇戝姩鐢诲畾涔?*/
 @keyframes translateIndicatorSpin {
   from {
     transform: translateY(-50%) rotate(0deg);

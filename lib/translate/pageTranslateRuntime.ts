@@ -33,6 +33,7 @@ export function setTranslationState(state: PageTranslationRuntimeState) {
 export function saveOriginalTextMap() {
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   const originalMap = ensureOriginalPageTextMap();
+  originalMap.clear();
   let node: Node | null = walker.nextNode();
 
   while (node) {
@@ -68,6 +69,8 @@ export function restoreOriginalTextMap() {
         span.parentNode.replaceChild(document.createTextNode(originalText), span);
       }
     });
+
+  originalMap.clear();
 }
 
 export function resetAutoTranslateFlag() {
