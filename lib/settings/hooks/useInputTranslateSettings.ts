@@ -1,21 +1,18 @@
-/**
- * 输入翻译设置 Hook
- */
 import { useCallback } from 'react';
-import { useGlobalSettings } from './useGlobalSettings';
+
 import type { GlobalSettings, PartialDeep } from '../../constants/types';
+import { useSettingsModule } from './useSettingsModule';
 
 export function useInputTranslateSettings() {
-  const { getModuleSettings, updateModuleSettings } = useGlobalSettings();
-
-  const inputTranslateSettings = getModuleSettings('inputTranslate');
-
-  const updateInputTranslate = useCallback((updates: PartialDeep<GlobalSettings['inputTranslate']>) => {
-    updateModuleSettings('inputTranslate', updates);
-  }, [updateModuleSettings]);
+  const {
+    moduleSettings: inputTranslateSettings,
+    updateSettings: updateInputTranslate,
+  } = useSettingsModule('inputTranslate');
 
   const toggleEnabled = useCallback(() => {
-    updateInputTranslate({ enabled: !inputTranslateSettings.enabled });
+    updateInputTranslate({
+      enabled: !inputTranslateSettings.enabled,
+    } as PartialDeep<GlobalSettings['inputTranslate']>);
   }, [inputTranslateSettings.enabled, updateInputTranslate]);
 
   return {

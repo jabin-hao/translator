@@ -1,75 +1,68 @@
 import React from 'react';
-import { Switch, Select } from 'antd';
+import { Switch } from 'antd';
 import { useTranslation } from 'react-i18next';
-import {
-  useTextTranslateSettings,
-} from '~lib/settings/settings';
-import SettingsPageContainer from '../../components/SettingsPageContainer';
+
+import { useTextTranslateSettings } from '~lib/settings/settings';
 import SettingsGroup from '../../components/SettingsGroup';
 import SettingsItem from '../../components/SettingsItem';
+import SettingsPageContainer from '../../components/SettingsPageContainer';
 
-const { Option } = Select;
+type ToggleSettingKey = 'selectTranslate' | 'pressKeyTranslate' | 'quickTranslate';
 
 const TextTranslateSettings: React.FC = () => {
   const { t } = useTranslation();
+  const { textTranslateSettings, setTriggerMode, toggleEnabled } = useTextTranslateSettings();
 
-  // 使用新的全局配置系统
-  const { textTranslateSettings, updateTextTranslate, toggleEnabled } = useTextTranslateSettings();
-
-  const handleSwitchChange = async (key: string, checked: boolean) => {
-    await updateTextTranslate({ [key]: checked } as any);
+  const handleSwitchChange = async (key: ToggleSettingKey, checked: boolean) => {
+    await setTriggerMode(key, checked);
   };
 
   return (
-    <SettingsPageContainer title={t('划词翻译设置')} description={t('配置划词翻译的相关设置')}>
-      {/* 划词翻译总开关 */}
-      <SettingsGroup title={t('基础设置')} first>
+    <SettingsPageContainer
+      title={t('Text translation settings')}
+      description={t('Configure translation behavior for selected text')}
+    >
+      <SettingsGroup title={t('Basic settings')} first>
         <SettingsItem
-          label={t('启用划词翻译')}
-          description={t('开启后，选中文本即可进行翻译')}
+          label={t('Enable text translation')}
+          description={t('Translate selected text on the page')}
         >
-          <Switch
-            checked={textTranslateSettings.enabled}
-            onChange={toggleEnabled}
-          />
+          <Switch checked={textTranslateSettings.enabled} onChange={toggleEnabled} />
         </SettingsItem>
       </SettingsGroup>
 
-      {/* 只有开启划词翻译时才显示其他设置 */}
       {textTranslateSettings.enabled && (
-        <>
-          <SettingsGroup title={t('触发设置')}>
-            <SettingsItem
-              label={t('选词自动翻译')}
-              description={t('选择文本后自动翻译，关闭则显示翻译图标')}
-            >
-              <Switch
-                checked={textTranslateSettings.selectTranslate}
-                onChange={(checked) => handleSwitchChange('selectTranslate', checked)}
-              />
-            </SettingsItem>
+        <SettingsGroup title={t('Trigger settings')}>
+          <SettingsItem
+            label={t('Auto translate selected text')}
+            description={t('Translate immediately after selecting text')}
+          >
+            <Switch
+              checked={textTranslateSettings.selectTranslate}
+              onChange={(checked) => void handleSwitchChange('selectTranslate', checked)}
+            />
+          </SettingsItem>
 
-            <SettingsItem
-              label={t('快捷键翻译')}
-              description={t('选中文本后按快捷键进行翻译')}
-            >
-              <Switch
-                checked={textTranslateSettings.pressKeyTranslate}
-                onChange={(checked) => handleSwitchChange('pressKeyTranslate', checked)}
-              />
-            </SettingsItem>
+          <SettingsItem
+            label={t('Translate with hotkey')}
+            description={t('Translate selected text only after pressing the shortcut')}
+          >
+            <Switch
+              checked={textTranslateSettings.pressKeyTranslate}
+              onChange={(checked) => void handleSwitchChange('pressKeyTranslate', checked)}
+            />
+          </SettingsItem>
 
-            <SettingsItem
-              label={t('快速翻译')}
-              description={t('鼠标悬停自动显示翻译')}
-            >
-              <Switch
-                checked={textTranslateSettings.quickTranslate}
-                onChange={(checked) => handleSwitchChange('quickTranslate', checked)}
-              />
-            </SettingsItem>
-          </SettingsGroup>
-        </>
+          <SettingsItem
+            label={t('Quick translate')}
+            description={t('Show translation quickly after hover or selection')}
+          >
+            <Switch
+              checked={textTranslateSettings.quickTranslate}
+              onChange={(checked) => void handleSwitchChange('quickTranslate', checked)}
+            />
+          </SettingsItem>
+        </SettingsGroup>
       )}
     </SettingsPageContainer>
   );

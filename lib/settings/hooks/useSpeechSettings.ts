@@ -1,30 +1,29 @@
-/**
- * 语音设置 Hook
- */
 import { useCallback } from 'react';
-import { useGlobalSettings } from './useGlobalSettings';
+
 import type { GlobalSettings, PartialDeep, TTSEngineType } from '../../constants/types';
+import { useSettingsModule } from './useSettingsModule';
 
 export function useSpeechSettings() {
-  const { settings, updateModuleSettings } = useGlobalSettings();
-
-  const speechSettings = settings.speech;
-
-  const updateSpeech = useCallback((updates: PartialDeep<GlobalSettings['speech']>) => {
-    updateModuleSettings('speech', updates);
-  }, [updateModuleSettings]);
+  const { moduleSettings: speechSettings, updateSettings: updateSpeech } =
+    useSettingsModule('speech');
 
   const toggleEnabled = useCallback(() => {
-    updateSpeech({ enabled: !speechSettings.enabled });
+    updateSpeech({
+      enabled: !speechSettings.enabled,
+    } as PartialDeep<GlobalSettings['speech']>);
   }, [speechSettings.enabled, updateSpeech]);
 
-  const setEngine = useCallback((engine: TTSEngineType) => {
-    updateSpeech({ engine });
-  }, [updateSpeech]);
+  const setEngine = useCallback(
+    (engine: TTSEngineType) => updateSpeech({ engine } as PartialDeep<GlobalSettings['speech']>),
+    [updateSpeech]
+  );
 
-  const setVoiceSettings = useCallback((settings: { speed?: number; pitch?: number; volume?: number; }) => {
-    updateSpeech(settings);
-  }, [updateSpeech]);
+  const setVoiceSettings = useCallback(
+    (settings: { speed?: number; pitch?: number; volume?: number }) => {
+      updateSpeech(settings as PartialDeep<GlobalSettings['speech']>);
+    },
+    [updateSpeech]
+  );
 
   return {
     speechSettings,

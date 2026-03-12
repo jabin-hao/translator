@@ -1,336 +1,400 @@
-import React from 'react';
-import { Switch, Select, InputNumber, Button, Space, Divider, Radio, Slider } from 'antd';
-import { useTranslation } from 'react-i18next';
-import Icon from '~lib/components/Icon';
-import SettingsPageContainer from '../../components/SettingsPageContainer';
-import SettingsGroup from '../../components/SettingsGroup';
-import SettingsItem from '../../components/SettingsItem';
+import React from "react"
+import { Button, InputNumber, Radio, Select, Slider, Space, Switch } from "antd"
+import { useTranslation } from "react-i18next"
+import Icon from "~lib/components/Icon"
+import SettingsPageContainer from "../../components/SettingsPageContainer"
+import SettingsGroup from "../../components/SettingsGroup"
+import SettingsItem from "../../components/SettingsItem"
 
-const { Option } = Select;
+const { Option } = Select
+
+type SubtitleDisplayMode = "overlay" | "replace" | "dual"
+type SubtitlePlatform = "youtube" | "bilibili" | "netflix" | "prime"
+type SubtitleSpeechLanguage = "auto" | "zh-CN" | "en" | "ja" | "ko"
+type SubtitleSpeechAccuracy = "fast" | "balanced" | "high"
+type SubtitlePosition = "top" | "center" | "bottom"
+
+interface SubtitlePlatforms {
+  youtube: boolean
+  bilibili: boolean
+  netflix: boolean
+  prime: boolean
+}
+
+interface SubtitleSpeechToTextSettings {
+  enabled: boolean
+  language: SubtitleSpeechLanguage
+  accuracy: SubtitleSpeechAccuracy
+}
+
+interface SubtitleStyleSettings {
+  fontSize: number
+  fontColor: string
+  backgroundColor: string
+  position: SubtitlePosition
+  fontFamily: string
+}
+
+interface SubtitleSettingsState {
+  enabled: boolean
+  autoDetectLanguage: boolean
+  autoTranslate: boolean
+  supportedPlatforms: SubtitlePlatforms
+  speechToText: SubtitleSpeechToTextSettings
+  subtitleStyle: SubtitleStyleSettings
+  displayMode: SubtitleDisplayMode
+  showOriginal: boolean
+  realTimeTranslate: boolean
+  cacheDuration: number
+}
 
 const SubtitleTranslateSettings: React.FC = () => {
-  const { t } = useTranslation();
+  const { t } = useTranslation()
 
-  // 模拟设置状态（后续需要连接到实际的设置系统）
-  const [subtitleSettings, setSubtitleSettings] = React.useState({
-    enabled: true,
-    autoDetectLanguage: true,
-    autoTranslate: true,
-    supportedPlatforms: {
-      youtube: true,
-      bilibili: true,
-      netflix: false,
-      prime: false,
-    },
-    speechToText: {
+  // This page is still a product-facing prototype. Keep the state local and typed
+  // until subtitle translation is backed by a real settings/storage module.
+  const [subtitleSettings, setSubtitleSettings] =
+    React.useState<SubtitleSettingsState>({
       enabled: true,
-      language: 'auto',
-      accuracy: 'high',
-    },
-    subtitleStyle: {
-      fontSize: 16,
-      fontColor: '#ffffff',
-      backgroundColor: 'rgba(0,0,0,0.8)',
-      position: 'bottom',
-      fontFamily: 'Arial',
-    },
-    displayMode: 'overlay', // overlay, replace, dual
-    showOriginal: true,
-    realTimeTranslate: true,
-    cacheDuration: 7, // 天数
-  });
+      autoDetectLanguage: true,
+      autoTranslate: true,
+      supportedPlatforms: {
+        youtube: true,
+        bilibili: true,
+        netflix: false,
+        prime: false,
+      },
+      speechToText: {
+        enabled: true,
+        language: "auto",
+        accuracy: "high",
+      },
+      subtitleStyle: {
+        fontSize: 16,
+        fontColor: "#ffffff",
+        backgroundColor: "rgba(0,0,0,0.8)",
+        position: "bottom",
+        fontFamily: "Arial",
+      },
+      displayMode: "overlay",
+      showOriginal: true,
+      realTimeTranslate: true,
+      cacheDuration: 7,
+    })
 
-  const handleSwitchChange = (key: string, checked: boolean) => {
-    setSubtitleSettings(prev => ({ ...prev, [key]: checked }));
-  };
+  const updateSetting = <K extends keyof SubtitleSettingsState>(
+    key: K,
+    value: SubtitleSettingsState[K],
+  ) => {
+    setSubtitleSettings((prev) => ({ ...prev, [key]: value }))
+  }
 
-  const handleSelectChange = (key: string, value: string) => {
-    setSubtitleSettings(prev => ({ ...prev, [key]: value }));
-  };
+  const updatePlatform = (platform: SubtitlePlatform, enabled: boolean) => {
+    setSubtitleSettings((prev) => ({
+      ...prev,
+      supportedPlatforms: {
+        ...prev.supportedPlatforms,
+        [platform]: enabled,
+      },
+    }))
+  }
 
-  const handleNumberChange = (key: string, value: number | null) => {
-    if (value !== null) {
-      setSubtitleSettings(prev => ({ ...prev, [key]: value }));
-    }
-  };
+  const updateSpeechSetting = <K extends keyof SubtitleSpeechToTextSettings>(
+    key: K,
+    value: SubtitleSpeechToTextSettings[K],
+  ) => {
+    setSubtitleSettings((prev) => ({
+      ...prev,
+      speechToText: {
+        ...prev.speechToText,
+        [key]: value,
+      },
+    }))
+  }
 
-  const handleStyleChange = (styleKey: string, value: any) => {
-    setSubtitleSettings(prev => ({
+  const updateStyleSetting = <K extends keyof SubtitleStyleSettings>(
+    key: K,
+    value: SubtitleStyleSettings[K],
+  ) => {
+    setSubtitleSettings((prev) => ({
       ...prev,
       subtitleStyle: {
         ...prev.subtitleStyle,
-        [styleKey]: value
-      }
-    }));
-  };
-
-
+        [key]: value,
+      },
+    }))
+  }
 
   return (
-    <SettingsPageContainer 
-      title={t('字幕翻译')} 
-      description={t('配置视频平台字幕翻译和语音生成字幕的相关设置')}
-    >
-      {/* 字幕翻译总开关 */}
-      <SettingsGroup title={t('基础设置')} first>
+    <SettingsPageContainer
+      title={t("Subtitle Translation")}
+      description={t(
+        "Configure subtitle translation, speech-to-text subtitles, and display behavior for supported video platforms.",
+      )}>
+      <SettingsGroup title={t("Basic Settings")} first>
         <SettingsItem
-          label={t('启用字幕翻译')}
-          description={t('开启后可以翻译视频平台的字幕和生成语音字幕')}
-        >
+          label={t("Enable Subtitle Translation")}
+          description={t(
+            "Turn on subtitle translation and speech-generated subtitles for supported video platforms.",
+          )}>
           <Switch
             checked={subtitleSettings.enabled}
-            onChange={(checked) => handleSwitchChange('enabled', checked)}
+            onChange={(checked) => updateSetting("enabled", checked)}
           />
         </SettingsItem>
       </SettingsGroup>
 
-      {/* 字幕翻译相关设置 */}
       {subtitleSettings.enabled && (
         <>
-          <SettingsGroup title={t('平台支持')}>
+          <SettingsGroup title={t("Supported Platforms")}>
             <SettingsItem
-              label={t('YouTube字幕翻译')}
-              description={t('在YouTube视频页面自动翻译字幕')}
-            >
+              label={t("YouTube")}
+              description={t("Translate subtitles automatically on YouTube.")}>
               <Switch
                 checked={subtitleSettings.supportedPlatforms.youtube}
-                onChange={(checked) => setSubtitleSettings(prev => ({
-                  ...prev,
-                  supportedPlatforms: { ...prev.supportedPlatforms, youtube: checked }
-                }))}
+                onChange={(checked) => updatePlatform("youtube", checked)}
               />
             </SettingsItem>
 
             <SettingsItem
-              label={t('Bilibili字幕翻译')}
-              description={t('在Bilibili视频页面自动翻译字幕')}
-            >
+              label={t("Bilibili")}
+              description={t(
+                "Translate subtitles automatically on Bilibili video pages.",
+              )}>
               <Switch
                 checked={subtitleSettings.supportedPlatforms.bilibili}
-                onChange={(checked) => setSubtitleSettings(prev => ({
-                  ...prev,
-                  supportedPlatforms: { ...prev.supportedPlatforms, bilibili: checked }
-                }))}
+                onChange={(checked) => updatePlatform("bilibili", checked)}
               />
             </SettingsItem>
 
             <SettingsItem
-              label={t('Netflix字幕翻译')}
-              description={t('在Netflix视频页面自动翻译字幕')}
-            >
+              label={t("Netflix")}
+              description={t(
+                "Translate subtitles automatically on Netflix video pages.",
+              )}>
               <Switch
                 checked={subtitleSettings.supportedPlatforms.netflix}
-                onChange={(checked) => setSubtitleSettings(prev => ({
-                  ...prev,
-                  supportedPlatforms: { ...prev.supportedPlatforms, netflix: checked }
-                }))}
+                onChange={(checked) => updatePlatform("netflix", checked)}
               />
             </SettingsItem>
 
             <SettingsItem
-              label={t('Prime Video字幕翻译')}
-              description={t('在Amazon Prime Video页面自动翻译字幕')}
-            >
+              label={t("Prime Video")}
+              description={t(
+                "Translate subtitles automatically on Amazon Prime Video.",
+              )}>
               <Switch
                 checked={subtitleSettings.supportedPlatforms.prime}
-                onChange={(checked) => setSubtitleSettings(prev => ({
-                  ...prev,
-                  supportedPlatforms: { ...prev.supportedPlatforms, prime: checked }
-                }))}
+                onChange={(checked) => updatePlatform("prime", checked)}
               />
             </SettingsItem>
           </SettingsGroup>
 
-          <SettingsGroup title={t('翻译设置')}>
+          <SettingsGroup title={t("Translation Settings")}>
             <SettingsItem
-              label={t('自动检测语言')}
-              description={t('自动识别视频字幕的源语言')}
-            >
+              label={t("Auto Detect Language")}
+              description={t(
+                "Detect the source language of the current subtitle stream automatically.",
+              )}>
               <Switch
                 checked={subtitleSettings.autoDetectLanguage}
-                onChange={(checked) => handleSwitchChange('autoDetectLanguage', checked)}
+                onChange={(checked) =>
+                  updateSetting("autoDetectLanguage", checked)
+                }
               />
             </SettingsItem>
 
             <SettingsItem
-              label={t('自动翻译字幕')}
-              description={t('视频播放时自动翻译显示的字幕')}
-            >
+              label={t("Auto Translate")}
+              description={t(
+                "Translate subtitles as they appear during video playback.",
+              )}>
               <Switch
                 checked={subtitleSettings.autoTranslate}
-                onChange={(checked) => handleSwitchChange('autoTranslate', checked)}
+                onChange={(checked) => updateSetting("autoTranslate", checked)}
               />
             </SettingsItem>
 
             <SettingsItem
-              label={t('实时翻译')}
-              description={t('字幕出现时立即进行翻译，而不是等待整句')}
-            >
+              label={t("Real-time Translation")}
+              description={t(
+                "Translate each subtitle line immediately instead of waiting for a larger segment.",
+              )}>
               <Switch
                 checked={subtitleSettings.realTimeTranslate}
-                onChange={(checked) => handleSwitchChange('realTimeTranslate', checked)}
+                onChange={(checked) =>
+                  updateSetting("realTimeTranslate", checked)
+                }
               />
             </SettingsItem>
 
             <SettingsItem
-              label={t('显示模式')}
-              description={t('选择翻译字幕的显示方式')}
-            >
+              label={t("Display Mode")}
+              description={t("Choose how translated subtitles are rendered.")}>
               <Radio.Group
                 value={subtitleSettings.displayMode}
-                onChange={(e) => handleSelectChange('displayMode', e.target.value)}
-              >
-                <Radio value="overlay">{t('覆盖显示')}</Radio>
-                <Radio value="replace">{t('替换原文')}</Radio>
-                <Radio value="dual">{t('双语显示')}</Radio>
+                onChange={(event) =>
+                  updateSetting("displayMode", event.target.value)
+                }>
+                <Radio value="overlay">{t("Overlay")}</Radio>
+                <Radio value="replace">{t("Replace Original")}</Radio>
+                <Radio value="dual">{t("Dual Language")}</Radio>
               </Radio.Group>
             </SettingsItem>
 
             <SettingsItem
-              label={t('显示原文')}
-              description={t('翻译后是否同时显示原始字幕')}
-            >
+              label={t("Show Original Text")}
+              description={t(
+                "Keep the source subtitle visible alongside the translation when possible.",
+              )}>
               <Switch
                 checked={subtitleSettings.showOriginal}
-                onChange={(checked) => handleSwitchChange('showOriginal', checked)}
-                disabled={subtitleSettings.displayMode === 'dual'}
+                onChange={(checked) => updateSetting("showOriginal", checked)}
+                disabled={subtitleSettings.displayMode === "dual"}
               />
             </SettingsItem>
           </SettingsGroup>
 
-          <SettingsGroup title={t('语音识别')}>
+          <SettingsGroup title={t("Speech Recognition")}>
             <SettingsItem
-              label={t('启用语音字幕')}
-              description={t('为没有字幕的视频生成语音识别字幕')}
-            >
+              label={t("Enable Speech-to-Text")}
+              description={t(
+                "Generate subtitles from speech when the platform does not provide them.",
+              )}>
               <Switch
                 checked={subtitleSettings.speechToText.enabled}
-                onChange={(checked) => setSubtitleSettings(prev => ({
-                  ...prev,
-                  speechToText: { ...prev.speechToText, enabled: checked }
-                }))}
+                onChange={(checked) =>
+                  updateSpeechSetting("enabled", checked)
+                }
               />
             </SettingsItem>
 
             <SettingsItem
-              label={t('识别语言')}
-              description={t('语音识别的源语言')}
-            >
+              label={t("Recognition Language")}
+              description={t(
+                "Select the source language used for speech recognition.",
+              )}>
               <Select
                 value={subtitleSettings.speechToText.language}
-                onChange={(value) => setSubtitleSettings(prev => ({
-                  ...prev,
-                  speechToText: { ...prev.speechToText, language: value }
-                }))}
+                onChange={(value: SubtitleSpeechLanguage) =>
+                  updateSpeechSetting("language", value)
+                }
                 style={{ width: 120 }}
-                disabled={!subtitleSettings.speechToText.enabled}
-              >
-                <Option value="auto">{t('自动检测')}</Option>
-                <Option value="zh-CN">{t('中文')}</Option>
-                <Option value="en">{t('英语')}</Option>
-                <Option value="ja">{t('日语')}</Option>
-                <Option value="ko">{t('韩语')}</Option>
+                disabled={!subtitleSettings.speechToText.enabled}>
+                <Option value="auto">{t("Auto Detect")}</Option>
+                <Option value="zh-CN">{t("Chinese")}</Option>
+                <Option value="en">{t("English")}</Option>
+                <Option value="ja">{t("Japanese")}</Option>
+                <Option value="ko">{t("Korean")}</Option>
               </Select>
             </SettingsItem>
 
             <SettingsItem
-              label={t('识别精度')}
-              description={t('语音识别的精确度设置')}
-            >
+              label={t("Recognition Accuracy")}
+              description={t(
+                "Balance speed and accuracy for speech recognition.",
+              )}>
               <Select
                 value={subtitleSettings.speechToText.accuracy}
-                onChange={(value) => setSubtitleSettings(prev => ({
-                  ...prev,
-                  speechToText: { ...prev.speechToText, accuracy: value }
-                }))}
+                onChange={(value: SubtitleSpeechAccuracy) =>
+                  updateSpeechSetting("accuracy", value)
+                }
                 style={{ width: 120 }}
-                disabled={!subtitleSettings.speechToText.enabled}
-              >
-                <Option value="fast">{t('快速')}</Option>
-                <Option value="balanced">{t('平衡')}</Option>
-                <Option value="high">{t('高精度')}</Option>
+                disabled={!subtitleSettings.speechToText.enabled}>
+                <Option value="fast">{t("Fast")}</Option>
+                <Option value="balanced">{t("Balanced")}</Option>
+                <Option value="high">{t("High Accuracy")}</Option>
               </Select>
             </SettingsItem>
           </SettingsGroup>
 
-          <SettingsGroup title={t('显示样式')}>
+          <SettingsGroup title={t("Subtitle Style")}>
             <SettingsItem
-              label={t('字体大小')}
-              description={t('翻译字幕的字体大小')}
-            >
+              label={t("Font Size")}
+              description={t("Adjust the size of translated subtitles.")}>
               <Slider
                 min={12}
                 max={32}
                 value={subtitleSettings.subtitleStyle.fontSize}
-                onChange={(value) => handleStyleChange('fontSize', value)}
+                onChange={(value) => updateStyleSetting("fontSize", value)}
                 style={{ width: 200 }}
               />
             </SettingsItem>
 
             <SettingsItem
-              label={t('字体')}
-              description={t('翻译字幕的字体样式')}
-            >
+              label={t("Font Family")}
+              description={t("Choose the subtitle font family.")}>
               <Select
                 value={subtitleSettings.subtitleStyle.fontFamily}
-                onChange={(value) => handleStyleChange('fontFamily', value)}
-                style={{ width: 150 }}
-              >
+                onChange={(value: string) => updateStyleSetting("fontFamily", value)}
+                style={{ width: 150 }}>
                 <Option value="Arial">Arial</Option>
-                <Option value="SimSun">{t('宋体')}</Option>
-                <Option value="SimHei">{t('黑体')}</Option>
-                <Option value="Microsoft YaHei">{t('微软雅黑')}</Option>
+                <Option value="SimSun">{t("SimSun")}</Option>
+                <Option value="SimHei">{t("SimHei")}</Option>
+                <Option value="Microsoft YaHei">{t("Microsoft YaHei")}</Option>
               </Select>
             </SettingsItem>
 
             <SettingsItem
-              label={t('字幕位置')}
-              description={t('翻译字幕在视频中的显示位置')}
-            >
+              label={t("Subtitle Position")}
+              description={t("Choose where translated subtitles are shown.")}>
               <Radio.Group
                 value={subtitleSettings.subtitleStyle.position}
-                onChange={(e) => handleStyleChange('position', e.target.value)}
-              >
-                <Radio value="top">{t('顶部')}</Radio>
-                <Radio value="center">{t('居中')}</Radio>
-                <Radio value="bottom">{t('底部')}</Radio>
+                onChange={(event) =>
+                  updateStyleSetting("position", event.target.value)
+                }>
+                <Radio value="top">{t("Top")}</Radio>
+                <Radio value="center">{t("Center")}</Radio>
+                <Radio value="bottom">{t("Bottom")}</Radio>
               </Radio.Group>
             </SettingsItem>
           </SettingsGroup>
 
-          <SettingsGroup title={t('缓存设置')}>
+          <SettingsGroup title={t("Cache Settings")}>
             <SettingsItem
-              label={t('缓存翻译结果')}
-              description={t('缓存已翻译的字幕以提高加载速度')}
-            >
+              label={t("Cache Duration")}
+              description={t(
+                "Cache translated subtitle segments to reduce repeated requests.",
+              )}>
               <InputNumber
                 min={0}
                 max={30}
                 value={subtitleSettings.cacheDuration}
-                onChange={(value) => handleNumberChange('cacheDuration', value)}
-                addonAfter={t('天')}
+                onChange={(value) => {
+                  if (value !== null) {
+                    updateSetting("cacheDuration", value)
+                  }
+                }}
+                addonAfter={t("days")}
                 style={{ width: 120 }}
               />
             </SettingsItem>
           </SettingsGroup>
 
-          <SettingsGroup title={t('快捷操作')}>
+          <SettingsGroup title={t("Quick Actions")}>
             <SettingsItem
-              label={t('常用操作')}
-              description={t('视频字幕翻译的常用操作')}
-            >
+              label={t("Common Actions")}
+              description={t(
+                "Placeholder actions for the upcoming subtitle workflow.",
+              )}>
               <Space wrap>
-                <Button icon={<Icon name="reload" size={16} />} disabled={!subtitleSettings.enabled}>
-                  {t('重新识别字幕')}
+                <Button
+                  icon={<Icon name="reload" size={16} />}
+                  disabled={!subtitleSettings.enabled}>
+                  {t("Re-detect Subtitles")}
                 </Button>
-                <Button icon={<Icon name="download" size={16} />} disabled={!subtitleSettings.enabled}>
-                  {t('导出翻译字幕')}
+                <Button
+                  icon={<Icon name="download" size={16} />}
+                  disabled={!subtitleSettings.enabled}>
+                  {t("Export Translated Subtitles")}
                 </Button>
-                <Button icon={<Icon name="settings" size={16} />} disabled={!subtitleSettings.enabled}>
-                  {t('字幕样式设置')}
+                <Button
+                  icon={<Icon name="settings" size={16} />}
+                  disabled={!subtitleSettings.enabled}>
+                  {t("Open Style Settings")}
                 </Button>
                 <Button type="link" disabled={!subtitleSettings.enabled}>
-                  {t('查看翻译历史')}
+                  {t("View Translation History")}
                 </Button>
               </Space>
             </SettingsItem>
@@ -338,7 +402,7 @@ const SubtitleTranslateSettings: React.FC = () => {
         </>
       )}
     </SettingsPageContainer>
-  );
-};
+  )
+}
 
-export default SubtitleTranslateSettings;
+export default SubtitleTranslateSettings

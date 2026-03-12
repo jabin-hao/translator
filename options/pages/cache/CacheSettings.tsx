@@ -1,108 +1,133 @@
-import { useImmer } from 'use-immer';
-import React, { useEffect } from 'react';
-import { Button, Modal, Switch, InputNumber, App } from 'antd';
-import Icon from '~lib/components/Icon';
-import { useTranslation } from 'react-i18next';
-import { produce } from 'immer';
-import { useCacheSettings } from '~lib/settings/settings';
-import { cacheManager } from '~lib/cache/cache';
+import React, { useEffect, useState } from 'react';
+import { App, Button, InputNumber, Modal, Switch } from 'antd';
 import { sendToBackground } from '@plasmohq/messaging';
-import SettingsPageContainer from '../../components/SettingsPageContainer';
+import { useTranslation } from 'react-i18next';
+
+import Icon from '~lib/components/Icon';
+import { cacheManager } from '~lib/cache/cache';
+import { useCacheSettings, useTranslationCacheData } from '~lib/settings/settings';
 import SettingsGroup from '../../components/SettingsGroup';
 import SettingsItem from '../../components/SettingsItem';
+import SettingsPageContainer from '../../components/SettingsPageContainer';
+
+type CacheStatsState = {
+  count: number;
+  size: number;
+  hitRate: number;
+  totalRequests: number;
+  hitCount: number;
+};
+
+const defaultStats: CacheStatsState = {
+  count: 0,
+  size: 0,
+  hitRate: 0,
+  totalRequests: 0,
+  hitCount: 0
+};
+
+const MS_PER_HOUR = 1000 * 60 * 60;
+const MS_PER_DAY = MS_PER_HOUR * 24;
+const MS_PER_MONTH = MS_PER_DAY * 30;
+
+const normalizeNumber = (value: number) => (Number.isFinite(value) && value >= 0 ? value : 0);
 
 const CacheSettings: React.FC = () => {
   const { t } = useTranslation();
   const { message } = App.useApp();
-
-  // 使用新的全局配置系统
   const { cacheSettings, updateCache, toggleEnabled } = useCacheSettings();
+  const { getCacheStats, clearCache } = useTranslationCacheData();
 
-  const [stats, setStats] = useImmer<{ 
-    count: number; 
-    size: number; 
-    hitRate: number;
-    totalRequests: number;
-    hitCount: number;
-  }>({ 
-    count: 0, 
-    size: 0, 
-    hitRate: 0,
-    totalRequests: 0,
-    hitCount: 0
-  });
-  const [loading, setLoading] = useImmer(false);
-  // 新增本地 state 保存输入值
-  const [pendingConfig, setPendingConfig] = useImmer({
+  const [stats, setStats] = useState<CacheStatsState>(defaultStats);
+  const [loading, setLoading] = useState(false);
+  const [pendingConfig, setPendingConfig] = useState({
     maxAge: cacheSettings.maxAge,
-    maxSize: cacheSettings.maxSize,
+    maxSize: cacheSettings.maxSize
   });
 
-  // 加载缓存统计信息
+  const syncPendingConfig = () => {
+    setPendingConfig({
+      maxAge: cacheSettings.maxAge,
+      maxSize: cacheSettings.maxSize
+    });
+  };
+
   const loadStats = async () => {
     try {
-      const cacheStats = await cacheManager.getStats();
-      // 验证统计数据的有效性
+      const cacheStats = await getCacheStats();
       setStats({
-        count: isNaN(cacheStats.count) ? 0 : cacheStats.count,
-        size: isNaN(cacheStats.size) ? 0 : cacheStats.size,
-        hitRate: isNaN(cacheStats.hitRate) ? 0 : cacheStats.hitRate,
-        totalRequests: isNaN(cacheStats.totalRequests) ? 0 : cacheStats.totalRequests,
-        hitCount: isNaN(cacheStats.hitCount) ? 0 : cacheStats.hitCount
+        count: normalizeNumber(cacheStats.count),
+        size: normalizeNumber(cacheStats.size),
+        hitRate: normalizeNumber(cacheStats.hitRate),
+        totalRequests: normalizeNumber(cacheStats.totalRequests),
+        hitCount: normalizeNumber(cacheStats.hitCount)
       });
-      message.success(t('统计已刷新'));
     } catch (error) {
-      console.error('加载缓存统计失败:', error);
-      message.error(t('刷新统计失败'));
+      console.error('Failed to load cache stats:', error);
+      message.error(t('Failed to refresh statistics'));
     }
   };
 
-  // 清空缓存
+  useEffect(() => {
+    void loadStats();
+  }, []);
+
+  useEffect(() => {
+    syncPendingConfig();
+  }, [cacheSettings.maxAge, cacheSettings.maxSize]);
+
   const handleClearCache = async () => {
     Modal.confirm({
-      title: t('确认清空缓存'),
-      content: t('这将删除所有翻译缓存，确定要继续吗？'),
-      okText: t('确定'),
-      cancelText: t('取消'),
+      title: t('Confirm clearing cache'),
+      content: t('This will remove all translation cache entries. Continue?'),
+      okText: t('Confirm'),
+      cancelText: t('Cancel'),
       onOk: async () => {
         setLoading(true);
         try {
-          await cacheManager.clear();
+          await clearCache();
           await loadStats();
-          message.success(t('缓存已清空'));
+          message.success(t('Cache cleared'));
         } catch (error) {
-          message.error(t('清空缓存失败'));
-          console.error('清空缓存失败:', error);
+          console.error('Failed to clear cache:', error);
+          message.error(t('Failed to clear cache'));
         } finally {
           setLoading(false);
         }
-      },
+      }
     });
   };
 
-  // 切换缓存开关
   const handleCacheToggle = async (enabled: boolean) => {
     await toggleEnabled();
-    message.success(enabled ? t('已启用翻译缓存') : t('已禁用翻译缓存'));
+    message.success(enabled ? t('Cache enabled') : t('Cache disabled'));
   };
 
-  useEffect(() => {
-    // 只需要加载统计信息，配置由全局设置自动处理
-    loadStats().then();
-  }, []);
+  const updatePendingMaxAge = (
+    unit: 'months' | 'days' | 'hours',
+    value: number | null,
+    currentMaxAge: number
+  ) => {
+    if (value === null) {
+      return;
+    }
 
-  // 加载配置时同步到 pendingConfig
-  useEffect(() => {
-    setPendingConfig({
-      maxAge: cacheSettings.maxAge,
-      maxSize: cacheSettings.maxSize,
-    });
-  }, [cacheSettings.maxAge, cacheSettings.maxSize]);
+    const months = Math.floor(currentMaxAge / MS_PER_MONTH);
+    const days = Math.floor((currentMaxAge % MS_PER_MONTH) / MS_PER_DAY);
+    const hours = Math.floor((currentMaxAge % MS_PER_DAY) / MS_PER_HOUR);
+
+    const nextMonths = unit === 'months' ? value : months;
+    const nextDays = unit === 'days' ? value : days;
+    const nextHours = unit === 'hours' ? value : hours;
+
+    setPendingConfig((current) => ({
+      ...current,
+      maxAge: nextMonths * MS_PER_MONTH + nextDays * MS_PER_DAY + nextHours * MS_PER_HOUR
+    }));
+  };
 
   const formatSize = (bytes: number) => {
-    // 防护 NaN 值
-    if (isNaN(bytes) || bytes < 0) {
-      console.warn('formatSize received invalid value:', bytes);
+    if (!Number.isFinite(bytes) || bytes < 0) {
       return '0 B';
     }
     if (bytes < 1024) return `${bytes} ${t('B')}`;
@@ -110,170 +135,139 @@ const CacheSettings: React.FC = () => {
     return `${(bytes / (1024 * 1024)).toFixed(1)} ${t('MB')}`;
   };
 
+  const months = Math.floor(pendingConfig.maxAge / MS_PER_MONTH);
+  const days = Math.floor((pendingConfig.maxAge % MS_PER_MONTH) / MS_PER_DAY);
+  const hours = Math.floor((pendingConfig.maxAge % MS_PER_DAY) / MS_PER_HOUR);
+  const totalAgeParts = [
+    months > 0 ? `${months}${t('Month')}` : '',
+    days > 0 ? `${days}${t('Day')}` : '',
+    hours > 0 ? `${hours}${t('Hour')}` : ''
+  ].filter(Boolean);
+
+  const handleSaveConfig = async () => {
+    await updateCache(pendingConfig);
+    await cacheManager.updateConfig(pendingConfig);
+    await sendToBackground({
+      name: 'handle' as never,
+      body: { service: 'cache', action: 'reschedule' }
+    });
+    message.success(t('Cache settings saved'));
+  };
+
   return (
     <SettingsPageContainer
-      title={t('缓存设置')}
-      description={t('管理翻译缓存以提高翻译速度')}
+      title={t('Cache settings')}
+      description={t('Manage translation cache to improve repeated translation speed')}
     >
-      {/* 缓存总开关 */}
-      <SettingsGroup title={t('基础设置')} first>
+      <SettingsGroup title={t('Basic settings')} first>
         <SettingsItem
-          label={t('启用缓存')}
-          description={t('启用缓存可以加快重复翻译的速度')}
+          label={t('Enable cache')}
+          description={t('Enable cache to speed up repeated translations')}
         >
           <Switch checked={cacheSettings.enabled} onChange={handleCacheToggle} />
         </SettingsItem>
       </SettingsGroup>
 
-      {/* 缓存详细设置 - 条件渲染 */}
       {cacheSettings.enabled && (
         <>
-          <SettingsGroup title={t('缓存统计')}>
+          <SettingsGroup title={t('Cache statistics')}>
             <SettingsItem
-              label={t('当前缓存')}
-              description={t('显示当前缓存的条目数和估算的存储大小')}
+              label={t('Current cache')}
+              description={t('Show current cache entries and estimated storage size')}
             >
               <div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 16 }}>
                   <div style={{ display: 'flex', alignItems: 'center' }}>
                     <span style={{ fontSize: 16, fontWeight: 'bold', color: '#1890ff' }}>{stats.count}</span>
-                    <span style={{ fontSize: 13, color: '#666', marginLeft: 4 }}>{t('条缓存')}</span>
+                    <span style={{ fontSize: 13, color: '#666', marginLeft: 4 }}>{t('Entries')}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center' }}>
                     <span style={{ fontSize: 16, fontWeight: 'bold', color: '#52c41a' }}>{formatSize(stats.size)}</span>
-                    <span style={{ fontSize: 11, color: '#999', marginLeft: 4 }}>{t('(估算)')}</span>
+                    <span style={{ fontSize: 11, color: '#999', marginLeft: 4 }}>{t('(Estimated)')}</span>
                   </div>
                   {stats.totalRequests > 0 && (
                     <div style={{ display: 'flex', alignItems: 'center' }}>
                       <span style={{ fontSize: 14, fontWeight: 'bold', color: '#faad14' }}>
                         {stats.hitRate.toFixed(1)}%
                       </span>
-                      <span style={{ fontSize: 12, color: '#666', marginLeft: 4 }}>{t('命中率')}</span>
+                      <span style={{ fontSize: 12, color: '#666', marginLeft: 4 }}>{t('Hit rate')}</span>
                     </div>
                   )}
                 </div>
                 {stats.totalRequests > 0 && (
                   <div style={{ fontSize: 11, color: '#666', marginTop: 4 }}>
-                    {t('总请求: {{total}}，命中: {{hit}}', { 
-                      total: stats.totalRequests, 
-                      hit: stats.hitCount 
+                    {t('Total requests: {{total}}, hits: {{hit}}', {
+                      total: stats.totalRequests,
+                      hit: stats.hitCount
                     })}
                   </div>
                 )}
-                <div style={{ fontSize: 11, color: '#666', marginTop: 4 }}>
-                  {t('注: 存储大小为JSON序列化后的估算值')}
-                </div>
               </div>
             </SettingsItem>
           </SettingsGroup>
 
-          <SettingsGroup title={t('缓存配置')}>
+          <SettingsGroup title={t('Cache configuration')}>
             <SettingsItem
-              label={t('缓存有效期')}
-              description={t('超过此时间的缓存将被自动删除')}
+              label={t('Cache max age')}
+              description={t('Entries older than this duration will be removed automatically')}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                {(() => {
-                  const MS_PER_HOUR = 1000 * 60 * 60;
-                  const MS_PER_DAY = MS_PER_HOUR * 24;
-                  const MS_PER_MONTH = MS_PER_DAY * 30;
-                  const months = Math.floor(pendingConfig.maxAge / MS_PER_MONTH);
-                  const days = Math.floor((pendingConfig.maxAge % MS_PER_MONTH) / MS_PER_DAY);
-                  const hours = Math.floor((pendingConfig.maxAge % MS_PER_DAY) / MS_PER_HOUR);
-                  return (
-                    <>
-                      <InputNumber
-                        min={0}
-                        max={24}
-                        value={months}
-                        onChange={value => {
-                          if (value !== null) {
-                            const newMaxAge = value * MS_PER_MONTH + days * MS_PER_DAY + hours * MS_PER_HOUR;
-                            setPendingConfig(produce(draft => ({ ...draft, maxAge: newMaxAge })));
-                          }
-                        }}
-                        addonAfter={t('月')}
-                        style={{ width: 120 }}
-                      />
-                      <InputNumber
-                        min={0}
-                        max={30}
-                        value={days}
-                        onChange={value => {
-                          if (value !== null) {
-                            const newMaxAge = months * MS_PER_MONTH + value * MS_PER_DAY + hours * MS_PER_HOUR;
-                            setPendingConfig(produce(draft => ({ ...draft, maxAge: newMaxAge })));
-                          }
-                        }}
-                        addonAfter={t('天')}
-                        style={{ width: 120 }}
-                      />
-                      <InputNumber
-                        min={0}
-                        max={24}
-                        value={hours}
-                        onChange={value => {
-                          if (value !== null) {
-                            const newMaxAge = months * MS_PER_MONTH + days * MS_PER_DAY + value * MS_PER_HOUR;
-                            setPendingConfig(produce(draft => ({ ...draft, maxAge: newMaxAge })));
-                          }
-                        }}
-                        addonAfter={t('小时')}
-                        style={{ width: 120 }}
-                      />
-                    </>
-                  );
-                })()}
+                <InputNumber
+                  min={0}
+                  max={24}
+                  value={months}
+                  onChange={(value) => updatePendingMaxAge('months', value, pendingConfig.maxAge)}
+                  addonAfter={t('Month')}
+                  style={{ width: 120 }}
+                />
+                <InputNumber
+                  min={0}
+                  max={30}
+                  value={days}
+                  onChange={(value) => updatePendingMaxAge('days', value, pendingConfig.maxAge)}
+                  addonAfter={t('Day')}
+                  style={{ width: 120 }}
+                />
+                <InputNumber
+                  min={0}
+                  max={24}
+                  value={hours}
+                  onChange={(value) => updatePendingMaxAge('hours', value, pendingConfig.maxAge)}
+                  addonAfter={t('Hour')}
+                  style={{ width: 120 }}
+                />
               </div>
               <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
-                {(() => {
-                  const months = Math.floor(pendingConfig.maxAge / (1000 * 60 * 60 * 24 * 30));
-                  const days = Math.floor((pendingConfig.maxAge % (1000 * 60 * 60 * 24 * 30)) / (1000 * 60 * 60 * 24));
-                  const hours = Math.floor((pendingConfig.maxAge % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                  const parts = [];
-                  if (months > 0) parts.push(`${months}${t('月')}`);
-                  if (days > 0) parts.push(`${days}${t('天')}`);
-                  if (hours > 0) parts.push(`${hours}${t('小时')}`);
-                  return parts.length > 0 ? `${t('总计')}: ${parts.join(' ')}` : `${t('总计')}: 0${t('小时')}`;
-                })()}
+                {`${t('Total')}: ${totalAgeParts.join(' ') || `0 ${t('Hour')}`}`}
               </div>
             </SettingsItem>
 
             <SettingsItem
-              label={t('最大缓存条数')}
-              description={t('达到此数量时将删除最旧的缓存')}
+              label={t('Max cache entries')}
+              description={t('Oldest entries will be removed after this limit is reached')}
             >
               <InputNumber
                 min={100}
                 max={10000}
                 value={pendingConfig.maxSize}
-                onChange={value => {
-                  if (value) setPendingConfig(produce(draft => ({ ...draft, maxSize: value })));
+                onChange={(value) => {
+                  if (typeof value === 'number') {
+                    setPendingConfig((current) => ({ ...current, maxSize: value }));
+                  }
                 }}
                 style={{ width: 120 }}
               />
             </SettingsItem>
 
-            <SettingsItem
-              label={t('保存配置')}
-            >
-              <Button
-                onClick={async () => {
-                  await updateCache(pendingConfig);
-                  await cacheManager.updateConfig(pendingConfig);
-                  await sendToBackground({ name: 'handle' as never, body: { service: 'cache', action: 'reschedule' } });
-                  message.success(t('缓存配置已保存'));
-                }}
-              >
-                {t('保存')}
-              </Button>
+            <SettingsItem label={t('Save configuration')}>
+              <Button onClick={handleSaveConfig}>{t('Save')}</Button>
             </SettingsItem>
           </SettingsGroup>
 
-          <SettingsGroup title={t('缓存操作')}>
+          <SettingsGroup title={t('Cache actions')}>
             <SettingsItem
-              label={t('清空缓存')}
-              description={t('删除所有翻译缓存数据')}
+              label={t('Clear cache')}
+              description={t('Delete all translation cache entries')}
             >
               <Button
                 danger
@@ -281,7 +275,7 @@ const CacheSettings: React.FC = () => {
                 loading={loading}
                 icon={<Icon name="delete" size={16} />}
               >
-                {t('清空所有缓存')}
+                {t('Clear all cache')}
               </Button>
             </SettingsItem>
           </SettingsGroup>
@@ -292,4 +286,3 @@ const CacheSettings: React.FC = () => {
 };
 
 export default CacheSettings;
-

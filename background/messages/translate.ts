@@ -1,13 +1,12 @@
-// 翻译消息处理服务
-import { translate, translateBatch } from '~lib/translate/translate';
 import type { TranslateOptions, TranslateResult } from '~lib/constants/types';
+import { translate, translateBatch } from '~lib/translate/translate';
 
 export interface TranslateMessage {
   type: 'translate' | 'translateBatch';
   text?: string;
   texts?: string[];
   options: TranslateOptions;
-  host?: string; // 添加域名参数用于自定义词库查找
+  host?: string;
 }
 
 export interface TranslateResponse {
@@ -16,31 +15,30 @@ export interface TranslateResponse {
   error?: string;
 }
 
-// 处理翻译消息
-export async function handleTranslateMessage(message: TranslateMessage): Promise<TranslateResponse> {
+export async function handleTranslateMessage(
+  message: TranslateMessage
+): Promise<TranslateResponse> {
   try {
-    
     if (message.type === 'translate' && message.text) {
-      const result = await translate(message.text, message.options, message.host);
       return {
         success: true,
-        data: result,
-      };
-    } else if (message.type === 'translateBatch' && message.texts) {
-      const results = await translateBatch(message.texts, message.options, message.host);
-      return {
-        success: true,
-        data: results,
-      };
-    } else {
-      console.error('无效的消息格式:', message);
-      return {
-        success: false,
-        error: '无效的消息格式',
+        data: await translate(message.text, message.options, message.host),
       };
     }
+
+    if (message.type === 'translateBatch' && message.texts) {
+      return {
+        success: true,
+        data: await translateBatch(message.texts, message.options, message.host),
+      };
+    }
+
+    return {
+      success: false,
+      error: 'Invalid translate message payload',
+    };
   } catch (error) {
-    console.error('翻译消息处理失败:', error);
+    console.error('Translate message handling failed:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : String(error),
@@ -48,5 +46,4 @@ export async function handleTranslateMessage(message: TranslateMessage): Promise
   }
 }
 
-// 为了兼容性，添加默认导出
-export default handleTranslateMessage; 
+export default handleTranslateMessage;

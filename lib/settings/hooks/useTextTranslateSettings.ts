@@ -1,26 +1,33 @@
-/**
- * 文本翻译设置 Hook
- */
 import { useCallback } from 'react';
-import { useGlobalSettings } from './useGlobalSettings';
+
 import type { GlobalSettings, PartialDeep } from '../../constants/types';
+import { useSettingsModule } from './useSettingsModule';
+
+type TriggerModeKey = keyof Pick<
+  GlobalSettings['textTranslate'],
+  'selectTranslate' | 'quickTranslate' | 'pressKeyTranslate'
+>;
 
 export function useTextTranslateSettings() {
-  const { settings, updateModuleSettings } = useGlobalSettings();
-
-  const textTranslateSettings = settings.textTranslate;
-
-  const updateTextTranslate = useCallback((updates: PartialDeep<GlobalSettings['textTranslate']>) => {
-    updateModuleSettings('textTranslate', updates);
-  }, [updateModuleSettings]);
+  const {
+    moduleSettings: textTranslateSettings,
+    updateSettings: updateTextTranslate,
+  } = useSettingsModule('textTranslate');
 
   const toggleEnabled = useCallback(() => {
-    updateTextTranslate({ enabled: !textTranslateSettings.enabled });
+    updateTextTranslate({
+      enabled: !textTranslateSettings.enabled,
+    } as PartialDeep<GlobalSettings['textTranslate']>);
   }, [textTranslateSettings.enabled, updateTextTranslate]);
 
-  const setTriggerMode = useCallback((mode: keyof Pick<GlobalSettings['textTranslate'], 'selectTranslate' | 'quickTranslate' | 'pressKeyTranslate'>, enabled: boolean) => {
-    updateTextTranslate({ [mode]: enabled });
-  }, [updateTextTranslate]);
+  const setTriggerMode = useCallback(
+    (mode: TriggerModeKey, enabled: boolean) => {
+      updateTextTranslate({
+        [mode]: enabled,
+      } as PartialDeep<GlobalSettings['textTranslate']>);
+    },
+    [updateTextTranslate]
+  );
 
   return {
     textTranslateSettings,
