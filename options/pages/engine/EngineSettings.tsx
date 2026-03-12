@@ -11,7 +11,6 @@ import {
   Radio,
   Segmented,
   Select,
-  Space,
   Switch
 } from 'antd';
 import { useTranslation } from 'react-i18next';
@@ -71,7 +70,6 @@ const EngineSettings: React.FC = () => {
   const {
     engineSettings,
     setDefaultEngine,
-    updateApiKey,
     addCustomEngine,
     removeCustomEngine,
     updateCustomEngine,
@@ -182,10 +180,6 @@ const EngineSettings: React.FC = () => {
     message.success(t('Engine deleted'));
   };
 
-  const testApiKey = async () => {
-    message.info(t('API key testing is not implemented yet'));
-  };
-
   return (
     <SettingsPageContainer
       title={t('Engine settings')}
@@ -212,45 +206,6 @@ const EngineSettings: React.FC = () => {
             }))}
           />
         </SettingsItem>
-
-        {engine === 'deepl' && (
-          <SettingsItem
-            label={t('DeepL free web translation')}
-            description={t('This engine uses the DeepL web endpoint and does not require an API key')}
-          >
-            <div style={{ color: isDark ? '#a6a6a6' : '#666666' }}>
-              {t('Using an unofficial free web implementation inspired by open-source projects.')}
-            </div>
-          </SettingsItem>
-        )}
-
-        {engine === 'bing' && (
-          <SettingsItem
-            label={t('Bing API key')}
-            description={t('Provide your Bing API key')}
-          >
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <Input.Password
-                value={engineSettings.apiKeys.bing || ''}
-                onChange={(event) => updateApiKey('bing', event.target.value)}
-                placeholder={t('Enter Bing API key')}
-                style={{ width: 300 }}
-              />
-              <Button onClick={testApiKey}>{t('Test')}</Button>
-            </div>
-          </SettingsItem>
-        )}
-
-        {engine === 'yandex' && (
-          <SettingsItem
-            label={t('Yandex free web translation')}
-            description={t('This engine uses the Yandex website widget endpoint and does not require an API key')}
-          >
-            <div style={{ color: isDark ? '#a6a6a6' : '#666666' }}>
-              {t('Using an unofficial free web implementation inspired by open-source projects.')}
-            </div>
-          </SettingsItem>
-        )}
       </SettingsGroup>
 
       <SettingsGroup title={t('Speech engine')}>
