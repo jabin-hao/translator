@@ -1,6 +1,6 @@
 import type { GlobalSettings } from '../constants/types';
 import { GLOBAL_SETTINGS_KEY } from '../settings/settings';
-import { translationCacheManager } from '../storage/chrome_storage';
+import { translationCacheRepository } from '../storage/indexed_db';
 import { storageApi } from '../storage/storage';
 
 export interface CacheConfig {
@@ -20,8 +20,8 @@ class CacheManager {
   private hitCount = 0;
   private totalRequests = 0;
   private config: CacheConfig = {
-    maxAge: 24 * 60 * 60 * 1000,
-    maxSize: 10000,
+    maxAge: 30 * 24 * 60 * 60 * 1000,
+    maxSize: 5000,
   };
 
   async initDB(): Promise<void> {
@@ -41,9 +41,16 @@ class CacheManager {
     }
   }
 
+  recordRequest(hit: boolean) {
+    this.totalRequests += 1;
+    if (hit) {
+      this.hitCount += 1;
+    }
+  }
+
   async cleanupExpiredCache(): Promise<void> {
     try {
-      await translationCacheManager.cleanupExpired(this.config.maxAge);
+      await translationCacheRepository.cleanupExpired(this.config.maxAge);
     } catch (error) {
       console.error('Failed to cleanup expired cache:', error);
     }
@@ -51,7 +58,7 @@ class CacheManager {
 
   async clear(): Promise<void> {
     try {
-      await translationCacheManager.clear();
+      await translationCacheRepository.clear();
     } catch (error) {
       console.error('Failed to clear cache:', error);
     }
@@ -59,7 +66,7 @@ class CacheManager {
 
   async getStats(): Promise<CacheStats> {
     try {
-      const { count, size } = await translationCacheManager.getStats();
+      const { count, size } = await translationCacheRepository.getStats();
       const hitRate =
         this.totalRequests > 0 ? (this.hitCount / this.totalRequests) * 100 : 0;
 
@@ -87,6 +94,7 @@ class CacheManager {
       ...this.config,
       ...newConfig,
     };
+    await translationCacheRepository.cleanupExpired(this.config.maxAge);
   }
 }
 

@@ -57,7 +57,7 @@ interface IconProps {
 }
 
 type IconComponentProps = {
-  size?: number
+  size?: string | number
   color?: string
   className?: string
   style?: React.CSSProperties

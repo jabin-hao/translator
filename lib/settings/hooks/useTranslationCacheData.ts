@@ -1,8 +1,32 @@
+import { sendToBackground } from '@plasmohq/messaging';
 import { useCallback, useEffect, useState } from 'react';
 
 import type { TranslationCacheEntry } from '../../constants/types';
-import { cacheManager } from '../../cache/cache';
-import { translationCacheManager } from '../../storage/chrome_storage';
+import { storageEvents } from '../../storage/indexed_db';
+
+type CacheStats = {
+  count: number;
+  size: number;
+  hitRate: number;
+  totalRequests: number;
+  hitCount: number;
+};
+
+async function requestCache<T>(action: string) {
+  const response = await sendToBackground({
+    name: 'handle' as never,
+    body: {
+      service: 'cache',
+      action,
+    },
+  });
+
+  if (!response?.success) {
+    throw new Error(response?.error || `Cache action "${action}" failed`);
+  }
+
+  return response.data as T;
+}
 
 export function useTranslationCacheData() {
   const [cacheEntries, setCacheEntries] = useState<TranslationCacheEntry[]>([]);
@@ -12,7 +36,7 @@ export function useTranslationCacheData() {
   const refresh = useCallback(async () => {
     try {
       setLoading(true);
-      setCacheEntries(await translationCacheManager.getEntries());
+      setCacheEntries(await requestCache<TranslationCacheEntry[]>('list'));
       setError('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load translation cache');
@@ -22,20 +46,33 @@ export function useTranslationCacheData() {
   }, []);
 
   useEffect(() => {
-    refresh();
+    void refresh();
+
+    if (!chrome?.runtime?.onMessage) {
+      return undefined;
+    }
+
+    const listener = (message: { type?: string }) => {
+      if (message.type === storageEvents.cacheUpdated) {
+        void refresh();
+      }
+    };
+
+    chrome.runtime.onMessage.addListener(listener);
+    return () => chrome.runtime.onMessage.removeListener(listener);
   }, [refresh]);
 
   const clearCache = useCallback(async () => {
-    const success = await translationCacheManager.clear();
-    if (success) {
+    try {
+      await requestCache('clear');
       await refresh();
+      return true;
+    } catch {
+      return false;
     }
-    return success;
   }, [refresh]);
 
-  const getCacheStats = useCallback(() => {
-    return cacheManager.getStats();
-  }, []);
+  const getCacheStats = useCallback(() => requestCache<CacheStats>('stats'), []);
 
   return {
     cacheEntries,

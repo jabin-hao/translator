@@ -80,8 +80,6 @@ export const DEFAULT_SETTINGS: GlobalSettings = {
 
   favorites: {
     enabled: true,
-    words: [],
-    autoSave: true,
     maxSize: 1000,
   },
 };

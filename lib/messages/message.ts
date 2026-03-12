@@ -59,7 +59,7 @@ export const setupMessageHandler = (setShowInputTranslator?: (show: boolean) => 
             | 'translated'
             | 'compare';
           const result = await lazyFullPageTranslate(msg.lang, mode, msg.engine);
-          const state = (window as { __translationState?: Record<string, unknown> })
+          const state = (window as unknown as { __translationState?: TranslationState })
             .__translationState;
 
           if (state) {

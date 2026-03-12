@@ -7,9 +7,9 @@ export function useCacheSettings() {
   const { moduleSettings: cacheSettings, updateSettings: updateCache } =
     useSettingsModule('cache');
 
-  const toggleEnabled = useCallback(() => {
+  const toggleEnabled = useCallback((nextEnabled?: boolean) => {
     updateCache({
-      enabled: !cacheSettings.enabled,
+      enabled: typeof nextEnabled === 'boolean' ? nextEnabled : !cacheSettings.enabled,
     } as PartialDeep<GlobalSettings['cache']>);
   }, [cacheSettings.enabled, updateCache]);
 

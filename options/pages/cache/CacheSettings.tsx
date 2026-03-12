@@ -4,7 +4,6 @@ import { sendToBackground } from '@plasmohq/messaging';
 import { useTranslation } from 'react-i18next';
 
 import Icon from '~lib/components/Icon';
-import { cacheManager } from '~lib/cache/cache';
 import { useCacheSettings, useTranslationCacheData } from '~lib/settings/settings';
 import SettingsGroup from '../../components/SettingsGroup';
 import SettingsItem from '../../components/SettingsItem';
@@ -99,7 +98,7 @@ const CacheSettings: React.FC = () => {
   };
 
   const handleCacheToggle = async (enabled: boolean) => {
-    await toggleEnabled();
+    await toggleEnabled(enabled);
     message.success(enabled ? t('Cache enabled') : t('Cache disabled'));
   };
 
@@ -146,11 +145,11 @@ const CacheSettings: React.FC = () => {
 
   const handleSaveConfig = async () => {
     await updateCache(pendingConfig);
-    await cacheManager.updateConfig(pendingConfig);
     await sendToBackground({
       name: 'handle' as never,
       body: { service: 'cache', action: 'reschedule' }
     });
+    await loadStats();
     message.success(t('Cache settings saved'));
   };
 

@@ -7,9 +7,9 @@ export function useFavoritesSettings() {
   const { moduleSettings: favoritesSettings, updateSettings: updateFavorites } =
     useSettingsModule('favorites');
 
-  const toggleEnabled = useCallback(() => {
+  const toggleEnabled = useCallback((nextEnabled?: boolean) => {
     updateFavorites({
-      enabled: !favoritesSettings.enabled,
+      enabled: typeof nextEnabled === 'boolean' ? nextEnabled : !favoritesSettings.enabled,
     } as PartialDeep<GlobalSettings['favorites']>);
   }, [favoritesSettings.enabled, updateFavorites]);
 

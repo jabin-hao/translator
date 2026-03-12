@@ -290,9 +290,10 @@ export interface CacheSettings {
  */
 export interface FavoritesSettings {
   enabled: boolean;
-  words: FavoriteWord[];
-  autoSave: boolean;
   maxSize: number;
+  // Deprecated fields kept optional for older stored settings payloads.
+  words?: FavoriteWord[];
+  autoSave?: boolean;
 }
 
 /**

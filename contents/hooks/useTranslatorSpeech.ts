@@ -20,6 +20,7 @@ interface UseTranslatorSpeechOptions {
 
 type AudioContextConstructor = typeof AudioContext;
 type WindowWithWebkitAudio = Window & {
+  AudioContext?: AudioContextConstructor;
   webkitAudioContext?: AudioContextConstructor;
 };
 

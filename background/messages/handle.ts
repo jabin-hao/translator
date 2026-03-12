@@ -1,12 +1,14 @@
 import type { PlasmoMessaging } from '@plasmohq/messaging';
 
 import cacheHandler from './cache';
+import type { FavoritesMessageRequest } from './favorites';
+import { handleFavoritesMessage } from './favorites';
 import type { SpeechMessageRequest, SpeechMessageResponse } from './speech';
 import { handleSpeechMessage } from './speech';
 import type { TranslateMessage, TranslateResponse } from './translate';
 import { handleTranslateMessage } from './translate';
 
-type HandlerService = 'translate' | 'speech' | 'cache';
+type HandlerService = 'translate' | 'speech' | 'cache' | 'favorites';
 
 type HandlerBody = {
   service: HandlerService;
@@ -44,6 +46,7 @@ const handler: PlasmoMessaging.MessageHandler<HandlerRequest, HandlerResponse> =
   try {
     switch (body.service) {
       case 'translate': {
+        const useCacheOption = body.options?.useCache;
         const response = await handleTranslateMessage({
           type: body.action as TranslateMessage['type'],
           text: body.text,
@@ -53,7 +56,7 @@ const handler: PlasmoMessaging.MessageHandler<HandlerRequest, HandlerResponse> =
             from: String(body.options?.from || 'auto'),
             to: String(body.options?.to || 'zh-CN'),
             engine: String(body.options?.engine || 'bing'),
-            useCache: body.options?.useCache ?? true,
+            useCache: typeof useCacheOption === 'boolean' ? useCacheOption : true,
           },
         });
 
@@ -64,7 +67,7 @@ const handler: PlasmoMessaging.MessageHandler<HandlerRequest, HandlerResponse> =
       case 'speech': {
         const response = await handleSpeechMessage({
           action: body.action as SpeechMessageRequest['action'],
-          options: body.options as SpeechMessageRequest['options'],
+          options: body.options as unknown as SpeechMessageRequest['options'],
         });
 
         res.send(response as SpeechMessageResponse);
@@ -73,6 +76,16 @@ const handler: PlasmoMessaging.MessageHandler<HandlerRequest, HandlerResponse> =
 
       case 'cache': {
         res.send(await cacheHandler(body));
+        return;
+      }
+
+      case 'favorites': {
+        const response = await handleFavoritesMessage({
+          action: body.action as FavoritesMessageRequest['action'],
+          options: body.options as FavoritesMessageRequest['options'],
+        });
+
+        res.send(response);
         return;
       }
 

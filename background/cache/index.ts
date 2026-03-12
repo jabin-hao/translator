@@ -1,11 +1,12 @@
 import type { GlobalSettings } from '~lib/constants/types';
 import { cacheManager } from '~lib/cache/cache';
 import { GLOBAL_SETTINGS_KEY } from '~lib/settings/settings';
+import { translationCacheRepository } from '~lib/storage/indexed_db';
 import { storageApi } from '~lib/storage/storage';
 
 let cleanupTimer: ReturnType<typeof setInterval> | null = null;
 
-type CacheAction = 'clean' | 'reschedule';
+type CacheAction = 'clean' | 'reschedule' | 'stats' | 'list' | 'clear';
 
 async function getCleanupInterval() {
   try {
@@ -46,7 +47,27 @@ export async function handleCacheMessage(action: CacheAction) {
   }
 
   if (action === 'reschedule') {
+    await cleanCache();
     await scheduleCacheCleanup();
+    return { success: true };
+  }
+
+  if (action === 'stats') {
+    return {
+      success: true,
+      data: await cacheManager.getStats(),
+    };
+  }
+
+  if (action === 'list') {
+    return {
+      success: true,
+      data: await translationCacheRepository.getEntries(),
+    };
+  }
+
+  if (action === 'clear') {
+    await cacheManager.clear();
     return { success: true };
   }
 

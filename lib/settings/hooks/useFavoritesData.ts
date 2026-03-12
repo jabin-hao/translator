@@ -1,7 +1,25 @@
+import { sendToBackground } from '@plasmohq/messaging';
 import { useCallback, useEffect, useState } from 'react';
 
 import type { FavoriteWord } from '../../constants/types';
-import { favoritesManager } from '../../storage/chrome_storage';
+import { storageEvents } from '../../storage/indexed_db';
+
+async function requestFavorites<T>(action: string, options?: Record<string, unknown>) {
+  const response = await sendToBackground({
+    name: 'handle' as never,
+    body: {
+      service: 'favorites',
+      action,
+      options,
+    },
+  });
+
+  if (!response?.success) {
+    throw new Error(response?.error || `Favorites action "${action}" failed`);
+  }
+
+  return response.data as T;
+}
 
 export function useFavoritesData() {
   const [favorites, setFavorites] = useState<FavoriteWord[]>([]);
@@ -11,7 +29,7 @@ export function useFavoritesData() {
   const refresh = useCallback(async () => {
     try {
       setLoading(true);
-      setFavorites(await favoritesManager.getFavorites());
+      setFavorites(await requestFavorites<FavoriteWord[]>('list'));
       setError('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load favorites');
@@ -21,52 +39,73 @@ export function useFavoritesData() {
   }, []);
 
   useEffect(() => {
-    refresh();
+    void refresh();
+
+    if (!chrome?.runtime?.onMessage) {
+      return undefined;
+    }
+
+    const listener = (message: { type?: string }) => {
+      if (message.type === storageEvents.favoritesUpdated) {
+        void refresh();
+      }
+    };
+
+    chrome.runtime.onMessage.addListener(listener);
+    return () => chrome.runtime.onMessage.removeListener(listener);
   }, [refresh]);
 
   const addFavorite = useCallback(
     async (favorite: Omit<FavoriteWord, 'id' | 'timestamp'>) => {
-      const success = await favoritesManager.addFavorite(favorite);
-      if (success) {
+      try {
+        await requestFavorites('add', { favorite });
         await refresh();
+        return true;
+      } catch {
+        return false;
       }
-      return success;
     },
     [refresh]
   );
 
   const deleteFavorite = useCallback(
     async (id: string) => {
-      const success = await favoritesManager.deleteFavorite(id);
-      if (success) {
+      try {
+        await requestFavorites('delete', { id });
         await refresh();
+        return true;
+      } catch {
+        return false;
       }
-      return success;
     },
     [refresh]
   );
 
   const clearFavorites = useCallback(async () => {
-    const success = await favoritesManager.clearFavorites();
-    if (success) {
+    try {
+      await requestFavorites('clear');
       await refresh();
+      return true;
+    } catch {
+      return false;
     }
-    return success;
   }, [refresh]);
 
   const replaceFavorites = useCallback(
     async (nextFavorites: FavoriteWord[]) => {
-      const success = await favoritesManager.replaceFavorites(nextFavorites);
-      if (success) {
+      try {
+        await requestFavorites('replace', { favorites: nextFavorites });
         await refresh();
+        return true;
+      } catch {
+        return false;
       }
-      return success;
     },
     [refresh]
   );
 
   const searchFavorites = useCallback((query: string) => {
-    return favoritesManager.searchFavorites(query);
+    return requestFavorites<FavoriteWord[]>('search', { query });
   }, []);
 
   return {

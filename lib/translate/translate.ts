@@ -2,9 +2,11 @@ import { bingTranslate, bingTranslateBatch } from '~background/translate/bing';
 import { deeplTranslate, deeplTranslateBatch } from '~background/translate/deepl';
 import { googleTranslate, googleTranslateBatch } from '~background/translate/google';
 import { yandexTranslate, yandexTranslateBatch } from '~background/translate/yandex';
+import { cacheManager } from '~lib/cache/cache';
 import type { GlobalSettings, TranslateOptions, TranslateResult } from '~lib/constants/types';
 import { GLOBAL_SETTINGS_KEY } from '~lib/settings/settings';
-import { customDictionaryManager, translationCacheManager } from '~lib/storage/chrome_storage';
+import { customDictionaryManager } from '~lib/storage/chrome_storage';
+import { translationCacheRepository } from '~lib/storage/indexed_db';
 import { storageApi } from '~lib/storage/storage';
 
 type TranslateFunction = (text: string, from: string, to: string) => Promise<string>;
@@ -61,7 +63,15 @@ async function getCachedTranslation(
     return null;
   }
 
-  return translationCacheManager.get(text, from, to, engine);
+  const cachedTranslation = await translationCacheRepository.get(text, from, to, engine);
+  const isHit = Boolean(cachedTranslation);
+  cacheManager.recordRequest(isHit);
+
+  if (isHit) {
+    void translationCacheRepository.touch(text, from, to, engine);
+  }
+
+  return cachedTranslation;
 }
 
 async function saveTranslationCache(
@@ -77,7 +87,15 @@ async function saveTranslationCache(
   }
 
   try {
-    await translationCacheManager.set(text, translation, from, to, engine);
+    await translationCacheRepository.setMany([
+      {
+        text,
+        translation,
+        from,
+        to,
+        engine,
+      },
+    ]);
   } catch (error) {
     console.error('Failed to write translation cache:', error);
   }
@@ -276,14 +294,19 @@ export async function translateBatch(
           engine,
           false
         );
+      }
 
-        await saveTranslationCache(
-          pendingTexts[index],
-          translation,
-          from,
-          to,
-          engine,
-          shouldUseCache
+      if (shouldUseCache) {
+        // Batched cache writes keep page translation from opening a write transaction
+        // for every single segment result.
+        await translationCacheRepository.setMany(
+          translations.map((translation, index) => ({
+            text: pendingTexts[index],
+            translation,
+            from,
+            to,
+            engine,
+          }))
         );
       }
 
