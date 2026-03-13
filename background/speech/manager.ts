@@ -2,6 +2,7 @@ import type { SpeechOptions, SpeechResult, SpeechService } from '~lib/constants/
 import { SPEECH_KEY } from '~lib/settings/settings';
 import { storageApi } from '~lib/storage/storage';
 
+import { EdgeSpeechService } from './edge';
 import { GoogleSpeechService } from './google';
 import { LocalSpeechService } from './local';
 
@@ -13,28 +14,37 @@ interface BaseSpeechService {
 
 type StoredSpeechSettings = {
   engine?: SpeechService;
+  voice?: string;
   speed?: number;
   pitch?: number;
   volume?: number;
 };
 
+function normalizeSpeechService(service?: SpeechService): SpeechService {
+  return service === 'local' ? 'browser' : service || 'google';
+}
+
 export class SpeechManager {
   private services = new Map<SpeechService, BaseSpeechService>();
   private currentService: SpeechService = 'google';
-  private currentAudio: HTMLAudioElement | null = null;
 
   constructor() {
-    this.services.set('browser', new LocalSpeechService());
+    const browserService = new LocalSpeechService();
+
+    this.services.set('browser', browserService);
+    this.services.set('local', browserService);
     this.services.set('google', new GoogleSpeechService());
+    this.services.set('edge', new EdgeSpeechService());
     void this.loadUserSettings();
   }
 
   private async loadUserSettings() {
     try {
       const settings = (await storageApi.get<StoredSpeechSettings>(SPEECH_KEY)) || undefined;
+      const requestedEngine = normalizeSpeechService(settings?.engine);
 
-      if (settings?.engine && this.services.has(settings.engine)) {
-        this.currentService = settings.engine;
+      if (this.services.has(requestedEngine)) {
+        this.currentService = requestedEngine;
       }
     } catch (error) {
       console.error('Failed to load speech settings:', error);
@@ -61,30 +71,19 @@ export class SpeechManager {
       const settings = (await storageApi.get<StoredSpeechSettings>(SPEECH_KEY)) || {};
       const finalOptions: SpeechOptions = {
         ...options,
+        engine: this.currentService,
+        voice: options.voice ?? settings.voice ?? '',
         speed: options.speed ?? settings.speed ?? 1,
         pitch: options.pitch ?? settings.pitch ?? 1,
         volume: options.volume ?? settings.volume ?? 1,
       };
 
       const result = await service.speak(finalOptions);
-      if (result.success) {
+      if (result.success || (result.requiresBrowser && result.error === 'browser_tts_required')) {
         return result;
       }
 
-      if (result.requiresBrowser && result.error === 'browser_tts_required') {
-        return result;
-      }
-
-      if (this.currentService === 'google') {
-        console.warn('[SpeechManager] Google TTS failed, falling back to browser TTS:', result.error);
-        return {
-          success: false,
-          error: 'browser_tts_required',
-          requiresBrowser: true,
-        };
-      }
-
-      const fallbackOrder: SpeechService[] = ['google', 'browser'].filter(
+      const fallbackOrder: SpeechService[] = ['edge', 'google', 'browser'].filter(
         (serviceName): serviceName is SpeechService => serviceName !== this.currentService
       );
 
@@ -96,13 +95,9 @@ export class SpeechManager {
 
         try {
           const fallbackResult = await fallbackInstance.speak(finalOptions);
-          if (fallbackResult.success) {
-            return fallbackResult;
-          }
-
           if (
-            fallbackResult.requiresBrowser &&
-            fallbackResult.error === 'browser_tts_required'
+            fallbackResult.success ||
+            (fallbackResult.requiresBrowser && fallbackResult.error === 'browser_tts_required')
           ) {
             return fallbackResult;
           }
@@ -113,7 +108,7 @@ export class SpeechManager {
 
       return {
         success: false,
-        error: 'No TTS service is available',
+        error: result.error || 'No TTS service is available',
       };
     } catch (error) {
       console.error('Speech service invocation failed:', error);
@@ -128,15 +123,10 @@ export class SpeechManager {
     for (const service of this.services.values()) {
       service.stop();
     }
-
-    if (this.currentAudio) {
-      this.currentAudio.pause();
-      this.currentAudio = null;
-    }
   }
 
   async checkServiceAvailability(service: SpeechService): Promise<boolean> {
-    return this.services.has(service);
+    return this.services.has(normalizeSpeechService(service));
   }
 }
 

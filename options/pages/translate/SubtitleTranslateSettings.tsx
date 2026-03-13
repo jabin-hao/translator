@@ -131,7 +131,7 @@ const SubtitleTranslateSettings: React.FC = () => {
       description={t(
         "Configure subtitle translation, speech-to-text subtitles, and display behavior for supported video platforms.",
       )}>
-      <SettingsGroup title={t("Basic Settings")} first>
+      <SettingsGroup title={t("Basic settings")} first>
         <SettingsItem
           label={t("Enable Subtitle Translation")}
           description={t(
@@ -190,7 +190,7 @@ const SubtitleTranslateSettings: React.FC = () => {
             </SettingsItem>
           </SettingsGroup>
 
-          <SettingsGroup title={t("Translation Settings")}>
+          <SettingsGroup title={t("Translation settings")}>
             <SettingsItem
               label={t("Auto Detect Language")}
               description={t(

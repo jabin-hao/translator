@@ -15,7 +15,7 @@ export type TranslateEngineType = 'google' | 'deepl' | 'bing' | 'yandex';
 /**
  * TTS引擎类型
  */
-export type TTSEngineType = 'google' | 'local' | 'browser';
+export type TTSEngineType = 'google' | 'edge' | 'local' | 'browser';
 
 /**
  * 主题模式

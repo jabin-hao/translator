@@ -31,13 +31,19 @@ export const TTS_ENGINES: TTSEngineConfig[] = [
   {
     value: 'google',
     label: 'Google TTS',
-    description: 'Cloud-backed speech synthesis',
+    description: 'Google Translate speech endpoint',
     priority: 1,
+  },
+  {
+    value: 'edge',
+    label: 'Edge TTS',
+    description: 'Microsoft Edge read-aloud voices',
+    priority: 2,
   },
   {
     value: 'browser',
     label: 'Browser TTS',
-    description: 'Use the browser Web Speech API',
+    description: 'Use Web Speech API voices from the current browser',
     priority: 3,
   },
 ];

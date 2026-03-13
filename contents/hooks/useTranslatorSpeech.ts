@@ -3,6 +3,7 @@ import { useCallback, useRef, useState } from 'react';
 import { getTTSLang } from '~lib/constants/languages';
 
 interface SpeechConfig {
+  voice?: string;
   speed: number;
   pitch: number;
   volume: number;
@@ -13,7 +14,8 @@ interface UseTranslatorSpeechOptions {
   translateFailedText: string;
   callTTSAPI: (
     text: string,
-    lang: string
+    lang: string,
+    speechOptions?: SpeechConfig
   ) => Promise<{ success: boolean; audioData?: ArrayBuffer; error?: string }>;
   stopTTSAPI: () => Promise<void>;
 }
@@ -62,6 +64,15 @@ export function useTranslatorSpeech({
           utterance.pitch = speechConfig.pitch || 1;
           utterance.volume = speechConfig.volume || 1;
 
+          if (speechConfig.voice) {
+            const matchedVoice = window.speechSynthesis
+              .getVoices()
+              .find((voice) => voice.name === speechConfig.voice);
+            if (matchedVoice) {
+              utterance.voice = matchedVoice;
+            }
+          }
+
           utterance.onstart = () => {
             setIsSpeaking(true);
           };
@@ -81,7 +92,7 @@ export function useTranslatorSpeech({
           reject(error);
         }
       }),
-    [speechConfig.pitch, speechConfig.speed, speechConfig.volume]
+    [speechConfig.pitch, speechConfig.speed, speechConfig.voice, speechConfig.volume]
   );
 
   const playAudioFromArrayBuffer = useCallback(
@@ -109,34 +120,42 @@ export function useTranslatorSpeech({
           isPlayingAudioRef.current = true;
           audioContext = new AudioContextClass();
 
-          audioContext.decodeAudioData(audioData).then((audioBuffer) => {
-            const source = audioContext!.createBufferSource();
-            source.buffer = audioBuffer;
-            source.connect(audioContext!.destination);
+          audioContext.decodeAudioData(audioData).then(
+            (audioBuffer) => {
+              const source = audioContext!.createBufferSource();
+              const gainNode = audioContext!.createGain();
 
-            source.onended = () => {
-              setIsSpeaking(false);
-              isPlayingAudioRef.current = false;
-              if (audioContext && audioContext.state !== 'closed') {
-                audioContext.close().catch(() => {});
-              }
-              resolve();
-            };
+              source.buffer = audioBuffer;
+              source.playbackRate.value = speechConfig.speed || 1;
+              gainNode.gain.value = speechConfig.volume ?? 1;
+              source.connect(gainNode);
+              gainNode.connect(audioContext!.destination);
 
-            setIsSpeaking(true);
-            source.start(0);
-
-            currentAudioRef.current = {
-              pause: () => {
-                source.stop();
+              source.onended = () => {
+                setIsSpeaking(false);
                 isPlayingAudioRef.current = false;
                 if (audioContext && audioContext.state !== 'closed') {
                   audioContext.close().catch(() => {});
                 }
-                setIsSpeaking(false);
-              },
-            } as HTMLAudioElement;
-          }, reject);
+                resolve();
+              };
+
+              setIsSpeaking(true);
+              source.start(0);
+
+              currentAudioRef.current = {
+                pause: () => {
+                  source.stop();
+                  isPlayingAudioRef.current = false;
+                  if (audioContext && audioContext.state !== 'closed') {
+                    audioContext.close().catch(() => {});
+                  }
+                  setIsSpeaking(false);
+                },
+              } as HTMLAudioElement;
+            },
+            (error) => reject(error)
+          );
         } catch (error) {
           setIsSpeaking(false);
           isPlayingAudioRef.current = false;
@@ -146,7 +165,7 @@ export function useTranslatorSpeech({
           reject(error);
         }
       }),
-    []
+    [speechConfig.speed, speechConfig.volume]
   );
 
   const normalizeAudioBuffer = useCallback((audioData: unknown) => {
@@ -155,10 +174,7 @@ export function useTranslatorSpeech({
     }
 
     if (audioData instanceof Uint8Array) {
-      return audioData.buffer.slice(
-        audioData.byteOffset,
-        audioData.byteOffset + audioData.byteLength
-      );
+      return audioData.buffer.slice(audioData.byteOffset, audioData.byteOffset + audioData.byteLength);
     }
 
     if (audioData && typeof audioData === 'object') {
@@ -182,7 +198,7 @@ export function useTranslatorSpeech({
       }
 
       try {
-        const result = await callTTSAPI(text, lang);
+        const result = await callTTSAPI(text, lang, speechConfig);
 
         if (result.success && result.audioData) {
           try {
@@ -212,6 +228,7 @@ export function useTranslatorSpeech({
       normalizeAudioBuffer,
       playAudioFromArrayBuffer,
       speakWithWebSpeechAPI,
+      speechConfig,
       translateFailedText,
     ]
   );
