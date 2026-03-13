@@ -14,21 +14,26 @@ import { isExtensionContextInvalidatedError } from '~lib/utils/extensionContext'
 import {
   useFavoritesData,
   useFavoritesSettings,
+  useEngineSettings,
   useLanguageSettings,
   useSpeechSettings,
 } from '~lib/settings/settings';
 import { useTranslatorSpeech } from '../hooks/useTranslatorSpeech';
 import '../styles/index.css';
 
-const getEngineDisplayName = (engine: string) => {
+const getEngineDisplayName = (
+  engine: string,
+  customEngineNames?: Record<string, string>
+) => {
   const engineNames: Record<string, string> = {
     bing: 'Bing',
     google: 'Google',
     deepl: 'DeepL',
     edge: 'Edge',
+    yandex: 'Yandex',
   };
 
-  return engineNames[engine] || engine;
+  return customEngineNames?.[engine] || engineNames[engine] || engine;
 };
 
 const getLocalizedLangBadge = (code: string, uiLanguage: string | undefined) => {
@@ -105,6 +110,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const { languageSettings } = useLanguageSettings();
+  const { engineSettings } = useEngineSettings();
   const { speechSettings } = useSpeechSettings();
   const { favoritesSettings } = useFavoritesSettings();
   const { favorites, addFavorite, deleteFavorite } = useFavoritesData();
@@ -136,6 +142,16 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({
   const favoriteLangs = languageSettings.favorites;
   const sourceText = originalText || text;
   const translateFailedText = t('Translation failed, please try again');
+  const customEngineNames = useMemo(
+    () =>
+      Object.fromEntries(
+        engineSettings.customEngines.map((customEngine) => [
+          customEngine.id,
+          customEngine.name,
+        ])
+      ),
+    [engineSettings.customEngines]
+  );
 
   const { isSpeaking, setIsSpeaking, speak, stopSpeaking } = useTranslatorSpeech({
     speechConfig: {
@@ -467,9 +483,9 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({
         </div>
 
         <Divider style={{ margin: '12px 0 8px 0' }} />
-        <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
+        <div style={{ fontSize: 12, color: 'var(--ant-color-text-description)', marginTop: 4 }}>
           {usedEngine && translatedText !== translateFailedText
-            ? `${t('Translated by')} ${getEngineDisplayName(usedEngine)}`
+            ? `${t('Translated by')} ${getEngineDisplayName(usedEngine, customEngineNames)}`
             : null}
         </div>
         <div
@@ -489,15 +505,16 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({
                 <Button
                   key={lang}
                   type={targetLang === lang ? 'primary' : 'default'}
-                  size="small"
-                  onClick={(event) => handleLangClick(event, lang)}
-                  style={{
-                    minWidth: '32px',
-                    padding: '0 8px',
-                    marginRight: index !== favoriteLangs.length - 1 ? '8px' : 0,
-                  }}
-                  title={getLocalizedLangLabel(lang, i18n.language)}
-                >
+                size="small"
+                onClick={(event) => handleLangClick(event, lang)}
+                style={{
+                  minWidth: '32px',
+                  padding: '0 8px',
+                  marginRight: index !== favoriteLangs.length - 1 ? '8px' : 0,
+                  color: targetLang === lang ? 'var(--ant-color-text-light-solid)' : undefined,
+                }}
+                title={getLocalizedLangLabel(lang, i18n.language)}
+              >
                   {getLocalizedLangBadge(lang, i18n.language)}
                 </Button>
               ))}
@@ -512,7 +529,10 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({
                 size="small"
                 onClick={handleSpeak}
                 title={t('Speech settings')}
-                style={{ marginRight: '4px' }}
+                style={{
+                  marginRight: '4px',
+                  color: isSpeaking ? 'var(--ant-color-text-light-solid)' : undefined,
+                }}
                 disabled={!translatedText || loading}
               />
             )}
@@ -524,7 +544,10 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({
                 size="small"
                 onClick={handleFavorite}
                 title={t('Favorites')}
-                style={{ marginRight: '4px' }}
+                style={{
+                  marginRight: '4px',
+                  color: isFavorited ? 'var(--ant-color-text-light-solid)' : undefined,
+                }}
                 disabled={!translatedText || loading}
               />
             )}
@@ -542,10 +565,6 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({
       </div>
     </Card>
   );
-};
-
-TranslatorResult.defaultProps = {
-  onClose: () => {},
 };
 
 export default TranslatorResult;

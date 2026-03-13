@@ -1,202 +1,7 @@
-/* 瀵煎叆涓婚鍙橀噺 */
-@import './theme.css';
-
-/* 鍏ㄥ眬鏍峰紡閲嶇疆 */
 * {
   box-sizing: border-box;
 }
 
-/* Message瀹瑰櫒閲嶇疆 */
-#message-container {
-  writing-mode: horizontal-tb !important;
-  direction: ltr !important;
-  text-orientation: mixed !important;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
-}
-
-#message-container * {
-  writing-mode: horizontal-tb !important;
-  direction: ltr !important;
-  text-orientation: mixed !important;
-}
-
-/* 纭繚Ant Design缁勪欢鍦ㄥ唴瀹硅剼鏈腑姝ｇ‘鏄剧ず */
-.ant-card {
-  background: var(--card-bg) !important;
-  border: 1px solid var(--card-border) !important;
-  color: var(--text-primary) !important;
-  box-shadow: var(--shadow) !important;
-}
-
-/* Card body鍘婚櫎榛樿padding锛屾柟渚胯嚜瀹氫箟 */
-.ant-card-body {
-  padding: 0 !important;
-}
-
-.ant-card-head {
-  background: var(--card-bg) !important;
-  border-bottom-color: var(--card-border) !important;
-  color: var(--text-primary) !important;
-}
-
-.ant-card-head-title {
-  color: var(--text-primary) !important;
-}
-
-/* 鎸夐挳鏍峰紡 */
-.ant-btn {
-  color: var(--text-primary) !important;
-  border-color: var(--card-border) !important;
-}
-
-.ant-btn-primary {
-  background: var(--button-primary) !important;
-  border-color: var(--button-primary) !important;
-  color: #ffffff !important;
-}
-
-.ant-btn-primary:hover {
-  background: var(--button-hover) !important;
-  border-color: var(--button-hover) !important;
-}
-
-/* 杈撳叆妗嗘牱寮?*/
-.ant-input {
-  background: var(--select-bg) !important;
-  border-color: var(--select-border) !important;
-  color: var(--text-primary) !important;
-}
-
-.ant-input:focus {
-  border-color: var(--button-primary) !important;
-  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2) !important;
-}
-
-/* 鏂囨湰鍩熸牱寮?*/
-.ant-input-textarea .ant-input {
-  background: var(--select-bg) !important;
-  border-color: var(--select-border) !important;
-  color: var(--text-primary) !important;
-}
-
-.ant-select {
-  background: var(--select-bg) !important;
-  color: var(--text-primary) !important;
-}
-
-.ant-select-selector {
-  background: var(--select-bg) !important;
-  border-color: var(--select-border) !important;
-  color: var(--text-primary) !important;
-}
-
-.ant-select-dropdown {
-  background: var(--card-bg) !important;
-  border-color: var(--card-border) !important;
-  z-index: 2147483647 !important;
-}
-
-.ant-select-dropdown .ant-select-item {
-  color: var(--text-primary) !important;
-}
-
-.ant-select-dropdown .ant-select-item-option-selected {
-  background: #177ddc !important;
-  color: #ffffff !important;
-}
-
-.ant-select-dropdown .ant-select-item-option-active {
-  background: var(--bg-secondary) !important;
-}
-
-.ant-input {
-  background: var(--input-bg) !important;
-  border-color: var(--input-border) !important;
-  color: var(--text-primary) !important;
-}
-
-.ant-input::placeholder {
-  color: var(--text-secondary) !important;
-}
-
-.ant-btn {
-  background: var(--button-bg) !important;
-  border-color: var(--button-border) !important;
-  color: var(--text-primary) !important;
-}
-
-.ant-btn-primary {
-  background: #1890ff !important;
-  border-color: #1890ff !important;
-  color: #ffffff !important;
-}
-
-.ant-btn-text {
-  background: transparent !important;
-  border-color: transparent !important;
-  color: var(--text-primary) !important;
-}
-
-.ant-btn-text:hover {
-  background: var(--bg-secondary) !important;
-}
-
-.ant-divider {
-  border-color: var(--card-border) !important;
-}
-
-/* 纭繚message缁勪欢姝ｇ‘鏄剧ず */
-.ant-message {
-  z-index: 2147483647 !important;
-  pointer-events: auto !important;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
-  writing-mode: horizontal-tb !important;
-  direction: ltr !important;
-  text-orientation: mixed !important;
-}
-
-.ant-message .ant-message-notice {
-  z-index: 2147483647 !important;
-  pointer-events: auto !important;
-  writing-mode: horizontal-tb !important;
-  direction: ltr !important;
-  text-orientation: mixed !important;
-}
-
-.ant-message .ant-message-notice-content {
-  background: var(--card-bg) !important;
-  color: var(--text-primary) !important;
-  border: 1px solid var(--card-border) !important;
-  box-shadow: var(--shadow) !important;
-  writing-mode: horizontal-tb !important;
-  direction: ltr !important;
-  text-orientation: mixed !important;
-  white-space: normal !important;
-  word-break: normal !important;
-  line-height: normal !important;
-  display: inline-block !important;
-  min-width: 200px !important;
-  text-align: left !important;
-}
-
-.ant-message .ant-message-custom-content {
-  writing-mode: horizontal-tb !important;
-  direction: ltr !important;
-  text-orientation: mixed !important;
-  white-space: normal !important;
-  word-break: normal !important;
-  line-height: normal !important;
-  display: inline-block !important;
-}
-
-/* 纭繚message涓殑鎵€鏈夋枃鏈兘鏄按骞虫柟鍚?*/
-.ant-message * {
-  writing-mode: horizontal-tb !important;
-  direction: ltr !important;
-  text-orientation: mixed !important;
-}
-
-/* TranslatorResult 缁勪欢鏍峰紡 */
 .translator-copy-icon {
   font-size: 18px;
   color: var(--text-secondary);
@@ -224,7 +29,6 @@
   color: var(--text-primary);
 }
 
-/* Select 缁勪欢鑷畾涔夋牱寮?*/
 .custom-select .ant-select-selector {
   min-height: 28px !important;
   height: 28px !important;
@@ -240,25 +44,65 @@
   margin-top: -4px;
 }
 
-/* TranslatorIcon 缁勪欢鏍峰紡 */
 .translator-icon {
   background: var(--card-bg) !important;
   border: 2px solid #2386e1 !important;
   box-shadow: var(--shadow) !important;
 }
 
-/* TranslatorResult 缁勪欢寮哄埗瀹氫綅鏍峰紡 */
 .translator-result-card {
   position: fixed !important;
   transform: none !important;
   margin: 0 !important;
 }
 
-/* 杈撳叆妗嗙炕璇戝姩鐢诲畾涔?*/
+#message-container .ant-message {
+  top: 12px;
+  line-height: 1.4;
+}
+
+#message-container .ant-message-notice-wrapper {
+  padding: 8px;
+}
+
+#message-container .ant-message-notice-content {
+  background: var(--card-bg) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--card-border) !important;
+  border-radius: 10px !important;
+  box-shadow: var(--shadow) !important;
+  padding: 10px 14px !important;
+}
+
+#message-container .ant-message-custom-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary) !important;
+  line-height: 1.4 !important;
+  min-height: 22px;
+  font-size: 14px;
+}
+
+#message-container .ant-message-custom-content > span:last-child {
+  display: inline-block;
+  color: var(--text-primary) !important;
+  line-height: 1.4 !important;
+  padding-top: 1px;
+  white-space: nowrap;
+}
+
+#message-container .ant-message-custom-content > .anticon {
+  flex-shrink: 0;
+  font-size: 18px;
+  line-height: 1;
+}
+
 @keyframes translateIndicatorSpin {
   from {
     transform: translateY(-50%) rotate(0deg);
   }
+
   to {
     transform: translateY(-50%) rotate(360deg);
   }
@@ -268,9 +112,11 @@
   0% {
     transform: translateY(-50%) scale(1);
   }
+
   50% {
     transform: translateY(-50%) scale(1.15);
   }
+
   100% {
     transform: translateY(-50%) scale(1);
   }
@@ -281,6 +127,7 @@
     opacity: 0;
     transform: translateY(-8px) scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);

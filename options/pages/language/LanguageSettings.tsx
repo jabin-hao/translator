@@ -57,6 +57,19 @@ const LanguageSettings: React.FC = () => {
     message.success(t('Saved'));
   };
 
+  const tagListStyle: React.CSSProperties = {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 8,
+  };
+
+  const tagStyle: React.CSSProperties = {
+    margin: 0,
+    display: 'inline-flex',
+    alignItems: 'center',
+    lineHeight: 1.4,
+  };
+
   return (
     <SettingsPageContainer
       title={t('Language settings')}
@@ -144,7 +157,7 @@ const LanguageSettings: React.FC = () => {
                 {t('Add')}
               </Button>
             </div>
-            <div>
+            <div style={tagListStyle}>
               {favorites.map((language) => (
                 <Tag
                   key={language}
@@ -153,7 +166,7 @@ const LanguageSettings: React.FC = () => {
                     void saveAndNotify(() => removeFavoriteLanguage(language));
                   }}
                   color="blue"
-                  style={{ marginBottom: 4 }}
+                  style={tagStyle}
                 >
                   {getLocalizedLangLabel(language, i18n.language)}
                 </Tag>
@@ -197,7 +210,7 @@ const LanguageSettings: React.FC = () => {
                 {t('Add')}
               </Button>
             </div>
-            <div>
+            <div style={tagListStyle}>
               {never.map((language) => (
                 <Tag
                   key={language}
@@ -206,7 +219,7 @@ const LanguageSettings: React.FC = () => {
                     void saveAndNotify(() => removeNeverLanguage(language));
                   }}
                   color="red"
-                  style={{ marginBottom: 4 }}
+                  style={tagStyle}
                 >
                   {getLocalizedLangLabel(language, i18n.language)}
                 </Tag>
@@ -250,7 +263,7 @@ const LanguageSettings: React.FC = () => {
                 {t('Add')}
               </Button>
             </div>
-            <div>
+            <div style={tagListStyle}>
               {always.map((language) => (
                 <Tag
                   key={language}
@@ -259,7 +272,7 @@ const LanguageSettings: React.FC = () => {
                     void saveAndNotify(() => removeAlwaysLanguage(language));
                   }}
                   color="green"
-                  style={{ marginBottom: 4 }}
+                  style={tagStyle}
                 >
                   {getLocalizedLangLabel(language, i18n.language)}
                 </Tag>

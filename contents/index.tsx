@@ -1,16 +1,19 @@
-import { StyleProvider } from '@ant-design/cssinjs';
-import { App } from 'antd';
+import { createCache, StyleProvider } from '@ant-design/cssinjs';
+import { App, message } from 'antd';
 import type { PlasmoGetShadowHostId } from 'plasmo';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { reset as resetCssinjsCacheMap } from '@ant-design/cssinjs/es/util/cacheMapUtil';
 
+import antdCssText from 'data-text:antd/dist/antd.css';
 import antdResetCssText from 'data-text:antd/dist/reset.css';
+import contentThemeCssText from 'data-text:./styles/theme.css';
+import contentIndexCssText from 'data-text:./styles/index.css';
 
 import i18n, { initI18n } from '../i18n';
 import InputTranslateHandler from './components/InputTranslateHandler';
 import TranslatorIcon from './components/TranslatorIcon';
 import TranslatorResult from './components/TranslatorResult';
 import { callTranslateAPI, callTTSAPI, stopTTSAPI } from './content';
-import './styles/index.css';
 import { getIconPosition, getOverlayPosition } from './utils/overlayPosition';
 import { mapUiLangToI18nKey } from '~lib/constants/languages';
 import { setupMessageHandler } from '~lib/messages/message';
@@ -49,9 +52,18 @@ type ResultState = {
 
 export const getShadowHostId: PlasmoGetShadowHostId = () => HOST_ID;
 
+// Content UI renders inside a shadow root, so it cannot rely on cssinjs cache-path
+// markers from the outer document stylesheet. Force runtime style injection here.
+resetCssinjsCacheMap({}, false);
+
 export const getStyle = () => {
   const style = document.createElement('style');
-  style.textContent = antdResetCssText;
+  style.textContent = [
+    antdCssText,
+    antdResetCssText,
+    contentThemeCssText,
+    contentIndexCssText,
+  ].join('\n');
   return style;
 };
 
@@ -62,6 +74,7 @@ interface AppContentProps {
   engine: string;
   textTargetLang: string;
   inputTargetLang: string;
+  showMessage: (type: 'success' | 'error' | 'warning' | 'info', content: string) => void;
   shouldTranslate: boolean;
   inputTranslateSettings: ReturnType<typeof useInputTranslateSettings>['inputTranslateSettings'];
   handleTranslation: () => void;
@@ -76,21 +89,13 @@ const AppContent = ({
   engine,
   textTargetLang,
   inputTargetLang,
+  showMessage,
   shouldTranslate,
   inputTranslateSettings,
   handleTranslation,
   setShouldTranslate,
   onCloseResult,
 }: AppContentProps) => {
-  const { message } = App.useApp();
-
-  const showMessage = useCallback(
-    (type: 'success' | 'error' | 'warning' | 'info', content: string) => {
-      message[type](content).then();
-    },
-    [message]
-  );
-
   return (
     <>
       {icon && (
@@ -135,6 +140,13 @@ const ContentScript = () => {
   const [icon, setIcon] = useState<IconState | null>(null);
   const [result, setResult] = useState<ResultState | null>(null);
   const [shouldTranslate, setShouldTranslate] = useState(false);
+  const [styleContainer, setStyleContainer] = useState<ShadowRoot | null>(() => {
+    if (typeof document === 'undefined') {
+      return null;
+    }
+
+    return document.getElementById(HOST_ID)?.shadowRoot ?? null;
+  });
 
   const { engineSettings } = useEngineSettings();
   const { languageSettings } = useLanguageSettings();
@@ -151,6 +163,20 @@ const ContentScript = () => {
 
   const triggerInputTranslateRef = useRef<(() => void) | null>(null);
   const shadowRootRef = useRef<ShadowRoot | null>(null);
+  const messageContainerRef = useRef<HTMLDivElement | null>(null);
+  const styleCache = useState(() => createCache())[0];
+  const [messageApi, messageContextHolder] = message.useMessage({
+    top: 20,
+    duration: 3,
+    maxCount: 3,
+    getContainer: () => messageContainerRef.current ?? document.body,
+  });
+  const showMessage = useCallback(
+    (type: 'success' | 'error' | 'warning' | 'info', content: string) => {
+      messageApi[type](content).then();
+    },
+    [messageApi]
+  );
 
   const engine = engineSettings.default;
   const autoRead = speechSettings.autoPlay;
@@ -242,9 +268,10 @@ const ContentScript = () => {
     }
   }, [themeSettings.uiLanguage]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const hostElement = document.getElementById(HOST_ID);
     shadowRootRef.current = hostElement?.shadowRoot ?? null;
+    setStyleContainer(hostElement?.shadowRoot ?? null);
   }, []);
 
   useEffect(() => {
@@ -361,45 +388,29 @@ const ContentScript = () => {
 
   window.callTranslateAPI = callTranslateAPI;
 
+  if (!styleContainer) {
+    return null;
+  }
+
   return (
-    <ThemeProvider>
-      <StyleProvider hashPriority="high" container={document.getElementById(HOST_ID)?.shadowRoot}>
-        <App
-          message={{
-            top: 0,
-            duration: 3,
-            maxCount: 3,
-            getContainer: () => {
-              const shadowHost = document.getElementById(HOST_ID);
-              if (!shadowHost?.shadowRoot) {
-                return document.body;
-              }
-
-              let messageContainer = shadowHost.shadowRoot.querySelector(
-                '#message-container'
-              ) as HTMLElement | null;
-
-              if (!messageContainer) {
-                messageContainer = document.createElement('div');
-                messageContainer.id = 'message-container';
-                messageContainer.style.cssText = `
-                  position: fixed;
-                  top: 20px;
-                  left: 50%;
-                  transform: translateX(-50%);
-                  width: 100vw;
-                  pointer-events: none;
-                  z-index: 2147483647;
-                  text-align: center;
-                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-                `;
-                shadowHost.shadowRoot.appendChild(messageContainer);
-              }
-
-              return messageContainer;
-            },
-          }}
-        >
+    <StyleProvider
+      hashPriority="high"
+      cache={styleCache}
+      container={styleContainer || undefined}
+    >
+      <ThemeProvider>
+        <App>
+          {messageContextHolder}
+          <div
+            id="message-container"
+            ref={messageContainerRef}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              pointerEvents: 'none',
+              zIndex: 2147483647,
+            }}
+          />
           <AppContent
             icon={icon}
             result={result}
@@ -407,6 +418,7 @@ const ContentScript = () => {
             engine={engine}
             textTargetLang={textTargetLang}
             inputTargetLang={inputTargetLang}
+            showMessage={showMessage}
             shouldTranslate={shouldTranslate}
             inputTranslateSettings={inputTranslateSettings}
             handleTranslation={triggerTranslation}
@@ -417,8 +429,8 @@ const ContentScript = () => {
             }}
           />
         </App>
-      </StyleProvider>
-    </ThemeProvider>
+      </ThemeProvider>
+    </StyleProvider>
   );
 };
 

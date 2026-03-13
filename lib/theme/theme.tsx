@@ -18,6 +18,131 @@ const getSystemDarkMode = () =>
   typeof window.matchMedia === 'function' &&
   window.matchMedia('(prefers-color-scheme: dark)').matches;
 
+const isExtensionPage = () =>
+  typeof window !== 'undefined' && window.location.protocol === 'chrome-extension:';
+
+const parseRgb = (value: string) => {
+  const match = value.match(/\d+(\.\d+)?/g);
+  if (!match || match.length < 3) {
+    return null;
+  }
+
+  return match.slice(0, 3).map(Number);
+};
+
+const getColorLuminance = (value: string) => {
+  const rgb = parseRgb(value);
+  if (!rgb) {
+    return null;
+  }
+
+  const [r, g, b] = rgb.map((channel) => {
+    const normalized = channel / 255;
+    return normalized <= 0.03928
+      ? normalized / 12.92
+      : ((normalized + 0.055) / 1.055) ** 2.4;
+  });
+
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+
+const resolveDarkModeFromColors = (backgroundColor?: string | null, textColor?: string | null) => {
+  const backgroundLuminance = backgroundColor ? getColorLuminance(backgroundColor) : null;
+  const textLuminance = textColor ? getColorLuminance(textColor) : null;
+
+  if (backgroundLuminance !== null && textLuminance !== null) {
+    if (backgroundLuminance < 0.38) {
+      return true;
+    }
+
+    if (backgroundLuminance > 0.62) {
+      return false;
+    }
+
+    if (textLuminance > 0.7 && backgroundLuminance < 0.55) {
+      return true;
+    }
+
+    if (textLuminance < 0.3 && backgroundLuminance > 0.45) {
+      return false;
+    }
+  }
+
+  if (backgroundLuminance !== null) {
+    return backgroundLuminance < 0.45;
+  }
+
+  return null;
+};
+
+const getPageDarkMode = () => {
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return false;
+  }
+
+  if (isExtensionPage()) {
+    return getSystemDarkMode();
+  }
+
+  const root = document.documentElement;
+  const body = document.body;
+  const themeHints = [
+    root?.getAttribute('data-theme'),
+    body?.getAttribute('data-theme'),
+    root?.getAttribute('data-color-mode'),
+    body?.getAttribute('data-color-mode'),
+    root?.className,
+    body?.className,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  if (/\bdark\b/.test(themeHints)) {
+    return true;
+  }
+
+  if (/\blight\b/.test(themeHints)) {
+    return false;
+  }
+
+  const rootStyle = window.getComputedStyle(root);
+  const bodyStyle = body ? window.getComputedStyle(body) : null;
+  const colorScheme = `${rootStyle.colorScheme || ''} ${bodyStyle?.colorScheme || ''}`.toLowerCase();
+
+  if (colorScheme.includes('dark')) {
+    return true;
+  }
+
+  if (colorScheme.includes('light')) {
+    return false;
+  }
+
+  const colorSignals = [
+    {
+      background: bodyStyle?.backgroundColor,
+      text: bodyStyle?.color,
+    },
+    {
+      background: rootStyle.backgroundColor,
+      text: rootStyle.color,
+    },
+  ];
+
+  for (const signal of colorSignals) {
+    if (!signal.background || signal.background === 'transparent' || signal.background.includes(', 0)')) {
+      continue;
+    }
+
+    const darkMode = resolveDarkModeFromColors(signal.background, signal.text);
+    if (darkMode !== null) {
+      return darkMode;
+    }
+  }
+
+  return getSystemDarkMode();
+};
+
 export const useTheme = () => {
   const context = useContext(ThemeContext);
   if (!context) {
@@ -34,7 +159,9 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const { themeSettings, setThemeMode } = useThemeSettings();
   const themeMode = themeSettings.mode ?? 'auto';
   const [isDark, setIsDark] = useState(() =>
-    themeMode === 'auto' ? getSystemDarkMode() : themeMode === 'dark'
+    themeMode === 'auto'
+      ? (isExtensionPage() ? getSystemDarkMode() : getPageDarkMode())
+      : themeMode === 'dark'
   );
 
   useEffect(() => {
@@ -44,14 +171,30 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     }
 
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = (event: MediaQueryListEvent) => {
-      setIsDark(event.matches);
+    const updateAutoTheme = () => {
+      setIsDark(isExtensionPage() ? mediaQuery.matches : getPageDarkMode());
     };
+    const handleChange = () => updateAutoTheme();
+    const observer = new MutationObserver(() => updateAutoTheme());
 
-    setIsDark(mediaQuery.matches);
+    updateAutoTheme();
     mediaQuery.addEventListener('change', handleChange);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class', 'style', 'data-theme', 'data-color-mode'],
+    });
 
-    return () => mediaQuery.removeEventListener('change', handleChange);
+    if (document.body) {
+      observer.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme', 'data-color-mode'],
+      });
+    }
+
+    return () => {
+      mediaQuery.removeEventListener('change', handleChange);
+      observer.disconnect();
+    };
   }, [themeMode]);
 
   useEffect(() => {
@@ -60,63 +203,11 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
     hostElement?.setAttribute('data-theme', themeValue);
     hostElement?.shadowRoot?.host?.setAttribute('data-theme', themeValue);
-    document.body.setAttribute('data-theme', themeValue);
   }, [isDark]);
 
   const themeConfig = useMemo(
     () => ({
       algorithm: isDark ? theme.darkAlgorithm : theme.defaultAlgorithm,
-      token: {
-        colorPrimary: '#1890ff',
-        borderRadius: 8,
-        colorBgContainer: isDark ? '#1f1f1f' : '#ffffff',
-        colorBgLayout: isDark ? '#141414' : '#f5f5f5',
-        colorBgElevated: isDark ? '#262626' : '#ffffff',
-        colorBorder: isDark ? '#424242' : '#d9d9d9',
-        colorText: isDark ? '#ffffff' : '#000000',
-        colorTextSecondary: isDark ? '#a6a6a6' : '#666666',
-        fontSizeHeading1: 18,
-        fontSizeHeading2: 16,
-        fontSizeHeading3: 14,
-      },
-      cssVar: true,
-      components: {
-        Button: { colorPrimary: '#1890ff' },
-        Input: {
-          colorBgContainer: isDark ? '#1f1f1f' : '#ffffff',
-          colorBorder: isDark ? '#424242' : '#d9d9d9',
-        },
-        Select: {
-          colorBgContainer: isDark ? '#1f1f1f' : '#ffffff',
-          colorBorder: isDark ? '#424242' : '#d9d9d9',
-          colorText: isDark ? '#ffffff' : '#000000',
-          colorTextPlaceholder: isDark ? '#a6a6a6' : '#999999',
-          optionSelectedBg: isDark ? '#1668dc' : '#e6f7ff',
-          optionActiveBg: isDark ? '#262626' : '#f5f5f5',
-        },
-        Card: {
-          colorBgContainer: isDark ? '#1f1f1f' : '#ffffff',
-          colorBorderSecondary: isDark ? '#424242' : '#f0f0f0',
-        },
-        Modal: { contentBg: isDark ? '#1f1f1f' : '#ffffff' },
-        Tooltip: {
-          colorBgSpotlight: isDark ? '#434343' : '#ffffff',
-          colorTextLightSolid: isDark ? '#ffffff' : '#000000',
-        },
-        Popover: { colorBgElevated: isDark ? '#1f1f1f' : '#ffffff' },
-        Dropdown: { colorBgElevated: isDark ? '#1f1f1f' : '#ffffff' },
-        Message: {
-          contentBg: isDark ? '#1f1f1f' : '#ffffff',
-          colorText: isDark ? '#ffffff' : '#000000',
-          colorSuccess: '#52c41a',
-          colorError: '#ff4d4f',
-          colorWarning: '#faad14',
-          colorInfo: '#1890ff',
-        },
-        Notification: {
-          colorBgElevated: isDark ? '#1f1f1f' : '#ffffff',
-        },
-      },
     }),
     [isDark]
   );
