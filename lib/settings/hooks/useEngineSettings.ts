@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 
-import type { GlobalSettings, PartialDeep, TranslateEngineType } from '../../constants/types';
+import type { GlobalSettings, PartialDeep } from '../../constants/types';
 import { useSettingsModule } from './useSettingsModule';
 
 export function useEngineSettings() {
@@ -8,7 +8,7 @@ export function useEngineSettings() {
     useSettingsModule('engines');
 
   const setDefaultEngine = useCallback(
-    (engine: TranslateEngineType) =>
+    (engine: string) =>
       updateEngine({ default: engine } as PartialDeep<GlobalSettings['engines']>),
     [updateEngine]
   );

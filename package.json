@@ -10,16 +10,18 @@
     "package": "plasmo package"
   },
   "dependencies": {
-    "@ant-design/cssinjs": "^1.23.0",
+    "@ant-design/cssinjs": "^2.0.3",
+    "@lobehub/icons": "^5.0.1",
+    "@lobehub/ui": "^5.5.0",
     "@plasmohq/messaging": "^0.7.2",
     "@plasmohq/storage": "^1.15.0",
     "@tabler/icons-react": "^3.34.1",
-    "antd": "^5.26.4",
+    "antd": "^6.2.3",
     "i18next": "^25.3.2",
     "immer": "^10.1.1",
     "plasmo": "0.90.5",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
     "react-i18next": "^15.6.0",
     "react-icons": "^5.6.0",
     "use-immer": "^0.11.0"
@@ -28,8 +30,8 @@
     "@ianvs/prettier-plugin-sort-imports": "4.1.1",
     "@types/chrome": "0.0.258",
     "@types/node": "20.11.5",
-    "@types/react": "18.2.48",
-    "@types/react-dom": "18.2.18",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
     "prettier": "3.2.4",
     "typescript": "5.3.3"
   },

@@ -3,7 +3,13 @@ import { Button, Card, Divider, Spin } from 'antd';
 import { useTranslation } from 'react-i18next';
 
 import Icon from '~lib/components/Icon';
-import { getBrowserLang, getEngineLangCode, getLangAbbr } from '~lib/constants/languages';
+import {
+  getBrowserLang,
+  getEngineLangCode,
+  getLangAbbr,
+  getLocalizedLangLabel,
+  mapUiLangToI18nKey,
+} from '~lib/constants/languages';
 import { isExtensionContextInvalidatedError } from '~lib/utils/extensionContext';
 import {
   useFavoritesData,
@@ -23,6 +29,29 @@ const getEngineDisplayName = (engine: string) => {
   };
 
   return engineNames[engine] || engine;
+};
+
+const getLocalizedLangBadge = (code: string, uiLanguage: string | undefined) => {
+  const localizedLabel = getLocalizedLangLabel(code, uiLanguage);
+  const normalizedUiLanguage = mapUiLangToI18nKey(uiLanguage);
+
+  if (normalizedUiLanguage === 'zh') {
+    if (code === 'zh-CN' || code === 'zh-TW') return '中';
+    if (code === 'en') return '英';
+    if (code === 'ja') return '日';
+    if (code === 'ko') return '韩';
+    if (code === 'fr') return '法';
+    if (code === 'de') return '德';
+    if (code === 'es') return '西';
+    if (code === 'ru') return '俄';
+    if (code === 'pt') return '葡';
+  }
+
+  if (localizedLabel.length <= 4) {
+    return localizedLabel;
+  }
+
+  return getLangAbbr(code);
 };
 
 interface TranslatorResultProps {
@@ -74,7 +103,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({
   stopTTSAPI,
   setShouldTranslate,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { languageSettings } = useLanguageSettings();
   const { speechSettings } = useSpeechSettings();
   const { favoritesSettings } = useFavoritesSettings();
@@ -467,8 +496,9 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({
                     padding: '0 8px',
                     marginRight: index !== favoriteLangs.length - 1 ? '8px' : 0,
                   }}
+                  title={getLocalizedLangLabel(lang, i18n.language)}
                 >
-                  {getLangAbbr(lang)}
+                  {getLocalizedLangBadge(lang, i18n.language)}
                 </Button>
               ))}
             </div>

@@ -1,9 +1,6 @@
 import React from 'react';
 
 import EngineBrandIcon from './EngineBrandIcon';
-import Icon from './Icon';
-
-const builtinEngineValues = new Set(['bing', 'google', 'deepl', 'yandex']);
 
 const contentStyle: React.CSSProperties = {
   display: 'inline-flex',
@@ -29,15 +26,10 @@ interface EngineOptionLabelProps {
 const EngineOptionLabel: React.FC<EngineOptionLabelProps> = ({
   value,
   label,
-  icon,
 }) => {
   return (
     <span style={contentStyle}>
-      {builtinEngineValues.has(value) ? (
-        <EngineBrandIcon engine={value} size={18} />
-      ) : icon ? (
-        <Icon name={icon} size={16} />
-      ) : null}
+      <EngineBrandIcon engine={value} size={18} />
       <span style={textGroupStyle}>
         <span>{label}</span>
       </span>
