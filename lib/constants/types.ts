@@ -10,12 +10,13 @@
 /**
  * 翻译引擎类型
  */
-export type TranslateEngineType = 'google' | 'deepl' | 'bing' | 'yandex';
+export type BuiltInTranslateEngineType = 'google' | 'deepl' | 'bing' | 'yandex';
+export type TranslateEngineType = BuiltInTranslateEngineType | string;
 
 /**
  * TTS引擎类型
  */
-export type TTSEngineType = 'google' | 'local' | 'browser';
+export type TTSEngineType = 'google' | 'edge' | 'local' | 'browser';
 
 /**
  * 主题模式
@@ -36,6 +37,17 @@ export type PageTranslateMode = 'translated' | 'compare';
  * 自定义引擎类型
  */
 export type CustomEngineType = 'api' | 'llm';
+export type CustomEngineProvider =
+  | 'custom-api'
+  | 'openai'
+  | 'anthropic'
+  | 'gemini'
+  | 'deepseek'
+  | 'moonshot'
+  | 'qwen'
+  | 'mistral'
+  | 'xai'
+  | 'ollama';
 
 // ================================
 // 语言相关接口
@@ -95,6 +107,7 @@ export interface CustomEngine {
   id: string;
   name: string;
   type: CustomEngineType;
+  provider: CustomEngineProvider;
   apiUrl: string;
   apiKey: string;
   model?: string;
@@ -197,7 +210,7 @@ export interface ThemeSettings {
  * 翻译引擎设置
  */
 export interface EngineSettings {
-  default: TranslateEngineType;
+  default: string;
   customEngines: CustomEngine[];
   apiKeys: {
     deepl: string;

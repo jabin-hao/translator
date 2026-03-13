@@ -29,7 +29,7 @@ export const DEFAULT_SETTINGS: GlobalSettings = {
 
   inputTranslate: {
     enabled: true,
-    triggerMode: 'auto',
+    triggerMode: 'hotkey',
     autoTranslateDelay: 1000,
     minTextLength: 2,
     enabledInputTypes: ['text', 'textarea', 'email', 'search', 'url'],

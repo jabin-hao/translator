@@ -1,4 +1,5 @@
 import { bingTranslate, bingTranslateBatch } from '~background/translate/bing';
+import { customTranslate, getCustomEngineById } from '~background/translate/custom';
 import { deeplTranslate, deeplTranslateBatch } from '~background/translate/deepl';
 import { googleTranslate, googleTranslateBatch } from '~background/translate/google';
 import { yandexTranslate, yandexTranslateBatch } from '~background/translate/yandex';
@@ -193,11 +194,17 @@ async function translateWithEngine(
   engine: string
 ) {
   const translateFunction = TRANSLATE_ENGINE_FUNCTIONS[engine];
-  if (!translateFunction) {
+  if (translateFunction) {
+    const translation = await withTimeout(translateFunction(text, from, to));
+    return assertValidTranslationResult(text, translation, engine);
+  }
+
+  const customEngine = await getCustomEngineById(engine);
+  if (!customEngine) {
     throw new Error(`Unsupported translation engine: ${engine}`);
   }
 
-  const translation = await withTimeout(translateFunction(text, from, to));
+  const translation = await withTimeout(customTranslate(text, from, to, customEngine));
   return assertValidTranslationResult(text, translation, engine);
 }
 
@@ -228,9 +235,7 @@ async function translateWithFallbacks(
   // Keep the requested engine first, then walk the remaining built-in engines.
   const enginesToTry = [
     engine,
-    ...FALLBACK_ENGINE_ORDER.filter(
-      (item) => item !== engine && item in TRANSLATE_ENGINE_FUNCTIONS
-    ),
+    ...FALLBACK_ENGINE_ORDER.filter((item) => item !== engine),
   ];
   let lastError: Error | null = null;
 

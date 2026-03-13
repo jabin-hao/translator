@@ -7,25 +7,56 @@ import {
   getBrowserLang,
   getEngineLangCode,
   getLangAbbr,
+  getLocalizedLangLabel,
+  mapUiLangToI18nKey,
 } from '~lib/constants/languages';
 import { isExtensionContextInvalidatedError } from '~lib/utils/extensionContext';
 import {
   useFavoritesData,
   useFavoritesSettings,
+  useEngineSettings,
   useLanguageSettings,
   useSpeechSettings,
 } from '~lib/settings/settings';
 import { useTranslatorSpeech } from '../hooks/useTranslatorSpeech';
 import '../styles/index.css';
 
-const getEngineDisplayName = (engine: string) => {
+const getEngineDisplayName = (
+  engine: string,
+  customEngineNames?: Record<string, string>
+) => {
   const engineNames: Record<string, string> = {
     bing: 'Bing',
     google: 'Google',
     deepl: 'DeepL',
+    edge: 'Edge',
+    yandex: 'Yandex',
   };
 
-  return engineNames[engine] || engine;
+  return customEngineNames?.[engine] || engineNames[engine] || engine;
+};
+
+const getLocalizedLangBadge = (code: string, uiLanguage: string | undefined) => {
+  const localizedLabel = getLocalizedLangLabel(code, uiLanguage);
+  const normalizedUiLanguage = mapUiLangToI18nKey(uiLanguage);
+
+  if (normalizedUiLanguage === 'zh') {
+    if (code === 'zh-CN' || code === 'zh-TW') return '中';
+    if (code === 'en') return '英';
+    if (code === 'ja') return '日';
+    if (code === 'ko') return '韩';
+    if (code === 'fr') return '法';
+    if (code === 'de') return '德';
+    if (code === 'es') return '西';
+    if (code === 'ru') return '俄';
+    if (code === 'pt') return '葡';
+  }
+
+  if (localizedLabel.length <= 4) {
+    return localizedLabel;
+  }
+
+  return getLangAbbr(code);
 };
 
 interface TranslatorResultProps {
@@ -48,7 +79,13 @@ interface TranslatorResultProps {
   ) => Promise<{ result: string; engine: string }>;
   callTTSAPI: (
     text: string,
-    lang: string
+    lang: string,
+    speechOptions?: {
+      voice?: string;
+      speed: number;
+      pitch: number;
+      volume: number;
+    }
   ) => Promise<{ success: boolean; audioData?: ArrayBuffer; error?: string }>;
   stopTTSAPI: () => Promise<void>;
   setShouldTranslate?: (should: boolean) => void;
@@ -71,8 +108,9 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({
   stopTTSAPI,
   setShouldTranslate,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { languageSettings } = useLanguageSettings();
+  const { engineSettings } = useEngineSettings();
   const { speechSettings } = useSpeechSettings();
   const { favoritesSettings } = useFavoritesSettings();
   const { favorites, addFavorite, deleteFavorite } = useFavoritesData();
@@ -88,6 +126,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({
   const hasTranslatedRef = useRef(false);
   const isLanguageSwitchingRef = useRef(false);
   const translationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastAutoReadKeyRef = useRef<string>('');
 
   const isRenderable = useMemo(
     () =>
@@ -102,10 +141,21 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({
 
   const favoriteLangs = languageSettings.favorites;
   const sourceText = originalText || text;
-  const translateFailedText = t('翻译失败');
+  const translateFailedText = t('Translation failed, please try again');
+  const customEngineNames = useMemo(
+    () =>
+      Object.fromEntries(
+        engineSettings.customEngines.map((customEngine) => [
+          customEngine.id,
+          customEngine.name,
+        ])
+      ),
+    [engineSettings.customEngines]
+  );
 
   const { isSpeaking, setIsSpeaking, speak, stopSpeaking } = useTranslatorSpeech({
     speechConfig: {
+      voice: speechSettings.voice,
       speed: speechSettings.speed,
       pitch: speechSettings.pitch,
       volume: speechSettings.volume,
@@ -167,6 +217,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({
     if (sourceText !== textRef.current || targetLang !== lastTargetLangRef.current) {
       hasTranslatedRef.current = false;
       setTranslatedText('');
+      lastAutoReadKeyRef.current = '';
       textRef.current = sourceText;
       lastTargetLangRef.current = targetLang;
     }
@@ -199,8 +250,16 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({
       return;
     }
 
+    const autoReadKey = `${targetLang}::${translatedText}`;
+    if (lastAutoReadKeyRef.current === autoReadKey) {
+      return;
+    }
+
+    lastAutoReadKeyRef.current = autoReadKey;
+
     speak(translatedText, targetLang).catch((error) => {
       console.error('Auto read failed:', error);
+      lastAutoReadKeyRef.current = '';
       setIsSpeaking(false);
     });
   }, [
@@ -235,8 +294,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({
     setIsFavorited(
       favorites.some(
         (favorite) =>
-          favorite.originalText === sourceText &&
-          favorite.translatedText === translatedText
+          favorite.originalText === sourceText && favorite.translatedText === translatedText
       )
     );
   }, [favorites, isRenderable, sourceText, translateFailedText, translatedText]);
@@ -283,41 +341,30 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({
 
       if (isSpeaking) {
         await stopSpeaking();
-        showMessage('info', t('已停止朗读'));
+        showMessage('info', t('Done'));
         return;
       }
 
       if (!translatedText || translatedText === translateFailedText) {
-        showMessage('warning', t('没有可朗读的内容'));
+        showMessage('warning', t('Nothing to copy'));
         return;
       }
 
       if (!targetLang) {
-        showMessage('warning', t('目标语言未设置'));
+        showMessage('warning', t('Select a language'));
         return;
       }
 
       try {
         setIsSpeaking(true);
-        showMessage('success', t('开始朗读'));
         await speak(translatedText, targetLang);
       } catch (error) {
         console.error('Manual speech failed:', error);
         setIsSpeaking(false);
-        showMessage('error', t('朗读失败'));
+        showMessage('error', t('Speech test failed'));
       }
     },
-    [
-      isSpeaking,
-      setIsSpeaking,
-      showMessage,
-      speak,
-      stopSpeaking,
-      t,
-      targetLang,
-      translateFailedText,
-      translatedText,
-    ]
+    [isSpeaking, setIsSpeaking, showMessage, speak, stopSpeaking, t, targetLang, translateFailedText, translatedText]
   );
 
   const handleCopy = useCallback(
@@ -326,15 +373,15 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({
       event.stopPropagation();
 
       if (!translatedText) {
-        showMessage('warning', t('没有可复制的内容'));
+        showMessage('warning', t('Nothing to copy'));
         return;
       }
 
       try {
         await navigator.clipboard.writeText(translatedText);
-        showMessage('success', t('已复制'));
+        showMessage('success', t('Copied'));
       } catch {
-        showMessage('error', t('复制失败，可能是浏览器限制或权限问题'));
+        showMessage('error', t('Translation failed, please try again'));
       }
     },
     [showMessage, t, translatedText]
@@ -346,20 +393,19 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({
       event.stopPropagation();
 
       if (!translatedText || translatedText === translateFailedText || !targetLang) {
-        showMessage('warning', t('没有可收藏的内容'));
+        showMessage('warning', t('Translation failed, please try again'));
         return;
       }
 
       try {
         if (isFavorited) {
           const favoriteItem = favorites.find(
-            (item) =>
-              item.originalText === sourceText && item.translatedText === translatedText
+            (item) => item.originalText === sourceText && item.translatedText === translatedText
           );
 
           if (favoriteItem && (await deleteFavorite(favoriteItem.id))) {
             setIsFavorited(false);
-            showMessage('success', t('已取消收藏'));
+            showMessage('success', t('Favorite removed'));
           }
 
           return;
@@ -372,11 +418,11 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({
           })
         ) {
           setIsFavorited(true);
-          showMessage('success', t('已添加到收藏'));
+          showMessage('success', t('Saved'));
         }
       } catch (error) {
         console.error('Favorite action failed:', error);
-        showMessage('error', t('收藏操作失败'));
+        showMessage('error', t('Failed to remove favorite'));
       }
     },
     [
@@ -429,7 +475,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({
                 size="small"
                 indicator={<Icon name="loader" size={14} style={{ color: '#1890ff' }} />}
               />
-              <span style={{ color: '#1890ff' }}>{t('翻译中...')}</span>
+              <span style={{ color: '#1890ff' }}>{t('Translating...')}</span>
             </div>
           ) : (
             translatedText
@@ -437,9 +483,9 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({
         </div>
 
         <Divider style={{ margin: '12px 0 8px 0' }} />
-        <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
+        <div style={{ fontSize: 12, color: 'var(--ant-color-text-description)', marginTop: 4 }}>
           {usedEngine && translatedText !== translateFailedText
-            ? `${t('本次翻译由')} ${getEngineDisplayName(usedEngine)} ${t('提供')}`
+            ? `${t('Translated by')} ${getEngineDisplayName(usedEngine, customEngineNames)}`
             : null}
         </div>
         <div
@@ -459,15 +505,17 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({
                 <Button
                   key={lang}
                   type={targetLang === lang ? 'primary' : 'default'}
-                  size="small"
-                  onClick={(event) => handleLangClick(event, lang)}
-                  style={{
-                    minWidth: '32px',
-                    padding: '0 8px',
-                    marginRight: index !== favoriteLangs.length - 1 ? '8px' : 0,
-                  }}
-                >
-                  {getLangAbbr(lang)}
+                size="small"
+                onClick={(event) => handleLangClick(event, lang)}
+                style={{
+                  minWidth: '32px',
+                  padding: '0 8px',
+                  marginRight: index !== favoriteLangs.length - 1 ? '8px' : 0,
+                  color: targetLang === lang ? 'var(--ant-color-text-light-solid)' : undefined,
+                }}
+                title={getLocalizedLangLabel(lang, i18n.language)}
+              >
+                  {getLocalizedLangBadge(lang, i18n.language)}
                 </Button>
               ))}
             </div>
@@ -480,8 +528,11 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({
                 icon={<Icon name="volume-2" />}
                 size="small"
                 onClick={handleSpeak}
-                title={isSpeaking ? t('停止朗读') : t('朗读')}
-                style={{ marginRight: '4px' }}
+                title={t('Speech settings')}
+                style={{
+                  marginRight: '4px',
+                  color: isSpeaking ? 'var(--ant-color-text-light-solid)' : undefined,
+                }}
                 disabled={!translatedText || loading}
               />
             )}
@@ -492,8 +543,11 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({
                 icon={isFavorited ? <Icon name="star-filled" /> : <Icon name="star" />}
                 size="small"
                 onClick={handleFavorite}
-                title={isFavorited ? t('取消收藏') : t('收藏')}
-                style={{ marginRight: '4px' }}
+                title={t('Favorites')}
+                style={{
+                  marginRight: '4px',
+                  color: isFavorited ? 'var(--ant-color-text-light-solid)' : undefined,
+                }}
                 disabled={!translatedText || loading}
               />
             )}
@@ -503,7 +557,7 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({
               icon={<Icon name="copy" />}
               size="small"
               onClick={handleCopy}
-              title={t('复制')}
+              title={t('Copy')}
               disabled={!translatedText || loading}
             />
           </div>
@@ -511,10 +565,6 @@ const TranslatorResult: React.FC<TranslatorResultProps> = ({
       </div>
     </Card>
   );
-};
-
-TranslatorResult.defaultProps = {
-  onClose: () => {},
 };
 
 export default TranslatorResult;

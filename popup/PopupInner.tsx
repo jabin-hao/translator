@@ -4,7 +4,9 @@ import { useTranslation } from 'react-i18next';
 
 import EngineOptionLabel from '~lib/components/EngineOptionLabel';
 import Icon from '~lib/components/Icon';
+import ProviderBrandIcon from '~lib/components/ProviderBrandIcon';
 import SelectOptionLabel from '~lib/components/SelectOptionLabel';
+import { getProviderOption } from '~lib/constants/customEngines';
 import { TRANSLATE_ENGINES } from '~lib/constants/engines';
 import { getLocalizedLangLabel, LANGUAGES } from '~lib/constants/languages';
 import type { DomainSetting, TranslateEngineType } from '~lib/constants/types';
@@ -112,6 +114,21 @@ const PopupInner: React.FC = () => {
   const alwaysTranslateCurrentSite = useMemo(
     () => isAlwaysTranslatedSite(domainSettings, siteKey),
     [domainSettings, siteKey]
+  );
+  const translateEngineOptions = useMemo(
+    () => [
+      ...TRANSLATE_ENGINES,
+      ...engineSettings.customEngines
+        .filter((customEngine) => customEngine.enabled)
+        .map((customEngine) => ({
+          value: customEngine.id,
+          label: customEngine.name,
+          provider:
+            customEngine.provider ||
+            (customEngine.type === 'llm' ? 'openai' : 'custom-api')
+        }))
+    ],
+    [engineSettings.customEngines]
   );
 
   useEffect(() => {
@@ -355,13 +372,27 @@ const PopupInner: React.FC = () => {
               style={{ width: '100%' }}
               placeholder={t('Select translation engine')}
             >
-              {TRANSLATE_ENGINES.map((entry) => (
-                <Select.Option key={entry.value} value={entry.value} disabled={entry.disabled}>
-                  <EngineOptionLabel
-                    value={entry.value}
-                    label={entry.label}
-                    icon={entry.icon}
-                  />
+              {translateEngineOptions.map((entry) => (
+                <Select.Option
+                  key={entry.value}
+                  value={entry.value}
+                  disabled={'disabled' in entry ? entry.disabled : undefined}
+                >
+                  {'provider' in entry ? (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                      <ProviderBrandIcon provider={entry.provider} size={16} />
+                      <span>{entry.label}</span>
+                      <span style={{ color: '#999999', fontSize: 12 }}>
+                        {getProviderOption(entry.provider).label}
+                      </span>
+                    </span>
+                  ) : (
+                    <EngineOptionLabel
+                      value={entry.value}
+                      label={entry.label}
+                      icon={entry.icon}
+                    />
+                  )}
                 </Select.Option>
               ))}
             </Select>
