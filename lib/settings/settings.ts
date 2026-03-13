@@ -1,14 +1,8 @@
-/**
- * 设置模块统一导出
- */
-
-// 常量和配置
 export * from './constants';
 
-// 核心设置 Hook
 export { useGlobalSettings } from './hooks/useGlobalSettings';
+export { useSettingsModule } from './hooks/useSettingsModule';
 
-// 功能模块 Hooks
 export { useThemeSettings } from './hooks/useThemeSettings';
 export { useEngineSettings } from './hooks/useEngineSettings';
 export { useTextTranslateSettings } from './hooks/useTextTranslateSettings';
@@ -19,3 +13,8 @@ export { useCacheSettings } from './hooks/useCacheSettings';
 export { useShortcutSettings } from './hooks/useShortcutSettings';
 export { useFavoritesSettings } from './hooks/useFavoritesSettings';
 export { usePageTranslateSettings } from './hooks/usePageTranslateSettings';
+
+export { useFavoritesData } from './hooks/useFavoritesData';
+export { useTranslationCacheData } from './hooks/useTranslationCacheData';
+export { useDomainSettingsData } from './hooks/useDomainSettingsData';
+export { useCustomDictionaryData } from './hooks/useCustomDictionaryData';

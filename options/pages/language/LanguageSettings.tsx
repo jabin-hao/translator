@@ -1,295 +1,275 @@
-import React from 'react';
-import { useImmer } from 'use-immer';
-import { Select, Button, Tag, App } from 'antd';
-import Icon from '~lib/components/Icon';
-import { LANGUAGES } from '~lib/constants/languages';
+import React, { useEffect, useState } from 'react';
+import { App, Button, Select, Tag } from 'antd';
 import { useTranslation } from 'react-i18next';
-import {
-    useLanguageSettings
-} from '~lib/settings/settings';
-import SettingsPageContainer from '../../components/SettingsPageContainer';
+
+import Icon from '~lib/components/Icon';
+import { getLocalizedLangLabel, LANGUAGES } from '~lib/constants/languages';
+import { useLanguageSettings } from '~lib/settings/settings';
 import SettingsGroup from '../../components/SettingsGroup';
 import SettingsItem from '../../components/SettingsItem';
+import SettingsPageContainer from '../../components/SettingsPageContainer';
 
 const LanguageSettings: React.FC = () => {
-    const { t, i18n } = useTranslation();
-    const { message } = App.useApp();
+  const { t, i18n } = useTranslation();
+  const { message } = App.useApp();
+  const {
+    languageSettings,
+    setPageTargetLanguage,
+    setTextTargetLanguage,
+    setInputTargetLanguage,
+    addFavoriteLanguage,
+    removeFavoriteLanguage,
+    addNeverLanguage,
+    removeNeverLanguage,
+    addAlwaysLanguage,
+    removeAlwaysLanguage
+  } = useLanguageSettings();
 
-    // 使用专门的语言设置hook
-    const {
-        languageSettings,
-        setPageTargetLanguage,
-        setTextTargetLanguage,
-        setInputTargetLanguage,
-        addFavoriteLanguage,
-        removeFavoriteLanguage,
-        addNeverLanguage,
-        removeNeverLanguage,
-        addAlwaysLanguage,
-        removeAlwaysLanguage
-    } = useLanguageSettings();
+  const [favoriteCandidate, setFavoriteCandidate] = useState<string>();
+  const [neverCandidate, setNeverCandidate] = useState<string>();
+  const [alwaysCandidate, setAlwaysCandidate] = useState<string>();
 
-    // 从语言设置中提取值
-    const pageTargetLang = languageSettings.pageTarget;
-    const textTargetLang = languageSettings.textTarget;
-    const favoriteLangs = languageSettings.favorites;
-    const neverLangs = languageSettings.never;
-    const alwaysLangs = languageSettings.always;
+  const { pageTarget, textTarget, inputTarget, favorites, never, always } = languageSettings;
 
-    const [addFav, setAddFav] = useImmer('');
-    const [addNever, setAddNever] = useImmer('');
-    const [addAlways, setAddAlways] = useImmer('');
+  useEffect(() => {
+    if (textTarget) {
+      return;
+    }
 
-    // 初始化划词翻译目标语言的逻辑
-    React.useEffect(() => {
-        if (!textTargetLang) {
-            let defaultTextLang;
-            if (favoriteLangs && favoriteLangs.length > 0) {
-                defaultTextLang = favoriteLangs[0];
-            } else {
-                defaultTextLang = navigator.language.startsWith('zh') ? 'zh-CN' : (navigator.language.startsWith('en') ? 'en' : 'zh-CN');
-            }
-            setTextTargetLanguage(defaultTextLang);
-        }
-    }, [textTargetLang, favoriteLangs, setTextTargetLanguage]);
+    const defaultTextLang =
+      favorites[0] ||
+      (navigator.language.startsWith('zh')
+        ? 'zh-CN'
+        : navigator.language.startsWith('en')
+          ? 'en'
+          : 'zh-CN');
 
-    // 偏好语言
-    const handleAddFav = async () => {
-        if (favoriteLangs.length >= 3) {
-            message.warning('最多只能选择三种偏好语言');
-            return;
-        }
-        if (addFav && !favoriteLangs.includes(addFav)) {
-            await addFavoriteLanguage(addFav);
-            message.success('已保存');
-            setAddFav('');
-        }
-    };
-    const handleRemoveFav = async (lang: any) => {
-        await removeFavoriteLanguage(lang);
-        message.success('已保存');
-    };
+    void setTextTargetLanguage(defaultTextLang);
+  }, [favorites, setTextTargetLanguage, textTarget]);
 
-    // 永不翻译
-    const handleAddNever = async () => {
-        if (addNever && !neverLangs.includes(addNever)) {
-            await addNeverLanguage(addNever);
-            message.success('已保存');
-            setAddNever('');
-        }
-    };
-    const handleRemoveNever = async (lang: any) => {
-        await removeNeverLanguage(lang);
-        message.success('已保存');
-    };
+  const languageOptions = LANGUAGES.map((language) => ({
+    label: getLocalizedLangLabel(language.code, i18n.language),
+    value: language.code
+  }));
 
-    // 总是翻译
-    const handleAddAlways = async () => {
-        if (addAlways && !alwaysLangs.includes(addAlways)) {
-            await addAlwaysLanguage(addAlways);
-            message.success('已保存');
-            setAddAlways('');
-        }
-    };
-    const handleRemoveAlways = async (lang: any) => {
-        await removeAlwaysLanguage(lang);
-        message.success('已保存');
-    };
+  const saveAndNotify = async (action: () => Promise<unknown>) => {
+    await action();
+    message.success(t('Saved'));
+  };
 
-    return (
-        <SettingsPageContainer
-            title={t('语言设置')}
-            description={t('配置翻译的目标语言和语言偏好')}
+  return (
+    <SettingsPageContainer
+      title={t('Language settings')}
+      description={t('Configure target languages and language preferences')}
+    >
+      <SettingsGroup title={t('Target languages')} first>
+        <SettingsItem
+          label={t('Page translation target')}
+          description={t('Target language for full-page translation')}
         >
-            <SettingsGroup title={t('目标语言设置')} first>
-                <SettingsItem
-                    label={t('网页翻译目标语言')}
-                    description={t('设置网页整体翻译的目标语言')}
-                >
-                    <Select
-                        key={i18n.language}
-                        value={pageTargetLang}
-                        options={LANGUAGES.map(l => ({ label: t('lang.' + l.code), value: l.code }))}
-                        onChange={async val => {
-                            await setPageTargetLanguage(val);
-                            message.success('已保存');
-                        }}
-                        style={{ width: 240 }}
-                        size="middle"
-                    />
-                </SettingsItem>
+          <Select
+            value={pageTarget}
+            options={languageOptions}
+            onChange={(value) => saveAndNotify(() => setPageTargetLanguage(value))}
+            style={{ width: 240 }}
+            size="middle"
+          />
+        </SettingsItem>
 
-                <SettingsItem
-                    label={t('划词翻译目标语言')}
-                    description={t('设置划词/输入翻译的默认目标语言')}
-                >
-                    <Select
-                        key={i18n.language}
-                        value={textTargetLang}
-                        options={LANGUAGES.map(l => ({ label: t('lang.' + l.code), value: l.code }))}
-                        onChange={async val => {
-                            await setTextTargetLanguage(val);
-                            message.success('已保存');
-                        }}
-                        style={{ width: 240 }}
-                        size="middle"
-                    />
-                </SettingsItem>
+        <SettingsItem
+          label={t('Text translation target')}
+          description={t('Default target language for selection and quick translation')}
+        >
+          <Select
+            value={textTarget}
+            options={languageOptions}
+            onChange={(value) => saveAndNotify(() => setTextTargetLanguage(value))}
+            style={{ width: 240 }}
+            size="middle"
+          />
+        </SettingsItem>
 
-                <SettingsItem
-                    label={t('输入翻译目标语言')}
-                    description={t('设置输入框翻译的专用目标语言')}
-                >
-                    <Select
-                        key={i18n.language}
-                        value={languageSettings.inputTarget}
-                        options={LANGUAGES.map(l => ({ label: t('lang.' + l.code), value: l.code }))}
-                        onChange={async val => {
-                            await setInputTargetLanguage(val);
-                            message.success('已保存');
-                        }}
-                        style={{ width: 240 }}
-                        size="middle"
-                        placeholder={t('选择目标语言')}
-                    />
-                </SettingsItem>
-            </SettingsGroup>
+        <SettingsItem
+          label={t('Input translation target')}
+          description={t('Dedicated target language for input translation')}
+        >
+          <Select
+            value={inputTarget}
+            options={languageOptions}
+            onChange={(value) => saveAndNotify(() => setInputTargetLanguage(value))}
+            style={{ width: 240 }}
+            size="middle"
+            placeholder={t('Select a language')}
+          />
+        </SettingsItem>
+      </SettingsGroup>
 
-            <SettingsGroup title={t('语言偏好设置')}>
-                <SettingsItem
-                    label={t('偏好语言')}
-                    description={t('你常用的目标语言，优先用于自动选择（最多3种）')}
+      <SettingsGroup title={t('Language preferences')}>
+        <SettingsItem
+          label={t('Favorite languages')}
+          description={t('Preferred target languages, up to 3')}
+        >
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+              <Select
+                value={favoriteCandidate}
+                options={LANGUAGES.filter((language) => !favorites.includes(language.code)).map((language) => ({
+                  label: getLocalizedLangLabel(language.code, i18n.language),
+                  value: language.code
+                }))}
+                onChange={setFavoriteCandidate}
+                style={{ width: 200 }}
+                size="middle"
+                placeholder={t('Select a language')}
+                allowClear
+              />
+              <Button
+                icon={<Icon name="plus" size={16} />}
+                onClick={() =>
+                  saveAndNotify(async () => {
+                    if (!favoriteCandidate) {
+                      return;
+                    }
+                    if (favorites.length >= 3) {
+                      message.warning(t('You can select up to 3 favorite languages'));
+                      return;
+                    }
+                    await addFavoriteLanguage(favoriteCandidate);
+                    setFavoriteCandidate(undefined);
+                  })
+                }
+                disabled={!favoriteCandidate || favorites.length >= 3}
+                size="middle"
+              >
+                {t('Add')}
+              </Button>
+            </div>
+            <div>
+              {favorites.map((language) => (
+                <Tag
+                  key={language}
+                  closable
+                  onClose={() => {
+                    void saveAndNotify(() => removeFavoriteLanguage(language));
+                  }}
+                  color="blue"
+                  style={{ marginBottom: 4 }}
                 >
-                    <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                            <Select
-                                key={i18n.language}
-                                value={addFav}
-                                options={LANGUAGES.filter(l => !favoriteLangs.includes(l.code)).map(l => ({
-                                    label: t('lang.' + l.code),
-                                    value: l.code
-                                }))}
-                                onChange={setAddFav}
-                                style={{ width: 200 }}
-                                size="middle"
-                                placeholder={t('选择语言')}
-                                allowClear
-                            />
-                            <Button
-                                icon={<Icon name="plus" size={16} />}
-                                onClick={handleAddFav}
-                                disabled={!addFav || favoriteLangs.length >= 3}
-                                size="middle"
-                            >
-                                {t('添加')}
-                            </Button>
-                        </div>
-                        <div>
-                            {favoriteLangs.map(lang => (
-                                <Tag
-                                    key={lang}
-                                    closable
-                                    onClose={() => handleRemoveFav(lang)}
-                                    color="blue"
-                                    style={{ marginBottom: 4 }}
-                                >
-                                    {t('lang.' + lang)}
-                                </Tag>
-                            ))}
-                        </div>
-                    </div>
-                </SettingsItem>
+                  {getLocalizedLangLabel(language, i18n.language)}
+                </Tag>
+              ))}
+            </div>
+          </div>
+        </SettingsItem>
 
-                <SettingsItem
-                    label={t('永不翻译这些语言')}
-                    description={t('这些语言不会被自动翻译')}
+        <SettingsItem
+          label={t('Never translate these languages')}
+          description={t('These languages will not be translated automatically')}
+        >
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+              <Select
+                value={neverCandidate}
+                options={LANGUAGES.filter((language) => !never.includes(language.code)).map((language) => ({
+                  label: getLocalizedLangLabel(language.code, i18n.language),
+                  value: language.code
+                }))}
+                onChange={setNeverCandidate}
+                style={{ width: 200 }}
+                size="middle"
+                placeholder={t('Select a language')}
+                allowClear
+              />
+              <Button
+                icon={<Icon name="plus" size={16} />}
+                onClick={() =>
+                  saveAndNotify(async () => {
+                    if (!neverCandidate) {
+                      return;
+                    }
+                    await addNeverLanguage(neverCandidate);
+                    setNeverCandidate(undefined);
+                  })
+                }
+                disabled={!neverCandidate}
+                size="middle"
+              >
+                {t('Add')}
+              </Button>
+            </div>
+            <div>
+              {never.map((language) => (
+                <Tag
+                  key={language}
+                  closable
+                  onClose={() => {
+                    void saveAndNotify(() => removeNeverLanguage(language));
+                  }}
+                  color="red"
+                  style={{ marginBottom: 4 }}
                 >
-                    <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                            <Select
-                                key={i18n.language}
-                                value={addNever}
-                                options={LANGUAGES.filter(l => !neverLangs.includes(l.code)).map(l => ({
-                                    label: t('lang.' + l.code),
-                                    value: l.code
-                                }))}
-                                onChange={setAddNever}
-                                style={{ width: 200 }}
-                                size="middle"
-                                placeholder={t('选择语言')}
-                                allowClear
-                            />
-                            <Button
-                                icon={<Icon name="plus" size={16} />}
-                                onClick={handleAddNever}
-                                disabled={!addNever}
-                                size="middle"
-                            >
-                                {t('添加')}
-                            </Button>
-                        </div>
-                        <div>
-                            {neverLangs.map(lang => (
-                                <Tag
-                                    key={lang}
-                                    closable
-                                    onClose={() => handleRemoveNever(lang)}
-                                    color="red"
-                                    style={{ marginBottom: 4 }}
-                                >
-                                    {t('lang.' + lang)}
-                                </Tag>
-                            ))}
-                        </div>
-                    </div>
-                </SettingsItem>
+                  {getLocalizedLangLabel(language, i18n.language)}
+                </Tag>
+              ))}
+            </div>
+          </div>
+        </SettingsItem>
 
-                <SettingsItem
-                    label={t('总是翻译这些语言')}
-                    description={t('这些语言会被自动翻译为你的目标语言')}
+        <SettingsItem
+          label={t('Always translate these languages')}
+          description={t('These languages will always be translated to your target language')}
+        >
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+              <Select
+                value={alwaysCandidate}
+                options={LANGUAGES.filter((language) => !always.includes(language.code)).map((language) => ({
+                  label: getLocalizedLangLabel(language.code, i18n.language),
+                  value: language.code
+                }))}
+                onChange={setAlwaysCandidate}
+                style={{ width: 200 }}
+                size="middle"
+                placeholder={t('Select a language')}
+                allowClear
+              />
+              <Button
+                icon={<Icon name="plus" size={16} />}
+                onClick={() =>
+                  saveAndNotify(async () => {
+                    if (!alwaysCandidate) {
+                      return;
+                    }
+                    await addAlwaysLanguage(alwaysCandidate);
+                    setAlwaysCandidate(undefined);
+                  })
+                }
+                disabled={!alwaysCandidate}
+                size="middle"
+              >
+                {t('Add')}
+              </Button>
+            </div>
+            <div>
+              {always.map((language) => (
+                <Tag
+                  key={language}
+                  closable
+                  onClose={() => {
+                    void saveAndNotify(() => removeAlwaysLanguage(language));
+                  }}
+                  color="green"
+                  style={{ marginBottom: 4 }}
                 >
-                    <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                            <Select
-                                key={i18n.language}
-                                value={addAlways}
-                                options={LANGUAGES.filter(l => !alwaysLangs.includes(l.code)).map(l => ({
-                                    label: t('lang.' + l.code),
-                                    value: l.code
-                                }))}
-                                onChange={setAddAlways}
-                                style={{ width: 200 }}
-                                size="middle"
-                                placeholder={t('选择语言')}
-                                allowClear
-                            />
-                            <Button
-                                icon={<Icon name="plus" size={16} />}
-                                onClick={handleAddAlways}
-                                disabled={!addAlways}
-                                size="middle"
-                            >
-                                {t('添加')}
-                            </Button>
-                        </div>
-                        <div>
-                            {alwaysLangs.map(lang => (
-                                <Tag
-                                    key={lang}
-                                    closable
-                                    onClose={() => handleRemoveAlways(lang)}
-                                    color="green"
-                                    style={{ marginBottom: 4 }}
-                                >
-                                    {t('lang.' + lang)}
-                                </Tag>
-                            ))}
-                        </div>
-                    </div>
-                </SettingsItem>
-            </SettingsGroup>
-        </SettingsPageContainer>
-    );
+                  {getLocalizedLangLabel(language, i18n.language)}
+                </Tag>
+              ))}
+            </div>
+          </div>
+        </SettingsItem>
+      </SettingsGroup>
+    </SettingsPageContainer>
+  );
 };
 
 export default LanguageSettings;

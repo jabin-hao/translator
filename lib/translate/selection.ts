@@ -15,15 +15,12 @@ function pathContainsInputElement(path: EventTarget[]): boolean {
 function isClickOnTranslatorComponent(path: EventTarget[], shadowRoot: ShadowRoot | null): boolean {
   if (!shadowRoot) return false;
   
-  const inputTranslatorElement = shadowRoot.querySelector('.input-translator-card');
   const resultElement = shadowRoot.querySelector('[data-translator-result]');
   const iconElement = shadowRoot.querySelector('.translator-icon');
   
   return path.some(target => {
-    return (inputTranslatorElement && target === inputTranslatorElement) ||
-           (resultElement && target === resultElement) ||
+    return (resultElement && target === resultElement) ||
            (iconElement && target === iconElement) ||
-           (inputTranslatorElement && target instanceof Node && inputTranslatorElement.contains(target)) ||
            (resultElement && target instanceof Node && resultElement.contains(target)) ||
            (iconElement && target instanceof Node && iconElement.contains(target));
   });
@@ -48,6 +45,18 @@ export const setupSelectionHandler = (
   let currentSelectionRange: Range | null = null;
   let iconUpdateTimer: NodeJS.Timeout | null = null;
   let mutationObserver: MutationObserver | null = null;
+  const isConnectedSelectionNode = (node: Node | null): boolean => {
+    if (!node) {
+      return false;
+    }
+
+    if (node.isConnected) {
+      return true;
+    }
+
+    const root = node.getRootNode?.();
+    return root instanceof ShadowRoot ? root.host.isConnected : false;
+  };
   let isUserSelecting: boolean = false; // 跟踪用户是否正在选择文本
 
   // 检查选区是否仍然有效（DOM节点未被删除）
@@ -57,7 +66,10 @@ export const setupSelectionHandler = (
       const startContainer = range.startContainer;
       const endContainer = range.endContainer;
       
-      return document.contains(startContainer) && document.contains(endContainer);
+      return (
+        isConnectedSelectionNode(startContainer) &&
+        isConnectedSelectionNode(endContainer)
+      );
     } catch (error) {
       return false;
     }

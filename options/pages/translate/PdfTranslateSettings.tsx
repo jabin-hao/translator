@@ -1,222 +1,228 @@
-import React from 'react';
-import { Switch, Select, InputNumber, Button, Space, Divider, Radio, Slider } from 'antd';
+import React, { useState } from 'react';
+import { Button, Radio, Select, Slider, Space, Switch } from 'antd';
 import { useTranslation } from 'react-i18next';
+
 import Icon from '~lib/components/Icon';
-import SettingsPageContainer from '../../components/SettingsPageContainer';
 import SettingsGroup from '../../components/SettingsGroup';
 import SettingsItem from '../../components/SettingsItem';
+import SettingsPageContainer from '../../components/SettingsPageContainer';
 
-const { Option } = Select;
+type PdfTranslateMode = 'overlay' | 'replace' | 'side-by-side';
+type PdfTranslationPosition = 'below' | 'above' | 'right';
+type PdfTriggerMethod = 'hover' | 'click' | 'selection';
+
+type PdfFontSettings = {
+  fontSize: number;
+  fontFamily: string;
+  color: string;
+  backgroundColor: string;
+};
+
+type PdfSettingsState = {
+  enabled: boolean;
+  autoDetectLanguage: boolean;
+  translateMode: PdfTranslateMode;
+  showOriginal: boolean;
+  translationPosition: PdfTranslationPosition;
+  fontSettings: PdfFontSettings;
+  triggerMethod: PdfTriggerMethod;
+  autoTranslate: boolean;
+  preserveFormatting: boolean;
+  scrollSync: boolean;
+};
 
 const PdfTranslateSettings: React.FC = () => {
   const { t } = useTranslation();
-
-  // 模拟设置状态（后续需要连接到实际的设置系统）
-  const [pdfSettings, setPdfSettings] = React.useState({
+  const [pdfSettings, setPdfSettings] = useState<PdfSettingsState>({
     enabled: true,
     autoDetectLanguage: true,
-    translateMode: 'overlay', // overlay, replace, side-by-side
+    translateMode: 'overlay',
     showOriginal: true,
-    translationPosition: 'below', // below, above, right
+    translationPosition: 'below',
     fontSettings: {
       fontSize: 14,
       fontFamily: 'Arial',
       color: '#000000',
       backgroundColor: 'rgba(255,255,255,0.9)',
     },
-    triggerMethod: 'hover', // hover, click, selection
+    triggerMethod: 'hover',
     autoTranslate: false,
     preserveFormatting: true,
     scrollSync: true,
   });
 
-  const handleSwitchChange = (key: string, checked: boolean) => {
-    setPdfSettings(prev => ({ ...prev, [key]: checked }));
+  const updateSetting = <K extends keyof PdfSettingsState>(key: K, value: PdfSettingsState[K]) => {
+    setPdfSettings((current) => ({ ...current, [key]: value }));
   };
 
-  const handleSelectChange = (key: string, value: string) => {
-    setPdfSettings(prev => ({ ...prev, [key]: value }));
-  };
-
-  const handleFontChange = (fontKey: string, value: any) => {
-    setPdfSettings(prev => ({
-      ...prev,
+  const updateFontSetting = <K extends keyof PdfFontSettings>(
+    key: K,
+    value: PdfFontSettings[K]
+  ) => {
+    setPdfSettings((current) => ({
+      ...current,
       fontSettings: {
-        ...prev.fontSettings,
-        [fontKey]: value
-      }
+        ...current.fontSettings,
+        [key]: value,
+      },
     }));
   };
 
   return (
-    <SettingsPageContainer 
-      title={t('PDF文件翻译')} 
-      description={t('配置PDF文件翻译的相关设置，支持浏览器中打开的PDF文件翻译')}
+    <SettingsPageContainer
+      title={t('PDF translation')}
+      description={t('Configure translation behavior for PDF documents opened in the browser')}
     >
-      {/* PDF翻译总开关 */}
-      <SettingsGroup title={t('基础设置')} first>
+      <SettingsGroup title={t('Basic settings')} first>
         <SettingsItem
-          label={t('启用PDF翻译')}
-          description={t('开启后可以翻译浏览器中打开的PDF文件')}
+          label={t('Enable PDF translation')}
+          description={t('Allow translating PDF documents opened in the browser')}
         >
-          <Switch
-            checked={pdfSettings.enabled}
-            onChange={(checked) => handleSwitchChange('enabled', checked)}
-          />
+          <Switch checked={pdfSettings.enabled} onChange={(checked) => updateSetting('enabled', checked)} />
         </SettingsItem>
       </SettingsGroup>
 
-      {/* PDF翻译相关设置 */}
       {pdfSettings.enabled && (
         <>
-          <SettingsGroup title={t('翻译设置')}>
+          <SettingsGroup title={t('Translation settings')}>
             <SettingsItem
-              label={t('自动检测语言')}
-              description={t('自动识别PDF文档的源语言')}
+              label={t('Auto detect language')}
+              description={t('Detect the source language automatically')}
             >
               <Switch
                 checked={pdfSettings.autoDetectLanguage}
-                onChange={(checked) => handleSwitchChange('autoDetectLanguage', checked)}
+                onChange={(checked) => updateSetting('autoDetectLanguage', checked)}
               />
             </SettingsItem>
 
             <SettingsItem
-              label={t('翻译模式')}
-              description={t('选择PDF内容的翻译显示方式')}
+              label={t('Translate mode')}
+              description={t('Choose how translated PDF text should be displayed')}
             >
               <Radio.Group
                 value={pdfSettings.translateMode}
-                onChange={(e) => handleSelectChange('translateMode', e.target.value)}
+                onChange={(event) => updateSetting('translateMode', event.target.value as PdfTranslateMode)}
               >
-                <Radio value="overlay">{t('覆盖显示')}</Radio>
-                <Radio value="replace">{t('替换原文')}</Radio>
-                <Radio value="side-by-side">{t('对照显示')}</Radio>
+                <Radio value="overlay">{t('Overlay')}</Radio>
+                <Radio value="replace">{t('Replace original')}</Radio>
+                <Radio value="side-by-side">{t('Side by side')}</Radio>
               </Radio.Group>
             </SettingsItem>
 
             <SettingsItem
-              label={t('显示原文')}
-              description={t('翻译后是否同时显示原文')}
+              label={t('Show original')}
+              description={t('Keep original text visible with the translation')}
             >
-              <Switch
-                checked={pdfSettings.showOriginal}
-                onChange={(checked) => handleSwitchChange('showOriginal', checked)}
-              />
+              <Switch checked={pdfSettings.showOriginal} onChange={(checked) => updateSetting('showOriginal', checked)} />
             </SettingsItem>
 
             <SettingsItem
-              label={t('翻译位置')}
-              description={t('选择翻译文本相对于原文的显示位置')}
+              label={t('Translation position')}
+              description={t('Choose where translated text appears relative to the original')}
             >
               <Select
                 value={pdfSettings.translationPosition}
-                onChange={(value) => handleSelectChange('translationPosition', value)}
-                style={{ width: 120 }}
+                onChange={(value) => updateSetting('translationPosition', value)}
+                style={{ width: 140 }}
                 disabled={pdfSettings.translateMode === 'replace'}
               >
-                <Option value="below">{t('下方')}</Option>
-                <Option value="above">{t('上方')}</Option>
-                <Option value="right">{t('右侧')}</Option>
+                <Select.Option value="below">{t('Below')}</Select.Option>
+                <Select.Option value="above">{t('Above')}</Select.Option>
+                <Select.Option value="right">{t('Right')}</Select.Option>
               </Select>
             </SettingsItem>
           </SettingsGroup>
 
-          <SettingsGroup title={t('触发设置')}>
+          <SettingsGroup title={t('Trigger settings')}>
             <SettingsItem
-              label={t('PDF触发方式')}
-              description={t('选择如何触发PDF内容翻译')}
+              label={t('Trigger method')}
+              description={t('Choose how PDF translation is triggered')}
             >
               <Radio.Group
                 value={pdfSettings.triggerMethod}
-                onChange={(e) => handleSelectChange('triggerMethod', e.target.value)}
+                onChange={(event) => updateSetting('triggerMethod', event.target.value as PdfTriggerMethod)}
               >
-                <Radio value="hover">{t('鼠标悬停')}</Radio>
-                <Radio value="click">{t('鼠标点击')}</Radio>
-                <Radio value="selection">{t('选中文本')}</Radio>
+                <Radio value="hover">{t('Hover')}</Radio>
+                <Radio value="click">{t('Click')}</Radio>
+                <Radio value="selection">{t('Selection')}</Radio>
               </Radio.Group>
             </SettingsItem>
 
             <SettingsItem
-              label={t('自动翻译')}
-              description={t('打开PDF时自动翻译所有内容')}
+              label={t('Auto translate')}
+              description={t('Translate the document automatically when it opens')}
             >
-              <Switch
-                checked={pdfSettings.autoTranslate}
-                onChange={(checked) => handleSwitchChange('autoTranslate', checked)}
-              />
+              <Switch checked={pdfSettings.autoTranslate} onChange={(checked) => updateSetting('autoTranslate', checked)} />
             </SettingsItem>
           </SettingsGroup>
 
-          <SettingsGroup title={t('显示设置')}>
+          <SettingsGroup title={t('Display settings')}>
             <SettingsItem
-              label={t('字体大小')}
-              description={t('翻译文本的字体大小')}
+              label={t('Font size')}
+              description={t('Control translated text size')}
             >
               <Slider
                 min={10}
                 max={24}
                 value={pdfSettings.fontSettings.fontSize}
-                onChange={(value) => handleFontChange('fontSize', value)}
+                onChange={(value) => updateFontSetting('fontSize', value)}
                 style={{ width: 200 }}
               />
             </SettingsItem>
 
             <SettingsItem
-              label={t('字体系列')}
-              description={t('翻译文本的字体')}
+              label={t('Font family')}
+              description={t('Choose the font used for translated text')}
             >
               <Select
                 value={pdfSettings.fontSettings.fontFamily}
-                onChange={(value) => handleFontChange('fontFamily', value)}
-                style={{ width: 150 }}
+                onChange={(value) => updateFontSetting('fontFamily', value)}
+                style={{ width: 160 }}
               >
-                <Option value="Arial">Arial</Option>
-                <Option value="SimSun">{t('宋体')}</Option>
-                <Option value="SimHei">{t('黑体')}</Option>
-                <Option value="Microsoft YaHei">{t('微软雅黑')}</Option>
+                <Select.Option value="Arial">Arial</Select.Option>
+                <Select.Option value="SimSun">{t('SimSun')}</Select.Option>
+                <Select.Option value="SimHei">{t('SimHei')}</Select.Option>
+                <Select.Option value="Microsoft YaHei">{t('Microsoft YaHei')}</Select.Option>
               </Select>
             </SettingsItem>
           </SettingsGroup>
 
-          <SettingsGroup title={t('高级设置')}>
+          <SettingsGroup title={t('Advanced settings')}>
             <SettingsItem
-              label={t('保持格式')}
-              description={t('翻译时保持原文的格式和样式')}
+              label={t('Preserve formatting')}
+              description={t('Keep the original layout and formatting where possible')}
             >
               <Switch
                 checked={pdfSettings.preserveFormatting}
-                onChange={(checked) => handleSwitchChange('preserveFormatting', checked)}
+                onChange={(checked) => updateSetting('preserveFormatting', checked)}
               />
             </SettingsItem>
 
             <SettingsItem
-              label={t('滚动同步')}
-              description={t('翻译内容随页面滚动保持同步')}
+              label={t('Scroll sync')}
+              description={t('Keep translated overlays aligned while scrolling')}
             >
-              <Switch
-                checked={pdfSettings.scrollSync}
-                onChange={(checked) => handleSwitchChange('scrollSync', checked)}
-              />
+              <Switch checked={pdfSettings.scrollSync} onChange={(checked) => updateSetting('scrollSync', checked)} />
             </SettingsItem>
           </SettingsGroup>
 
-          <SettingsGroup title={t('快捷操作')}>
+          <SettingsGroup title={t('Quick actions')}>
             <SettingsItem
-              label={t('常用操作')}
-              description={t('PDF翻译的常用操作')}
+              label={t('Common actions')}
+              description={t('Preview and maintenance actions for PDF translation')}
             >
               <Space wrap>
                 <Button icon={<Icon name="book" size={16} />} disabled={!pdfSettings.enabled}>
-                  {t('预览翻译效果')}
+                  {t('Preview translation')}
                 </Button>
                 <Button icon={<Icon name="reload" size={16} />} disabled={!pdfSettings.enabled}>
-                  {t('重新翻译页面')}
+                  {t('Retranslate page')}
                 </Button>
                 <Button icon={<Icon name="export" size={16} />} disabled={!pdfSettings.enabled}>
-                  {t('导出翻译文本')}
+                  {t('Export translated text')}
                 </Button>
                 <Button type="link" disabled={!pdfSettings.enabled}>
-                  {t('查看翻译历史')}
+                  {t('View translation history')}
                 </Button>
               </Space>
             </SettingsItem>

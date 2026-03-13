@@ -1,59 +1,65 @@
-/**
- * 翻译引擎设置 Hook
- */
 import { useCallback } from 'react';
-import { produce } from 'immer';
-import { useGlobalSettings } from './useGlobalSettings';
+
 import type { GlobalSettings, PartialDeep, TranslateEngineType } from '../../constants/types';
+import { useSettingsModule } from './useSettingsModule';
 
 export function useEngineSettings() {
-  const { settings, updateModuleSettings } = useGlobalSettings();
+  const { moduleSettings: engineSettings, updateSettings: updateEngine } =
+    useSettingsModule('engines');
 
-  const engineSettings = settings.engines;
+  const setDefaultEngine = useCallback(
+    (engine: TranslateEngineType) =>
+      updateEngine({ default: engine } as PartialDeep<GlobalSettings['engines']>),
+    [updateEngine]
+  );
 
-  const updateEngine = useCallback((updates: PartialDeep<GlobalSettings['engines']>) => {
-    updateModuleSettings('engines', updates);
-  }, [updateModuleSettings]);
+  const updateApiKey = useCallback(
+    (provider: keyof GlobalSettings['engines']['apiKeys'], key: string) =>
+      updateEngine({
+        apiKeys: {
+          ...engineSettings.apiKeys,
+          [provider]: key,
+        },
+      } as PartialDeep<GlobalSettings['engines']>),
+    [engineSettings.apiKeys, updateEngine]
+  );
 
-  const setDefaultEngine = useCallback((engine: TranslateEngineType) => {
-    updateEngine({ default: engine });
-  }, [updateEngine]);
+  const addCustomEngine = useCallback(
+    (engine: GlobalSettings['engines']['customEngines'][0]) =>
+      updateEngine({
+        customEngines: [...engineSettings.customEngines, engine],
+      } as PartialDeep<GlobalSettings['engines']>),
+    [engineSettings.customEngines, updateEngine]
+  );
 
-  const updateApiKey = useCallback((
-    provider: keyof GlobalSettings['engines']['apiKeys'],
-    key: string
-  ) => {
-    updateEngine({
-      apiKeys: {
-        [provider]: key
-      }
-    });
-  }, [updateEngine]);
+  const removeCustomEngine = useCallback(
+    (engineId: string) =>
+      updateEngine({
+        customEngines: engineSettings.customEngines.filter(
+          (engine) => engine.id !== engineId
+        ),
+      } as PartialDeep<GlobalSettings['engines']>),
+    [engineSettings.customEngines, updateEngine]
+  );
 
-  const addCustomEngine = useCallback((engine: GlobalSettings['engines']['customEngines'][0]) => {
-    updateEngine({
-      customEngines: [...engineSettings.customEngines, engine]
-    });
-  }, [updateEngine, engineSettings.customEngines]);
+  const updateCustomEngine = useCallback(
+    (
+      engineId: string,
+      updates: Partial<GlobalSettings['engines']['customEngines'][0]>
+    ) =>
+      updateEngine({
+        customEngines: engineSettings.customEngines.map((engine) =>
+          engine.id === engineId ? { ...engine, ...updates } : engine
+        ),
+      } as PartialDeep<GlobalSettings['engines']>),
+    [engineSettings.customEngines, updateEngine]
+  );
 
-  const removeCustomEngine = useCallback((engineId: string) => {
-    updateEngine(
-      produce(engineSettings, (draft) => {
-        draft.customEngines = draft.customEngines.filter(e => e.id !== engineId);
-      })
-    );
-  }, [updateEngine, engineSettings]);
-
-  const updateCustomEngine = useCallback((engineId: string, updates: Partial<GlobalSettings['engines']['customEngines'][0]>) => {
-    updateEngine(
-      produce(engineSettings, (draft) => {
-        const engineIndex = draft.customEngines.findIndex(e => e.id === engineId);
-        if (engineIndex !== -1) {
-          Object.assign(draft.customEngines[engineIndex], updates);
-        }
-      })
-    );
-  }, [updateEngine, engineSettings]);
+  const setCustomEngineEnabled = useCallback(
+    (engineId: string, enabled: boolean) =>
+      updateCustomEngine(engineId, { enabled }),
+    [updateCustomEngine]
+  );
 
   return {
     engineSettings,
@@ -63,5 +69,6 @@ export function useEngineSettings() {
     addCustomEngine,
     removeCustomEngine,
     updateCustomEngine,
+    setCustomEngineEnabled,
   };
 }

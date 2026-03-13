@@ -1,83 +1,80 @@
-import React, { useCallback, useEffect } from 'react';
-import { useImmer } from 'use-immer';
-import { Select, Button, message, Upload, Modal, ConfigProvider, Segmented } from 'antd';
-import { UI_LANGUAGES } from '~/lib/constants/languages';
-import Icon from '~lib/components/Icon';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Button, ConfigProvider, message, Modal, Select, Segmented, Upload } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { useGlobalSettings, useThemeSettings } from '~lib/settings/settings';
-import { GLOBAL_SETTINGS_KEY } from '~lib/settings/settings';
-import SettingsPageContainer from '../../components/SettingsPageContainer';
+
+import Icon from '~lib/components/Icon';
+import { getLocalizedLangLabel, mapUiLangToI18nKey, UI_LANGUAGES } from '~/lib/constants/languages';
+import { GLOBAL_SETTINGS_KEY, useGlobalSettings, useThemeSettings } from '~lib/settings/settings';
 import SettingsGroup from '../../components/SettingsGroup';
 import SettingsItem from '../../components/SettingsItem';
-import { produce } from 'immer';
-import {THEME_OPTIONS} from '~lib/settings/settings'
+import SettingsPageContainer from '../../components/SettingsPageContainer';
 
-// 新增 props 类型
 interface GeneralSettingsProps {
-  themeMode: "light" | "dark" | "auto";
-  setThemeMode: (val: "light" | "dark" | "auto") => void;
+  themeMode: 'light' | 'dark' | 'auto';
+  setThemeMode: (val: 'light' | 'dark' | 'auto') => void;
 }
 
 const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMode }) => {
   const { t, i18n } = useTranslation();
-  
-  // 使用新的全局配置系统
   const { settings, updateSettings, resetSettings } = useGlobalSettings();
-  const { themeSettings, updateTheme } = useThemeSettings();
-  
-  // 从全局设置中提取值
+  const { themeSettings, setThemeMode: saveThemeMode, setUiLanguage } = useThemeSettings();
+  const [clearConfigModalVisible, setClearConfigModalVisible] = useState(false);
   const uiLang = themeSettings.uiLanguage;
-  
-  const [clearConfigModalVisible, setClearConfigModalVisible] = useImmer(false);
+  const uiLanguageOptions = UI_LANGUAGES.map((language) => ({
+    value: language.code,
+    label: getLocalizedLangLabel(language.code, i18n.language)
+  }));
+  const themeOptions = [
+    { label: t('Light'), value: 'light' as const },
+    { label: t('Dark'), value: 'dark' as const },
+    { label: t('Auto'), value: 'auto' as const }
+  ];
 
-  // 监听UI语言变化并自动设置默认值
   useEffect(() => {
     const initUiLang = async () => {
       if (!uiLang) {
-        // 自动检测浏览器语言
         const browserLang = navigator.language;
-        const { mapUiLangToI18nKey } = await import('../../../lib/constants/languages');
-        const detectedLang = mapUiLangToI18nKey(browserLang);
-        await updateTheme({ uiLanguage: detectedLang });
-      } else {
-        // 只有当当前i18n语言与设置的语言不同时才调用changeLanguage
-        if (i18n.language !== uiLang) {
-          await i18n.changeLanguage(uiLang);
-        }
+        const detectedLang = browserLang === 'en' || browserLang.startsWith('en-') ? 'en' : 'zh-CN';
+        await setUiLanguage(detectedLang);
+        return;
+      }
+
+      const nextLanguage = mapUiLangToI18nKey(uiLang);
+      if (i18n.language !== nextLanguage) {
+        await i18n.changeLanguage(nextLanguage);
       }
     };
-    initUiLang();
-  }, [uiLang, i18n, updateTheme]);
 
-  const saveUiLang = async (val: string) => {
-    await updateTheme({ uiLanguage: val });
-    // 只有当语言真正改变时才调用changeLanguage
-    if (i18n.language !== val) {
-      await i18n.changeLanguage(val);
+    void initUiLang();
+  }, [i18n, setUiLanguage, uiLang]);
+
+  const saveUiLang = async (value: string) => {
+    await setUiLanguage(value);
+    const nextLanguage = mapUiLangToI18nKey(value);
+    if (i18n.language !== nextLanguage) {
+      await i18n.changeLanguage(nextLanguage);
     }
-    message.success(t('界面语言已保存'));
+    message.success(t('Interface language saved'));
   };
 
-  // 主题切换时同步 localStorage，保证多标签页同步
-  const handleThemeChange = async (value: "light" | "dark" | "auto") => {
-      setThemeMode(value); // Directly set the value as immer is unnecessary here
-      updateTheme({ mode: value });
+  const handleThemeChange = async (value: 'light' | 'dark' | 'auto') => {
+    setThemeMode(value);
+    await saveThemeMode(value);
   };
 
   const handleExportConfig = useCallback(async () => {
-    // 导出全局设置
     const data = { [GLOBAL_SETTINGS_KEY]: settings };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'translator-config.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'translator-config.json';
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
     URL.revokeObjectURL(url);
-    message.success('配置已导出');
-  }, [settings]);
+    message.success(t('Settings exported'));
+  }, [settings, t]);
 
   const handleImportConfig = useCallback(
     async (file: File) => {
@@ -85,148 +82,133 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ themeMode, setThemeMo
         const text = await file.text();
         const json = JSON.parse(text);
 
-        if (json[GLOBAL_SETTINGS_KEY]) {
-          const updatedSettings = produce(settings, (draft) => {
-            Object.assign(draft, json[GLOBAL_SETTINGS_KEY]);
-          });
-          await updateSettings(updatedSettings);
-          message.success('配置已导入，页面将刷新以应用新设置');
-          setTimeout(() => window.location.reload(), 1000);
-        } else {
-          message.error('无效的配置文件格式');
+        if (!json[GLOBAL_SETTINGS_KEY]) {
+          message.error(t('Invalid config file'));
+          return false;
         }
+
+        await updateSettings(json[GLOBAL_SETTINGS_KEY]);
+        message.success(t('Settings imported, page will refresh'));
+        setTimeout(() => window.location.reload(), 1000);
       } catch (error) {
-        message.error('配置文件格式错误');
+        console.error('Failed to import config:', error);
+        message.error(t('Invalid config file'));
       }
-      return false; // 阻止自动上传
+      return false;
     },
-    [settings, updateSettings]
+    [t, updateSettings]
   );
 
   const handleClearConfig = useCallback(async () => {
     try {
-      // 重置为默认设置
       await resetSettings();
-      message.success('配置已清除，页面将刷新');
+      message.success(t('Settings reset, page will refresh'));
       setTimeout(() => window.location.reload(), 1000);
     } catch (error) {
-      message.error('清除配置失败');
+      console.error('Failed to reset settings:', error);
+      message.error(t('Failed to reset settings'));
     }
-  }, [resetSettings]);
+  }, [resetSettings, t]);
 
   return (
-    <SettingsPageContainer 
-      title={t('通用设置')} 
-      description={t('配置插件的基本设置和外观')}>
-      <SettingsGroup title={t('界面设置')} first>
-        <SettingsItem 
-          label={t('设置页面语言')} 
-          description={t('控制插件界面显示的语言')}
+    <SettingsPageContainer
+      title={t('General settings')}
+      description={t('Configure the extension appearance and basic preferences')}
+    >
+      <SettingsGroup title={t('Interface settings')} first>
+        <SettingsItem
+          label={t('Interface language')}
+          description={t('Controls the language used by the extension UI')}
         >
           <Select
             key={i18n.language}
-            value={uiLang}
-            options={UI_LANGUAGES.map(l => ({
-              value: l.code,
-              label: t('lang.' + l.code)
-            }))}
+            value={uiLang || 'zh-CN'}
+            options={uiLanguageOptions}
             onChange={saveUiLang}
             style={{ width: 200 }}
             size="middle"
           />
         </SettingsItem>
 
-        <SettingsItem 
-          label={t('设置页面主题')}
-          description={t('控制设置页面的主题样式')}
+        <SettingsItem
+          label={t('Theme')}
+          description={t('Controls the appearance of the settings UI')}
         >
           <ConfigProvider
-                theme={{
-                  components: {
-                    Segmented: {
-                      itemSelectedBg: 'transparent',
-                      itemSelectedColor: 'var(--ant-color-primary)',
-                      itemColor: 'var(--ant-color-text)',
-                      itemHoverBg: 'var(--ant-color-primary-bg)',
-                      itemHoverColor: 'var(--ant-color-primary)',
-                      trackBg: 'var(--ant-color-fill-quaternary)',
-                    },
-                  },
-                }}
-              >
-                <Segmented
-                  value={themeMode}
-                  onChange={handleThemeChange}
-                  options={[...THEME_OPTIONS]}
-                />
-              </ConfigProvider>
+            theme={{
+              components: {
+                Segmented: {
+                  itemSelectedBg: 'transparent',
+                  itemSelectedColor: 'var(--ant-color-primary)',
+                  itemColor: 'var(--ant-color-text)',
+                  itemHoverBg: 'var(--ant-color-primary-bg)',
+                  itemHoverColor: 'var(--ant-color-primary)',
+                  trackBg: 'var(--ant-color-fill-quaternary)'
+                }
+              }
+            }}
+          >
+            <Segmented
+              value={themeMode}
+              onChange={(value) => {
+                void handleThemeChange(value as 'light' | 'dark' | 'auto');
+              }}
+              options={themeOptions}
+            />
+          </ConfigProvider>
         </SettingsItem>
-
       </SettingsGroup>
 
-      <SettingsGroup title={t('数据管理')}>
-        <SettingsItem 
-          label={t('导出配置')}
-          description={t('将所有设置导出为文件，方便备份和迁移')}
+      <SettingsGroup title={t('Data management')}>
+        <SettingsItem
+          label={t('Export settings')}
+          description={t('Export all settings to a file for backup or migration')}
         >
-          <Button 
-            icon={<Icon name="download" size={16} />} 
-            onClick={handleExportConfig}
-          >
-            {t('导出配置文件')}
+          <Button icon={<Icon name="download" size={16} />} onClick={handleExportConfig}>
+            {t('Export settings file')}
           </Button>
         </SettingsItem>
 
-        <SettingsItem 
-          label={t('导入配置')}
-          description={t('从配置文件恢复设置')}
+        <SettingsItem
+          label={t('Import settings')}
+          description={t('Restore settings from a config file')}
         >
-          <Upload
-            accept=".json"
-            showUploadList={false}
-            beforeUpload={handleImportConfig}
-          >
-            <Button icon={<Icon name="upload" size={16} />}>
-              {t('选择配置文件')}
-            </Button>
+          <Upload accept=".json" showUploadList={false} beforeUpload={handleImportConfig}>
+            <Button icon={<Icon name="upload" size={16} />}>{t('Choose config file')}</Button>
           </Upload>
         </SettingsItem>
 
-        <SettingsItem 
-          label={t('重置配置')}
-          description={t('清除所有设置并恢复默认值')}
+        <SettingsItem
+          label={t('Reset settings')}
+          description={t('Clear all settings and restore defaults')}
         >
-          <Button 
-            danger 
-            onClick={() => setClearConfigModalVisible(true)}
-          >
-            {t('重置所有设置')}
+          <Button danger onClick={() => setClearConfigModalVisible(true)}>
+            {t('Reset all settings')}
           </Button>
         </SettingsItem>
       </SettingsGroup>
 
-      {/* 重置确认弹窗 */}
       <Modal
-        title={t('确认重置')}
+        title={t('Confirm reset')}
         open={clearConfigModalVisible}
         onOk={handleClearConfig}
         onCancel={() => setClearConfigModalVisible(false)}
-        okText={t('确认重置')}
-        cancelText={t('取消')}
+        okText={t('Reset settings')}
+        cancelText={t('Cancel')}
         okButtonProps={{ danger: true }}
       >
         <div>
-          <p>{t('此操作将清除所有设置并恢复默认值，包括：')}</p>
+          <p>{t('This will remove all saved settings and restore defaults, including:')}</p>
           <ul style={{ paddingLeft: 20 }}>
-            <li>{t('翻译引擎设置')}</li>
-            <li>{t('快捷键设置')}</li>
-            <li>{t('语言偏好')}</li>
-            <li>{t('网站自动翻译列表')}</li>
-            <li>{t('主题设置')}</li>
-            <li>{t('其他所有配置')}</li>
+            <li>{t('Translation engine settings')}</li>
+            <li>{t('Shortcut settings')}</li>
+            <li>{t('Language preferences')}</li>
+            <li>{t('Site auto-translate rules')}</li>
+            <li>{t('Theme settings')}</li>
+            <li>{t('All other saved configuration')}</li>
           </ul>
           <p style={{ color: '#ff4d4f', fontWeight: 'bold' }}>
-            {t('此操作不可恢复，请确认后继续。')}
+            {t('This action cannot be undone.')}
           </p>
         </div>
       </Modal>

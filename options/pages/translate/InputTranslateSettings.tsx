@@ -1,13 +1,23 @@
 import React from 'react';
-import { produce } from 'immer';
-import { Switch, Select, Radio, Input, InputNumber, message, Tag, Space } from 'antd';
+import { Input, InputNumber, Radio, Select, Space, Switch, Tag, message } from 'antd';
 import { useTranslation } from 'react-i18next';
+
+import { appendUniqueItem, removeItem } from '~lib/settings/hooks/settingArrayUtils';
 import { useInputTranslateSettings } from '~lib/settings/settings';
-import SettingsPageContainer from '../../components/SettingsPageContainer';
 import SettingsGroup from '../../components/SettingsGroup';
 import SettingsItem from '../../components/SettingsItem';
+import SettingsPageContainer from '../../components/SettingsPageContainer';
 
-const { Option } = Select;
+const supportedInputTypes = [
+  'text',
+  'textarea',
+  'email',
+  'search',
+  'url',
+  'password',
+  'tel',
+  'contenteditable'
+];
 
 const InputTranslateSettings: React.FC = () => {
   const { t } = useTranslation();
@@ -15,13 +25,11 @@ const InputTranslateSettings: React.FC = () => {
 
   const handleToggleEnabled = async (enabled: boolean) => {
     await updateInputTranslate({ enabled });
-    message.success(enabled ? t('已启用输入框翻译') : t('已禁用输入框翻译'));
+    message.success(enabled ? t('Input translation enabled') : t('Input translation disabled'));
   };
 
-
-
-  const handleTriggerModeChange = async (e: any) => {
-    await updateInputTranslate({ triggerMode: e.target.value });
+  const handleTriggerModeChange = async (value: string) => {
+    await updateInputTranslate({ triggerMode: value as 'auto' | 'hotkey' });
   };
 
   const handleAutoTranslateDelayChange = async (autoTranslateDelay: number | null) => {
@@ -38,85 +46,67 @@ const InputTranslateSettings: React.FC = () => {
 
   const handleAutoReplaceChange = async (autoReplace: boolean) => {
     await updateInputTranslate({ autoReplace });
-    message.success(autoReplace ? t('已开启自动替换') : t('已关闭自动替换'));
+    message.success(autoReplace ? t('Auto replace enabled') : t('Auto replace disabled'));
   };
 
   const handleAddInputType = async (inputType: string) => {
-    if (inputType && !inputTranslateSettings.enabledInputTypes.includes(inputType)) {
-      // 使用 immer 优化数组添加
-      const newTypes = produce(inputTranslateSettings.enabledInputTypes, (draft) => {
-        draft.push(inputType);
-      });
-      await updateInputTranslate({ enabledInputTypes: newTypes });
-    }
+    await updateInputTranslate({
+      enabledInputTypes: appendUniqueItem(inputTranslateSettings.enabledInputTypes, inputType)
+    });
   };
 
   const handleRemoveInputType = async (inputType: string) => {
-    // 使用 immer 优化数组过滤
-    const newTypes = produce(inputTranslateSettings.enabledInputTypes, (draft) => {
-      return draft.filter(type => type !== inputType);
+    await updateInputTranslate({
+      enabledInputTypes: removeItem(inputTranslateSettings.enabledInputTypes, inputType)
     });
-    await updateInputTranslate({ enabledInputTypes: newTypes });
   };
 
   const handleAddExcludeSelector = async (selector: string) => {
-    if (selector && !inputTranslateSettings.excludeSelectors.includes(selector)) {
-      // 使用 immer 优化数组添加
-      const newSelectors = produce(inputTranslateSettings.excludeSelectors, (draft) => {
-        draft.push(selector);
-      });
-      await updateInputTranslate({ excludeSelectors: newSelectors });
-    }
+    await updateInputTranslate({
+      excludeSelectors: appendUniqueItem(inputTranslateSettings.excludeSelectors, selector)
+    });
   };
 
   const handleRemoveExcludeSelector = async (selector: string) => {
-    // 使用 immer 优化数组过滤
-    const newSelectors = produce(inputTranslateSettings.excludeSelectors, (draft) => {
-      return draft.filter(s => s !== selector);
+    await updateInputTranslate({
+      excludeSelectors: removeItem(inputTranslateSettings.excludeSelectors, selector)
     });
-    await updateInputTranslate({ excludeSelectors: newSelectors });
   };
 
   return (
     <SettingsPageContainer
-      title={t('输入框翻译设置')}
-      description={t('配置网页输入框的翻译功能')}
+      title={t('Input translation settings')}
+      description={t('Configure translation behavior for editable fields')}
     >
-      {/* 基础设置 */}
-      <SettingsGroup title={t('基础设置')} first>
+      <SettingsGroup title={t('Basic settings')} first>
         <SettingsItem
-          label={t('启用输入框翻译')}
-          description={t('在网页的输入框中启用翻译功能')}
+          label={t('Enable input translation')}
+          description={t('Turn on translation support inside page input fields')}
         >
-          <Switch
-            checked={inputTranslateSettings.enabled}
-            onChange={handleToggleEnabled}
-          />
+          <Switch checked={inputTranslateSettings.enabled} onChange={handleToggleEnabled} />
         </SettingsItem>
-
       </SettingsGroup>
 
-      {/* 触发设置 */}
       {inputTranslateSettings.enabled && (
-        <SettingsGroup title={t('触发设置')}>
+        <SettingsGroup title={t('Trigger settings')}>
           <SettingsItem
-            label={t('触发模式')}
-            description={t('选择如何触发翻译')}
+            label={t('Trigger mode')}
+            description={t('Choose how input translation starts')}
           >
             <Radio.Group
               value={inputTranslateSettings.triggerMode}
-              onChange={handleTriggerModeChange}
+              onChange={(event) => handleTriggerModeChange(event.target.value)}
             >
-              <Radio value="auto">{t('自动触发')}</Radio>
-              <Radio value="hotkey">{t('快捷键触发')}</Radio>
+              <Radio value="auto">{t('Automatic')}</Radio>
+              <Radio value="hotkey">{t('Hotkey')}</Radio>
             </Radio.Group>
           </SettingsItem>
 
           {inputTranslateSettings.triggerMode === 'auto' && (
             <>
               <SettingsItem
-                label={t('自动翻译延迟')}
-                description={t('停止输入后多长时间自动翻译（毫秒）')}
+                label={t('Auto translate delay')}
+                description={t('Delay after typing stops before translation starts (ms)')}
               >
                 <InputNumber
                   value={inputTranslateSettings.autoTranslateDelay}
@@ -129,8 +119,8 @@ const InputTranslateSettings: React.FC = () => {
               </SettingsItem>
 
               <SettingsItem
-                label={t('最小文本长度')}
-                description={t('触发自动翻译的最小文本长度')}
+                label={t('Minimum text length')}
+                description={t('Minimum characters required before auto translation starts')}
               >
                 <InputNumber
                   value={inputTranslateSettings.minTextLength}
@@ -144,8 +134,8 @@ const InputTranslateSettings: React.FC = () => {
           )}
 
           <SettingsItem
-            label={t('自动替换')}
-            description={t('翻译完成后直接替换输入框文字，不显示确认弹窗')}
+            label={t('Auto replace')}
+            description={t('Replace the original input directly after translation')}
           >
             <Switch
               checked={inputTranslateSettings.autoReplace}
@@ -155,65 +145,62 @@ const InputTranslateSettings: React.FC = () => {
         </SettingsGroup>
       )}
 
-      {/* 高级设置 */}
       {inputTranslateSettings.enabled && (
-        <SettingsGroup title={t('高级设置')}>
+        <SettingsGroup title={t('Advanced settings')}>
           <SettingsItem
-            label={t('支持的输入类型')}
-            description={t('选择哪些类型的输入框启用翻译')}
+            label={t('Supported input types')}
+            description={t('Choose which editable field types can trigger translation')}
           >
             <div>
               <Space wrap style={{ marginBottom: 8 }}>
-                {inputTranslateSettings.enabledInputTypes.map(type => (
-                  <Tag
-                    key={type}
-                    closable
-                    onClose={() => handleRemoveInputType(type)}
-                  >
+                {inputTranslateSettings.enabledInputTypes.map((type) => (
+                  <Tag key={type} closable onClose={() => void handleRemoveInputType(type)}>
                     {type}
                   </Tag>
                 ))}
               </Space>
               <Select
-                placeholder={t('添加输入类型')}
+                placeholder={t('Add an input type')}
                 style={{ width: 200 }}
-                onSelect={handleAddInputType}
+                onSelect={(value) => void handleAddInputType(value)}
                 value={undefined}
               >
-                {['text', 'textarea', 'email', 'search', 'url', 'password', 'tel', 'contenteditable'].map(type => (
-                  <Option key={type} value={type} disabled={inputTranslateSettings.enabledInputTypes.includes(type)}>
+                {supportedInputTypes.map((type) => (
+                  <Select.Option
+                    key={type}
+                    value={type}
+                    disabled={inputTranslateSettings.enabledInputTypes.includes(type)}
+                  >
                     {type}
-                  </Option>
+                  </Select.Option>
                 ))}
               </Select>
             </div>
           </SettingsItem>
 
           <SettingsItem
-            label={t('排除选择器')}
-            description={t('匹配这些CSS选择器的输入框将不启用翻译')}
+            label={t('Excluded selectors')}
+            description={t('Fields matching these CSS selectors will not use input translation')}
           >
             <div>
               <Space wrap style={{ marginBottom: 8 }}>
-                {inputTranslateSettings.excludeSelectors.map(selector => (
-                  <Tag
-                    key={selector}
-                    closable
-                    onClose={() => handleRemoveExcludeSelector(selector)}
-                  >
+                {inputTranslateSettings.excludeSelectors.map((selector) => (
+                  <Tag key={selector} closable onClose={() => void handleRemoveExcludeSelector(selector)}>
                     {selector}
                   </Tag>
                 ))}
               </Space>
               <Input
-                placeholder={t('添加CSS选择器（如：.no-translate）')}
+                placeholder={t('Add a CSS selector, for example .no-translate')}
                 style={{ width: 300 }}
-                onPressEnter={(e) => {
-                  const value = (e.target as HTMLInputElement).value.trim();
-                  if (value) {
-                    handleAddExcludeSelector(value);
-                    (e.target as HTMLInputElement).value = '';
+                onPressEnter={(event) => {
+                  const value = (event.target as HTMLInputElement).value.trim();
+                  if (!value) {
+                    return;
                   }
+
+                  void handleAddExcludeSelector(value);
+                  (event.target as HTMLInputElement).value = '';
                 }}
               />
             </div>

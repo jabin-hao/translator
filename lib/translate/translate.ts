@@ -1,324 +1,408 @@
-// 统一翻译服务
-import {storageApi} from "~lib/storage/storage"
-import {googleTranslate, googleTranslateBatch} from "~background/translate/google"
-import {bingTranslate, bingTranslateBatch} from "~background/translate/bing"
-import {deeplTranslate, deeplTranslateBatch} from "~background/translate/deepl"
-import {yandexTranslate, yandexTranslateBatch} from "~background/translate/yandex"
-import { GLOBAL_SETTINGS_KEY } from "../settings/settings"
-import type { GlobalSettings, CustomDictionaryEntry } from "../constants/types"
-import { customDictionaryManager, translationCacheManager } from "../storage/chrome_storage"
+import { bingTranslate, bingTranslateBatch } from '~background/translate/bing';
+import { deeplTranslate, deeplTranslateBatch } from '~background/translate/deepl';
+import { googleTranslate, googleTranslateBatch } from '~background/translate/google';
+import { yandexTranslate, yandexTranslateBatch } from '~background/translate/yandex';
+import { cacheManager } from '~lib/cache/cache';
+import type { GlobalSettings, TranslateOptions, TranslateResult } from '~lib/constants/types';
+import { GLOBAL_SETTINGS_KEY } from '~lib/settings/settings';
+import { customDictionaryManager } from '~lib/storage/chrome_storage';
+import { translationCacheRepository } from '~lib/storage/indexed_db';
+import { storageApi } from '~lib/storage/storage';
 
-// 创建字典查询的独立函数
-async function getDictionaryByDomain(domain: string): Promise<CustomDictionaryEntry[]> {
-  try {
-    return await customDictionaryManager.getDictionaryByDomain(domain);
-  } catch (error) {
-    console.error('查询自定义字典失败:', error);
-    return [];
-  }
-}
+type TranslateFunction = (text: string, from: string, to: string) => Promise<string>;
+type BatchTranslateFunction = (texts: string[], from: string, to: string) => Promise<string[]>;
 
-// 导入统一的类型定义
-import type { TranslateOptions, TranslateResult } from '../constants/types';
+const TRANSLATE_TIMEOUT_MS = 30_000;
 
-// 翻译引擎函数映射
-const TRANSLATE_ENGINE_FUNCTIONS = {
+const TRANSLATE_ENGINE_FUNCTIONS: Record<string, TranslateFunction> = {
   google: googleTranslate,
   bing: bingTranslate,
   deepl: deeplTranslate,
   yandex: yandexTranslate,
-} as const;
+};
 
-// 检查缓存是否启用
+const BATCH_TRANSLATE_ENGINE_FUNCTIONS: Record<string, BatchTranslateFunction | undefined> = {
+  google: googleTranslateBatch,
+  bing: bingTranslateBatch,
+  deepl: deeplTranslateBatch,
+  yandex: yandexTranslateBatch,
+};
+
+const FALLBACK_ENGINE_ORDER = ['deepl', 'google', 'bing', 'yandex'] as const;
+
 async function isCacheEnabled(): Promise<boolean> {
   try {
-    // 从全局配置获取缓存启用状态
-    const globalSettings = await storageApi.get(GLOBAL_SETTINGS_KEY) as unknown as GlobalSettings;
-    
-    if (globalSettings?.cache?.enabled !== undefined) {
-      return globalSettings.cache.enabled;
-    }
-
-    return Boolean(true);
+    const globalSettings = (await storageApi.get(GLOBAL_SETTINGS_KEY)) as GlobalSettings | undefined;
+    return globalSettings?.cache?.enabled ?? true;
   } catch (error) {
-    console.error('检查缓存启用状态失败:', error);
-    return true; // 默认启用
+    console.error('Failed to resolve cache settings:', error);
+    return true;
   }
 }
 
-// 统一翻译函数
+async function findCustomDictionaryTranslation(text: string, host?: string) {
+  if (!host) {
+    return null;
+  }
+
+  try {
+    return await customDictionaryManager.findTranslation(host, text);
+  } catch (error) {
+    console.error('Failed to resolve custom dictionary translation:', error);
+    return null;
+  }
+}
+
+async function getCachedTranslation(
+  text: string,
+  from: string,
+  to: string,
+  engine: string,
+  shouldUseCache: boolean
+) {
+  if (!shouldUseCache) {
+    return null;
+  }
+
+  const cachedTranslation = await translationCacheRepository.get(text, from, to, engine);
+  const isSuspiciousHit =
+    typeof cachedTranslation === 'string' &&
+    shouldRetryIndividually(text, cachedTranslation);
+  const isHit = Boolean(cachedTranslation) && !isSuspiciousHit;
+  cacheManager.recordRequest(isHit);
+
+  if (isHit) {
+    void translationCacheRepository.touch(text, from, to, engine);
+    return cachedTranslation;
+  }
+
+  if (isSuspiciousHit) {
+    void translationCacheRepository.deleteByParams(text, from, to, engine);
+  }
+
+  return null;
+}
+
+async function saveTranslationCache(
+  text: string,
+  translation: string,
+  from: string,
+  to: string,
+  engine: string,
+  shouldUseCache: boolean
+) {
+  if (!shouldUseCache || shouldRetryIndividually(text, translation)) {
+    return;
+  }
+
+  try {
+    await translationCacheRepository.setMany([
+      {
+        text,
+        translation,
+        from,
+        to,
+        engine,
+      },
+    ]);
+  } catch (error) {
+    console.error('Failed to write translation cache:', error);
+  }
+}
+
+async function withTimeout<T>(task: Promise<T>) {
+  return Promise.race([
+    task,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Translation timed out')), TRANSLATE_TIMEOUT_MS)
+    ),
+  ]);
+}
+
+function assertValidTranslationResult(
+  sourceText: string,
+  translation: string | null | undefined,
+  engine: string
+) {
+  // Some engine adapters only log and return nothing on failure. Treat empty output
+  // as a hard error so the fallback chain can continue to the next engine.
+  if (typeof translation !== 'string' || !translation.trim()) {
+    throw new Error(`Engine "${engine}" returned an empty translation result`);
+  }
+
+  if (shouldRetryIndividually(sourceText, translation)) {
+    throw new Error(`Engine "${engine}" returned unchanged translation text`);
+  }
+
+  return translation;
+}
+
+function looksLikeBatchPassThrough(
+  originals: string[],
+  translations: string[]
+) {
+  if (originals.length === 0 || originals.length !== translations.length) {
+    return false;
+  }
+
+  const comparableIndexes = originals
+    .map((text, index) => ({ text, index }))
+    .filter(({ text }) => text.trim().length >= 12);
+
+  if (comparableIndexes.length === 0) {
+    return false;
+  }
+
+  const unchangedCount = comparableIndexes.filter(({ text, index }) => {
+    return text.trim() === (translations[index] || '').trim();
+  }).length;
+
+  // Treat near-complete pass-through as a failed batch call so we can fall back
+  // to single-item translation with engine fallback logic.
+  return unchangedCount / comparableIndexes.length >= 0.8;
+}
+
+function shouldRetryIndividually(
+  original: string,
+  translation: string
+) {
+  const originalTrimmed = original.trim();
+  const translationTrimmed = translation.trim();
+
+  if (!originalTrimmed || !translationTrimmed) {
+    return true;
+  }
+
+  if (originalTrimmed !== translationTrimmed) {
+    return false;
+  }
+
+  if (originalTrimmed.length < 12) {
+    return false;
+  }
+
+  // Sentences and longer prose segments should rarely survive a successful
+  // translation request unchanged unless the engine silently passed them through.
+  return /[a-zA-Z]/.test(originalTrimmed) && /\s/.test(originalTrimmed);
+}
+
+async function translateWithEngine(
+  text: string,
+  from: string,
+  to: string,
+  engine: string
+) {
+  const translateFunction = TRANSLATE_ENGINE_FUNCTIONS[engine];
+  if (!translateFunction) {
+    throw new Error(`Unsupported translation engine: ${engine}`);
+  }
+
+  const translation = await withTimeout(translateFunction(text, from, to));
+  return assertValidTranslationResult(text, translation, engine);
+}
+
+function createResult(
+  text: string,
+  translation: string,
+  from: string,
+  to: string,
+  engine: string,
+  cached: boolean
+): TranslateResult {
+  return {
+    text,
+    translation,
+    engine,
+    from,
+    to,
+    cached,
+  };
+}
+
+async function translateWithFallbacks(
+  text: string,
+  from: string,
+  to: string,
+  engine: string
+) {
+  // Keep the requested engine first, then walk the remaining built-in engines.
+  const enginesToTry = [
+    engine,
+    ...FALLBACK_ENGINE_ORDER.filter(
+      (item) => item !== engine && item in TRANSLATE_ENGINE_FUNCTIONS
+    ),
+  ];
+  let lastError: Error | null = null;
+
+  for (const engineToTry of enginesToTry) {
+    try {
+      const translation = await translateWithEngine(text, from, to, engineToTry);
+      return { translation, engine: engineToTry };
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      console.warn(`Translation failed with engine "${engineToTry}":`, lastError.message);
+    }
+  }
+
+  throw lastError || new Error('All translation engines failed');
+}
+
 export async function translate(
-  text: string, 
+  text: string,
   options: TranslateOptions,
   host?: string
 ): Promise<TranslateResult> {
+  const { from, to, engine, useCache = true } = options;
+
   try {
-    const { from, to, engine, useCache = true } = options;
-    
-    // 1. 首先检查自定义词库（仅在客户端环境）
-    if (typeof window !== 'undefined') {
-      try {
-        const currentHost = host || window.location.hostname;
-        if (currentHost) {
-          const customTranslation = await getDictionaryByDomain(currentHost);
-          if (customTranslation && customTranslation.length > 0) {
-            console.log(customTranslation[0].translation);
-            return {
-              text,
-              translation: customTranslation[0].translation || '',
-              engine: 'custom',
-              from,
-              to,
-              cached: false,
-            };
-          }
-        }
-      } catch (error) {
-        // 自定义词库查找失败，继续使用常规翻译
-        console.error('自定义词库查找失败:', error);
-      }
-    }
-    
-    // 2. 检查全局缓存开关和选项中的缓存开关
-    const shouldUseCache = useCache && await isCacheEnabled();
-
-    // 3. 如果启用缓存 先尝试从缓存获取
-    if (shouldUseCache) {
-      const cachedTranslation = await translationCacheManager.get(text, from, to, engine);
-      if (cachedTranslation) {
-        return {
-          text,
-          translation: cachedTranslation,
-          engine,
-          from,
-          to,
-          cached: true,
-        };
-      }
+    // Domain dictionary should win before cache/API so user overrides are always respected.
+    const customEntry = await findCustomDictionaryTranslation(text, host);
+    if (customEntry) {
+      return createResult(text, customEntry.translation, from, to, 'custom', false);
     }
 
-    // 4. 获取翻译引擎函数
-    const translateFunction = TRANSLATE_ENGINE_FUNCTIONS[engine as keyof typeof TRANSLATE_ENGINE_FUNCTIONS];
-    if (!translateFunction) {
-      throw new Error(`不支持的翻译引擎: ${engine}`);
-    }
-    
-    // 5. 尝试翻译，如果失败则自动回退到其他引擎
-    let lastError: Error | null = null;
-    const enginePriority = ['bing', 'google']; // 优先级顺序
-    const currentEngineIndex = enginePriority.indexOf(engine);
-    
-    // 先尝试用户选择的引擎
-    try {
-      const translation = await Promise.race([
-        translateFunction(text, from, to),
-        new Promise<never>((_, reject) => 
-          setTimeout(() => reject(new Error('翻译超时')), 30000)
-        )
-      ]);
+    const shouldUseCache = useCache && (await isCacheEnabled());
+    const cachedTranslation = await getCachedTranslation(text, from, to, engine, shouldUseCache);
 
-      // 如果启用缓存，保存到缓存
-      if (shouldUseCache) {
-        try {
-          await translationCacheManager.set(text, translation, from, to, engine);
-        } catch (cacheError) {
-          console.error('保存到缓存失败:', cacheError);
-        }
-      }
-
-      return {
-        text,
-        translation,
-        engine,
-        from,
-        to,
-        cached: false,
-      };
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
-      console.warn(`${engine} 翻译失败:`, lastError.message);
+    if (cachedTranslation) {
+      return createResult(text, cachedTranslation, from, to, engine, true);
     }
-    
-    // 6. 如果首选引擎失败，尝试回退到其他引擎
-    for (const fallbackEngine of enginePriority) {
-      if (fallbackEngine === engine) continue; // 跳过已经尝试过的引擎
-      
-      const fallbackFunction = TRANSLATE_ENGINE_FUNCTIONS[fallbackEngine as keyof typeof TRANSLATE_ENGINE_FUNCTIONS];
-      if (!fallbackFunction) continue;
-      
-      try {
-        const translation = await Promise.race([
-          fallbackFunction(text, from, to),
-          new Promise<never>((_, reject) => 
-            setTimeout(() => reject(new Error('翻译超时')), 30000)
-          )
-        ]);
 
-        // 如果启用缓存，保存到缓存（使用原始引擎名）
-        if (shouldUseCache) {
-          try {
-            await translationCacheManager.set(text, translation, from, to, engine);
-          } catch (cacheError) {
-            console.error('保存到缓存失败:', cacheError);
-          }
-        }
-        
-        return {
-          text,
-          translation,
-          engine: fallbackEngine, // 标记实际使用的引擎
-          from,
-          to,
-          cached: false,
-        };
-      } catch (error) {
-        console.warn(`${fallbackEngine} 引擎回退也失败:`, error);
-        lastError = error instanceof Error ? error : new Error(String(error));
-      }
-    }
-    
-    // 7. 所有引擎都失败了，抛出最后一个错误
-    throw lastError || new Error('所有翻译引擎都不可用');
-  } catch (error) {
-    console.error('翻译服务调用失败:', error);
-    // 返回错误结果而不是抛出异常
-    return {
+    // Cache storage stays keyed by the requested engine even if a fallback engine handled the call.
+    const translated = await translateWithFallbacks(text, from, to, engine);
+    await saveTranslationCache(
       text,
-      translation: `翻译失败: ${error instanceof Error ? error.message : String(error)}`,
-      engine: options.engine,
-      from: options.from,
-      to: options.to,
-      cached: false,
-    };
+      translated.translation,
+      from,
+      to,
+      engine,
+      shouldUseCache
+    );
+
+    return createResult(
+      text,
+      translated.translation,
+      from,
+      to,
+      translated.engine,
+      false
+    );
+  } catch (error) {
+    console.error('Translation service failed:', error);
+    throw (error instanceof Error
+      ? error
+      : new Error(`Translation failed: ${String(error)}`));
   }
 }
 
-// 批量翻译函数
 export async function translateBatch(
   texts: string[],
   options: TranslateOptions,
   host?: string
 ): Promise<TranslateResult[]> {
   const { from, to, engine, useCache = true } = options;
-  
-  // 检查缓存开关
-  const shouldUseCache = useCache && await isCacheEnabled();
-  
-  // Chrome Storage API 不需要初始化
+  const shouldUseCache = useCache && (await isCacheEnabled());
+  const results: TranslateResult[] = new Array(texts.length);
+  const pendingTexts: string[] = [];
+  const pendingIndexes: number[] = [];
 
-  //先查自定义词库和缓存，提高命中率
-  const results: TranslateResult[] = [];
-  const toTranslate: string[] = [];
-  const toTranslateIndices: number[] = [];
-  let customHitCount = 0;
-  let cacheHitCount = 0;
-  
-  // 先查自定义词库，再查缓存，分离命中和未命中的文本
-  for (let i = 0; i < texts.length; i++) {
-    const text = texts[i];
-    
-    // 1. 首先检查自定义词库（仅在客户端环境）
-    if (typeof window !== 'undefined') {
-      try {
-        const currentHost = host || window.location.hostname;
-        if (currentHost) {
-          const customTranslation = await getDictionaryByDomain(currentHost);
-          if (customTranslation && customTranslation.length > 0) {
-            results[i] = {
-              text,
-              translation: customTranslation[0].translation || '',
-              engine: 'custom',
-              from,
-              to,
-              cached: false,
-            };
-            customHitCount++;
-            continue;
-          }
-        }
-      } catch (error) {
-        // 自定义词库查找失败，继续查缓存
-        console.error('自定义词库查找失败:', error);
-      }
+  for (let index = 0; index < texts.length; index += 1) {
+    const text = texts[index];
+
+    // Reuse the same precedence as single-translate: dictionary first, then cache, then API.
+    const customEntry = await findCustomDictionaryTranslation(text, host);
+
+    if (customEntry) {
+      results[index] = createResult(text, customEntry.translation, from, to, 'custom', false);
+      continue;
     }
-    
-    // 2. 检查缓存
-    if (shouldUseCache) {
-      const cached = await translationCacheManager.get(text, from, to, engine);
-      if (cached) {
-        results[i] = {
-          text,
-          translation: cached,
-          engine,
-          from,
-          to,
-          cached: true,
-        };
-        cacheHitCount++;
-        continue;
-      }
+
+    const cachedTranslation = await getCachedTranslation(text, from, to, engine, shouldUseCache);
+    if (cachedTranslation) {
+      results[index] = createResult(text, cachedTranslation, from, to, engine, true);
+      continue;
     }
-    
-    // 3. 需要API翻译
-    toTranslate.push(text);
-    toTranslateIndices.push(i);
+
+    pendingTexts.push(text);
+    pendingIndexes.push(index);
   }
-  
-  // 只对未命中的文本调用翻译API
-  if (toTranslate.length > 0) {
-    // 批量API映射
-    const batchEngines: Record<string, Function | undefined> = {
-      google: typeof googleTranslateBatch === 'function' ? googleTranslateBatch : undefined,
-      bing: typeof bingTranslateBatch === 'function' ? bingTranslateBatch : undefined,
-      deepl: typeof deeplTranslateBatch === 'function' ? deeplTranslateBatch : undefined,
-      yandex: typeof yandexTranslateBatch === 'function' ? yandexTranslateBatch : undefined,
-    };
-    const batchFn = batchEngines[engine];
-    if (batchFn) {
-      try {
-        const translations = await batchFn(toTranslate, from, to);
-        // 批量翻译结果写入缓存
-        if (shouldUseCache) {
-          for (let i = 0; i < toTranslate.length; i++) {
-            try {
-              await translationCacheManager.set(toTranslate[i], translations[i], from, to, engine);
-            } catch (cacheError) {
-              console.error('批量翻译缓存写入失败:', cacheError);
-            }
-          }
-        }
-        // 回填结果
-        toTranslateIndices.forEach((originalIdx, j) => {
-          results[originalIdx] = {
-            text: toTranslate[j],
-            translation: translations[j] || '',
-            engine,
+
+  if (pendingTexts.length === 0) {
+    return results;
+  }
+
+  const batchTranslate = BATCH_TRANSLATE_ENGINE_FUNCTIONS[engine];
+
+  if (batchTranslate) {
+    try {
+      // Only the unresolved texts reach the batch API to avoid redoing dictionary/cache hits.
+      const translations = await withTimeout(batchTranslate(pendingTexts, from, to));
+
+      // Batch adapters should either translate every unresolved item or fail fast;
+      // partial empty results silently degrade whole-page and selection translation.
+      if (
+        !Array.isArray(translations) ||
+        translations.length !== pendingTexts.length ||
+        translations.some(
+          (translation) => typeof translation !== 'string' || !translation.trim()
+        )
+      ) {
+        throw new Error('Batch translation returned incomplete results');
+      }
+
+      if (looksLikeBatchPassThrough(pendingTexts, translations)) {
+        throw new Error('Batch translation returned mostly unchanged text');
+      }
+
+      for (let index = 0; index < pendingTexts.length; index += 1) {
+        const originalIndex = pendingIndexes[index];
+        let translation = translations[index] || '';
+
+        if (shouldRetryIndividually(pendingTexts[index], translation)) {
+          const fallbackResult = await translateWithFallbacks(
+            pendingTexts[index],
             from,
             to,
-            cached: false,
-          };
-        });
-        return results;
-      } catch (e) {
-        console.error(e);
-      }
-    }
-    // fallback: 单条循环
-    for (let i = 0; i < toTranslate.length; i++) {
-      try {
-        results[toTranslateIndices[i]] = await translate(toTranslate[i], options, host);
-      } catch (error) {
-        results[toTranslateIndices[i]] = {
-          text: toTranslate[i],
-          translation: `翻译失败: ${error instanceof Error ? error.message : String(error)}`,
-          engine,
+            engine
+          );
+          translation = fallbackResult.translation;
+        }
+
+        results[originalIndex] = createResult(
+          pendingTexts[index],
+          translation,
           from,
           to,
-          cached: false,
-        };
+          engine,
+          false
+        );
       }
+
+      if (shouldUseCache) {
+        // Batched cache writes keep page translation from opening a write transaction
+        // for every single segment result.
+        await translationCacheRepository.setMany(
+          translations
+            .map((translation, index) => ({
+              text: pendingTexts[index],
+              translation,
+              from,
+              to,
+              engine,
+            }))
+            .filter((item) => !shouldRetryIndividually(item.text, item.translation))
+        );
+      }
+
+      return results;
+    } catch (error) {
+      console.error('Batch translation failed, falling back to per-item translate:', error);
     }
   }
-  
+
+  for (let index = 0; index < pendingTexts.length; index += 1) {
+    results[pendingIndexes[index]] = await translate(pendingTexts[index], options, host);
+  }
+
   return results;
 }

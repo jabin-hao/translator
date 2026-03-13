@@ -1,85 +1,78 @@
-/**
- * 语言设置 Hook
- */
 import { useCallback } from 'react';
-import { produce } from 'immer';
-import { useGlobalSettings } from './useGlobalSettings';
+
 import type { GlobalSettings, PartialDeep } from '../../constants/types';
+import { useSettingsModule } from './useSettingsModule';
+import { appendUniqueItem, removeItem } from './settingArrayUtils';
 
 export function useLanguageSettings() {
-  const { settings, updateModuleSettings } = useGlobalSettings();
+  const { moduleSettings: languageSettings, updateSettings: updateLanguages } =
+    useSettingsModule('languages');
 
-  const languageSettings = settings.languages;
+  const setPageTargetLanguage = useCallback(
+    (pageTarget: string) =>
+      updateLanguages({ pageTarget } as PartialDeep<GlobalSettings['languages']>),
+    [updateLanguages]
+  );
 
-  const updateLanguages = useCallback((updates: PartialDeep<GlobalSettings['languages']>) => {
-    updateModuleSettings('languages', updates);
-  }, [updateModuleSettings]);
+  const setTextTargetLanguage = useCallback(
+    (textTarget: string) =>
+      updateLanguages({ textTarget } as PartialDeep<GlobalSettings['languages']>),
+    [updateLanguages]
+  );
 
-  const setPageTargetLanguage = useCallback((pageTarget: string) => {
-    updateLanguages({ pageTarget });
-  }, [updateLanguages]);
+  const setInputTargetLanguage = useCallback(
+    (inputTarget: string) =>
+      updateLanguages({ inputTarget } as PartialDeep<GlobalSettings['languages']>),
+    [updateLanguages]
+  );
 
-  const setTextTargetLanguage = useCallback((textTarget: string) => {
-    updateLanguages({ textTarget });
-  }, [updateLanguages]);
+  const addFavoriteLanguage = useCallback(
+    (langCode: string) =>
+      updateLanguages({
+        favorites: appendUniqueItem(languageSettings.favorites, langCode),
+      } as PartialDeep<GlobalSettings['languages']>),
+    [languageSettings.favorites, updateLanguages]
+  );
 
-  const setInputTargetLanguage = useCallback((inputTarget: string) => {
-    updateLanguages({ inputTarget });
-  }, [updateLanguages]);
+  const removeFavoriteLanguage = useCallback(
+    (langCode: string) =>
+      updateLanguages({
+        favorites: removeItem(languageSettings.favorites, langCode),
+      } as PartialDeep<GlobalSettings['languages']>),
+    [languageSettings.favorites, updateLanguages]
+  );
 
-  const addFavoriteLanguage = useCallback((langCode: string) => {
-    updateLanguages(
-      produce(languageSettings, (draft) => {
-        if (!draft.favorites.includes(langCode)) {
-          draft.favorites.push(langCode);
-        }
-      })
-    );
-  }, [languageSettings, updateLanguages]);
+  const addNeverLanguage = useCallback(
+    (langCode: string) =>
+      updateLanguages({
+        never: appendUniqueItem(languageSettings.never, langCode),
+      } as PartialDeep<GlobalSettings['languages']>),
+    [languageSettings.never, updateLanguages]
+  );
 
-  const removeFavoriteLanguage = useCallback((langCode: string) => {
-    updateLanguages(
-      produce(languageSettings, (draft) => {
-        draft.favorites = draft.favorites.filter(code => code !== langCode);
-      })
-    );
-  }, [languageSettings, updateLanguages]);
+  const removeNeverLanguage = useCallback(
+    (langCode: string) =>
+      updateLanguages({
+        never: removeItem(languageSettings.never, langCode),
+      } as PartialDeep<GlobalSettings['languages']>),
+    [languageSettings.never, updateLanguages]
+  );
 
-  const addNeverLanguage = useCallback((langCode: string) => {
-    updateLanguages(
-      produce(languageSettings, (draft) => {
-        if (!draft.never.includes(langCode)) {
-          draft.never.push(langCode);
-        }
-      })
-    );
-  }, [languageSettings, updateLanguages]);
+  const addAlwaysLanguage = useCallback(
+    (langCode: string) =>
+      updateLanguages({
+        always: appendUniqueItem(languageSettings.always, langCode),
+      } as PartialDeep<GlobalSettings['languages']>),
+    [languageSettings.always, updateLanguages]
+  );
 
-  const removeNeverLanguage = useCallback((langCode: string) => {
-    updateLanguages(
-      produce(languageSettings, (draft) => {
-        draft.never = draft.never.filter(code => code !== langCode);
-      })
-    );
-  }, [languageSettings, updateLanguages]);
-
-  const addAlwaysLanguage = useCallback((langCode: string) => {
-    updateLanguages(
-      produce(languageSettings, (draft) => {
-        if (!draft.always.includes(langCode)) {
-          draft.always.push(langCode);
-        }
-      })
-    );
-  }, [languageSettings, updateLanguages]);
-
-  const removeAlwaysLanguage = useCallback((langCode: string) => {
-    updateLanguages(
-      produce(languageSettings, (draft) => {
-        draft.always = draft.always.filter(code => code !== langCode);
-      })
-    );
-  }, [languageSettings, updateLanguages]);
+  const removeAlwaysLanguage = useCallback(
+    (langCode: string) =>
+      updateLanguages({
+        always: removeItem(languageSettings.always, langCode),
+      } as PartialDeep<GlobalSettings['languages']>),
+    [languageSettings.always, updateLanguages]
+  );
 
   return {
     languageSettings,

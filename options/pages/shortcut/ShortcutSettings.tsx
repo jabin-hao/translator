@@ -1,208 +1,168 @@
-import React from 'react';
-import { Switch, Typography, message, Input, Button } from 'antd';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Button, Input, Switch, Typography, message } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { useImmer } from 'use-immer';
+
 import { useShortcutSettings } from '~lib/settings/settings';
-import SettingsPageContainer from '../../components/SettingsPageContainer';
 import SettingsGroup from '../../components/SettingsGroup';
 import SettingsItem from '../../components/SettingsItem';
+import SettingsPageContainer from '../../components/SettingsPageContainer';
 
-const { Title, Paragraph } = Typography;
+const { Title, Paragraph, Text } = Typography;
+
+type ShortcutKey = 'toggleTranslate' | 'textTranslate' | 'inputTranslate' | 'pageTranslate';
+
+const normalizeShortcut = (event: KeyboardEvent) => {
+  const modifiers: string[] = [];
+
+  if (event.ctrlKey) modifiers.push('Ctrl');
+  if (event.altKey) modifiers.push('Alt');
+  if (event.shiftKey) modifiers.push('Shift');
+  if (event.metaKey) modifiers.push('Meta');
+
+  let key = event.key;
+  if (key === ' ') key = 'Space';
+  if (key.length === 1) key = key.toUpperCase();
+  if (key === 'Escape') key = 'Esc';
+
+  if (['Control', 'Alt', 'Shift', 'Meta'].includes(key)) {
+    return '';
+  }
+
+  return [...modifiers, key].join('+');
+};
 
 const ShortcutSettings: React.FC = () => {
   const { t } = useTranslation();
-  
-  // 使用新的快捷键设置 Hook
-  // Ensure shortcutSettings type includes all keys in shortcutItems
-  const { shortcutSettings, updateShortcuts, toggleEnabled, updateShortcut } = useShortcutSettings() as {
-    shortcutSettings: {
-      enabled: boolean;
-      toggleTranslate?: string;
-      textTranslate?: string;
-      inputTranslate?: string;
-      pageTranslate?: string;
-      openInput?: string;
-      [key: string]: any;
-    };
-    updateShortcuts: any;
-    toggleEnabled: any;
-    updateShortcut: any;
-  };
-  
-  const [isRecording, setIsRecording] = useImmer(false);
-  const [recordedKeys, setRecordedKeys] = useImmer<string[]>([]);
-  const [recordingType, setRecordingType] = useImmer<keyof Omit<typeof shortcutSettings, 'enabled'> | null>(null);
+  const { shortcutSettings, toggleEnabled, updateShortcut } = useShortcutSettings();
+  const [recordingType, setRecordingType] = useState<ShortcutKey | null>(null);
+  const [recordedShortcut, setRecordedShortcut] = useState('');
 
-  // 保存设置的辅助函数
-  const saveShortcut = async (key: keyof Omit<typeof shortcutSettings, 'enabled'>, value: string) => {
-    await updateShortcut(key, value);
-    message.success(t('快捷键已保存'));
-  };
+  useEffect(() => {
+    if (!recordingType) {
+      return;
+    }
 
-  // 开始录制快捷键
-  const startRecording = (type: keyof Omit<typeof shortcutSettings, 'enabled'>) => {
-    setIsRecording(true);
-    setRecordingType(type);
-    setRecordedKeys([]);
-    
-    const handleKeyDown = (e: KeyboardEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      
-      const key = e.key.toLowerCase();
-      const modifiers = [];
-      
-      if (e.ctrlKey) modifiers.push('Ctrl');
-      if (e.altKey) modifiers.push('Alt');
-      if (e.shiftKey) modifiers.push('Shift');
-      if (e.metaKey) modifiers.push('Meta');
-      
-      let keyName = key;
-      if (key === ' ') keyName = 'Space';
-      if (key === 'enter') keyName = 'Enter';
-      if (key === 'escape') keyName = 'Escape';
-      if (key === 'tab') keyName = 'Tab';
-      if (keyName === 'backspace') keyName = 'Backspace';
-      if (keyName === 'delete') keyName = 'Delete';
-      
-      // 只允许录制普通组合键
-      if (!['control', 'alt', 'shift', 'meta'].includes(keyName)) {
-        const combination = [...modifiers, keyName.charAt(0).toUpperCase() + keyName.slice(1)].join('+');
-        setRecordedKeys([combination]);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const shortcut = normalizeShortcut(event);
+      if (!shortcut) {
+        return;
       }
+
+      setRecordedShortcut(shortcut);
     };
-    
+
     document.addEventListener('keydown', handleKeyDown, true);
-    
-    // 保存事件处理器引用以便清理
-    (window as any).__shortcutRecorder = { handleKeyDown };
-  };
+    return () => document.removeEventListener('keydown', handleKeyDown, true);
+  }, [recordingType]);
 
-  // 停止录制快捷键
   const stopRecording = async () => {
-    setIsRecording(false);
-    
-    if ((window as any).__shortcutRecorder) {
-      const { handleKeyDown } = (window as any).__shortcutRecorder;
-      document.removeEventListener('keydown', handleKeyDown, true);
-      delete (window as any).__shortcutRecorder;
+    if (recordingType && recordedShortcut) {
+      await updateShortcut(recordingType, recordedShortcut);
+      message.success(t('Shortcut saved'));
     }
-    
-    // 延迟保存，确保状态已更新
-    setTimeout(async () => {
-      if (recordedKeys.length > 0 && recordingType) {
-        const newShortcut = recordedKeys[0];
-        await saveShortcut(recordingType, newShortcut);
+
+    setRecordingType(null);
+    setRecordedShortcut('');
+  };
+
+  const startRecording = (type: ShortcutKey) => {
+    setRecordingType(type);
+    setRecordedShortcut('');
+  };
+
+  const clearShortcut = async (type: ShortcutKey) => {
+    await updateShortcut(type, '');
+    message.success(t('Shortcut cleared'));
+  };
+
+  const shortcutItems = useMemo(
+    () => [
+      {
+        key: 'toggleTranslate' as const,
+        label: t('Toggle translation features'),
+        description: t('Quickly enable or disable selection translation')
+      },
+      {
+        key: 'textTranslate' as const,
+        label: t('Translate selected text'),
+        description: t('Translate the currently selected text')
+      },
+      {
+        key: 'inputTranslate' as const,
+        label: t('Translate input content'),
+        description: t('Translate content from the focused input field')
+      },
+      {
+        key: 'pageTranslate' as const,
+        label: t('Translate full page'),
+        description: t('Translate the current page')
       }
-      // 清空录制状态
-      setRecordedKeys([]);
-      setRecordingType(null);
-    }, 50);
-  };
-
-  // 清除快捷键
-  const clearShortcut = async (type: keyof Omit<typeof shortcutSettings, 'enabled'>) => {
-    await saveShortcut(type, '');
-    message.success(t('快捷键已清除'));
-  };
-
-  const shortcutItems = [
-    {
-      key: 'toggleTranslate' as const,
-      label: t('切换翻译功能'),
-      description: t('快速启用/禁用划词翻译')
-    },
-    {
-      key: 'textTranslate' as const,
-      label: t('翻译选中文本'),
-      description: t('选中文字后按快捷键进行翻译')
-    },
-    {
-      key: 'inputTranslate' as const,
-      label: t('翻译输入框内容'),
-      description: t('翻译当前输入框的内容')
-    },
-    {
-      key: 'pageTranslate' as const,
-      label: t('翻译整个页面'),
-      description: t('翻译当前页面的所有内容')
-    },
-    {
-      key: 'openInput' as const,
-      label: t('打开输入翻译'),
-      description: t('打开输入翻译器')
-    }
-  ];
+    ],
+    [t]
+  );
 
   return (
     <SettingsPageContainer
-      title={t('快捷键设置')}
-      description={t('配置翻译器的全局快捷键')}
+      title={t('Shortcut settings')}
+      description={t('Configure global shortcuts for translator actions')}
     >
-      {/* 快捷键总开关 */}
-      <SettingsGroup title={t('基础设置')} first>
+      <SettingsGroup title={t('Basic settings')} first>
         <SettingsItem
-          label={t('启用快捷键')}
-          description={t('开启后，可以使用快捷键快速访问翻译功能')}
+          label={t('Enable shortcuts')}
+          description={t('Use keyboard shortcuts to access translation features quickly')}
         >
-          <Switch 
-            checked={shortcutSettings.enabled} 
-            onChange={toggleEnabled} 
-          />
+          <Switch checked={shortcutSettings.enabled} onChange={toggleEnabled} />
         </SettingsItem>
       </SettingsGroup>
 
-      {/* 快捷键配置 - 条件渲染 */}
       {shortcutSettings.enabled && (
-        <SettingsGroup title={t('快捷键配置')}>
-          {shortcutItems.map(item => (
-            <SettingsItem
-              key={item.key}
-              label={item.label}
-              description={item.description}
-            >
+        <SettingsGroup title={t('Shortcut bindings')}>
+          {shortcutItems.map((item) => (
+            <SettingsItem key={item.key} label={item.label} description={item.description}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Input
-                  value={shortcutSettings[item.key] || ''}
-                  placeholder={t('点击设置快捷键按钮录制')}
+                  value={
+                    recordingType === item.key && recordedShortcut
+                      ? recordedShortcut
+                      : shortcutSettings[item.key] || ''
+                  }
+                  placeholder={t('Click set shortcut, then press a key combination')}
                   readOnly
-                  style={{ width: 200 }}
+                  style={{ width: 220 }}
                 />
                 <Button
-                  onClick={() => isRecording && recordingType === item.key ? stopRecording() : startRecording(item.key)}
-                  type={isRecording && recordingType === item.key ? 'primary' : 'default'}
+                  onClick={() =>
+                    recordingType === item.key ? void stopRecording() : startRecording(item.key)
+                  }
+                  type={recordingType === item.key ? 'primary' : 'default'}
                 >
-                  {isRecording && recordingType === item.key ? t('停止录制') : t('设置快捷键')}
+                  {recordingType === item.key ? t('Save shortcut') : t('Set shortcut')}
                 </Button>
                 {shortcutSettings[item.key] && (
-                  <Button
-                    onClick={() => clearShortcut(item.key)}
-                    danger
-                  >
-                    {t('清除')}
+                  <Button onClick={() => void clearShortcut(item.key)} danger>
+                    {t('Clear')}
                   </Button>
                 )}
               </div>
             </SettingsItem>
           ))}
-          
-          {isRecording && (
-            <div style={{ 
-              padding: 16, 
-              background: '#f0f0f0', 
-              borderRadius: 6, 
-              marginTop: 16,
-              textAlign: 'center'
-            }}>
-              <Title level={5}>{t('正在录制快捷键...')}</Title>
-              <Paragraph>
-                {t('请按下您想要设置的快捷键组合')}
-              </Paragraph>
-              {recordedKeys.length > 0 && (
-                <Typography.Text strong>
-                  {t('当前录制: ')} {recordedKeys[0]}
-                </Typography.Text>
-              )}
+
+          {recordingType && (
+            <div
+              style={{
+                padding: 16,
+                background: '#f5f5f5',
+                borderRadius: 6,
+                marginTop: 16,
+                textAlign: 'center'
+              }}
+            >
+              <Title level={5}>{t('Recording shortcut')}</Title>
+              <Paragraph>{t('Press the key combination you want to assign')}</Paragraph>
+              {recordedShortcut && <Text strong>{`${t('Current')}: ${recordedShortcut}`}</Text>}
             </div>
           )}
         </SettingsGroup>
@@ -211,4 +171,4 @@ const ShortcutSettings: React.FC = () => {
   );
 };
 
-export default ShortcutSettings; 
+export default ShortcutSettings;

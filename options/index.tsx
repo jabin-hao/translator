@@ -1,28 +1,31 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { App } from 'antd';
 import { I18nextProvider } from 'react-i18next';
+
+import { ThemeProvider } from '~lib/theme/theme';
 import { initI18n } from '~i18n';
 import i18n from '../i18n';
-import { ThemeProvider } from '~lib/theme/theme';
 import OptionsInner from './OptionsInner';
-import { useImmer } from 'use-immer';
 
 const OptionsRoot = () => {
-  const [i18nReady, setI18nReady] = useImmer(false);
-  
+  const [i18nReady, setI18nReady] = useState(false);
+
   useEffect(() => {
-    initI18n().then(() => {
-      setI18nReady(true);
-    }).catch(err => {
-      console.error(err);
-      setI18nReady(true); // 即使失败也要显示页面
-    });
+    // Delay rendering until translations are ready so the options page does not
+    // flash fallback keys and then re-layout immediately after initialization.
+    initI18n()
+      .catch((error) => {
+        console.error('Failed to initialize options i18n:', error);
+      })
+      .finally(() => {
+        setI18nReady(true);
+      });
   }, []);
-  
+
   if (!i18nReady) {
     return null;
   }
-  
+
   return (
     <ThemeProvider>
       <I18nextProvider i18n={i18n}>

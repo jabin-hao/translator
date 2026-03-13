@@ -1,365 +1,189 @@
-/**
- * Chrome Storage API 封装
- * 替代 IndexedDB，使用更稳定的 chrome.storage.local
- */
+import type { CustomDictionaryEntry, DomainSetting } from '../constants/types';
+import {
+  hasExtensionContextBeenInvalidated,
+  logExtensionError,
+} from '../utils/extensionContext';
 
-// 导入统一的类型定义
-import type {
-  FavoriteWord,
-  CustomDictionaryEntry,
-  DomainSetting,
-  TranslationCacheEntry
-} from '../constants/types';
-
-// Storage Keys
 const STORAGE_KEYS = {
-  FAVORITES: 'favorites',
   CUSTOM_DICTIONARY: 'customDictionary',
   DOMAIN_SETTINGS: 'domainSettings',
-  TRANSLATION_CACHE: 'translationCache',
 } as const;
 
+type CollectionKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];
+
 class ChromeStorageManager {
-  /**
-   * 获取数据
-   */
-  async get<T>(key: string): Promise<T[]> {
+  async getCollection<T>(key: CollectionKey): Promise<T[]> {
+    if (hasExtensionContextBeenInvalidated()) {
+      return [];
+    }
+
     try {
       if (!chrome?.storage?.local) {
-        console.warn('Chrome storage not available');
         return [];
       }
-      
+
       const result = await chrome.storage.local.get(key);
-      return result[key] || [];
+      const collection = result?.[key];
+      return Array.isArray(collection) ? collection : [];
     } catch (error) {
-      console.error('Failed to get data from chrome storage:', error);
+      logExtensionError(`Failed to load collection "${key}"`, error);
       return [];
     }
   }
 
-  /**
-   * 设置数据
-   */
-  async set<T>(key: string, data: T[]): Promise<boolean> {
+  async setCollection<T>(key: CollectionKey, data: T[]): Promise<boolean> {
+    if (hasExtensionContextBeenInvalidated()) {
+      return false;
+    }
+
     try {
       if (!chrome?.storage?.local) {
-        console.warn('Chrome storage not available');
         return false;
       }
-      
+
       await chrome.storage.local.set({ [key]: data });
       return true;
     } catch (error) {
-      console.error('Failed to set data to chrome storage:', error);
+      logExtensionError(`Failed to save collection "${key}"`, error);
       return false;
     }
   }
 
-  /**
-   * 添加单个项目
-   */
-  async addItem<T extends { id: string }>(key: string, item: T): Promise<boolean> {
-    try {
-      const items = await this.get<T>(key);
-      items.push(item);
-      return await this.set(key, items);
-    } catch (error) {
-      console.error('Failed to add item:', error);
-      return false;
-    }
-  }
-
-  /**
-   * 更新单个项目
-   */
-  async updateItem<T extends { id: string }>(key: string, item: T): Promise<boolean> {
-    try {
-      const items = await this.get<T>(key);
-      const index = items.findIndex(i => i.id === item.id);
-      if (index >= 0) {
-        items[index] = item;
-        return await this.set(key, items);
-      }
-      return false;
-    } catch (error) {
-      console.error('Failed to update item:', error);
-      return false;
-    }
-  }
-
-  /**
-   * 删除单个项目
-   */
-  async deleteItem<T extends { id: string }>(key: string, id: string): Promise<boolean> {
-    try {
-      const items = await this.get<T>(key);
-      const filtered = items.filter(i => i.id !== id);
-      return await this.set(key, filtered);
-    } catch (error) {
-      console.error('Failed to delete item:', error);
-      return false;
-    }
-  }
-
-  /**
-   * 清空数据
-   */
-  async clear(key: string): Promise<boolean> {
-    try {
-      return await this.set(key, []);
-    } catch (error) {
-      console.error('Failed to clear data:', error);
-      return false;
-    }
-  }
-
-  /**
-   * 根据条件查询
-   */
-  async query<T>(key: string, predicate: (item: T) => boolean): Promise<T[]> {
-    try {
-      const items = await this.get<T>(key);
-      return items.filter(predicate);
-    } catch (error) {
-      console.error('Failed to query data:', error);
-      return [];
-    }
+  async updateCollection<T>(
+    key: CollectionKey,
+    updater: (items: T[]) => T[]
+  ): Promise<boolean> {
+    const items = await this.getCollection<T>(key);
+    return this.setCollection(key, updater(items));
   }
 }
 
-// 创建全局实例
-export const chromeStorage = new ChromeStorageManager();
+class EntityCollectionStore<T extends { id: string }> {
+  constructor(
+    private readonly storage: ChromeStorageManager,
+    private readonly key: CollectionKey
+  ) {}
 
-// 收藏夹管理
-export class FavoritesManager {
-  async getFavorites(): Promise<FavoriteWord[]> {
-    return await chromeStorage.get<FavoriteWord>(STORAGE_KEYS.FAVORITES);
+  async getAll(): Promise<T[]> {
+    return this.storage.getCollection<T>(this.key);
   }
 
-  async addFavorite(favorite: Omit<FavoriteWord, 'id' | 'timestamp'>): Promise<boolean> {
-    const newFavorite: FavoriteWord = {
-      ...favorite,
-      id: `fav_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-      timestamp: Date.now(),
-    };
-    return await chromeStorage.addItem(STORAGE_KEYS.FAVORITES, newFavorite);
+  async add(item: T): Promise<boolean> {
+    return this.storage.updateCollection<T>(this.key, (items) => [...items, item]);
   }
 
-  async deleteFavorite(id: string): Promise<boolean> {
-    return await chromeStorage.deleteItem<FavoriteWord>(STORAGE_KEYS.FAVORITES, id);
-  }
-
-  async clearFavorites(): Promise<boolean> {
-    return await chromeStorage.clear(STORAGE_KEYS.FAVORITES);
-  }
-
-  async searchFavorites(query: string): Promise<FavoriteWord[]> {
-    return await chromeStorage.query<FavoriteWord>(STORAGE_KEYS.FAVORITES, (fav) =>
-      fav.originalText.toLowerCase().includes(query.toLowerCase()) ||
-      fav.translatedText.toLowerCase().includes(query.toLowerCase())
+  async update(item: T): Promise<boolean> {
+    return this.storage.updateCollection<T>(this.key, (items) =>
+      items.map((current) => (current.id === item.id ? item : current))
     );
   }
-}
 
-// 自定义词库管理
-export class CustomDictionaryManager {
-  async getDictionary(): Promise<CustomDictionaryEntry[]> {
-    return await chromeStorage.get<CustomDictionaryEntry>(STORAGE_KEYS.CUSTOM_DICTIONARY);
+  async delete(id: string): Promise<boolean> {
+    return this.storage.updateCollection<T>(this.key, (items) =>
+      items.filter((item) => item.id !== id)
+    );
   }
 
-  async addEntry(entry: Omit<CustomDictionaryEntry, 'id' | 'timestamp'>): Promise<boolean> {
-    const newEntry: CustomDictionaryEntry = {
+  async clear(): Promise<boolean> {
+    return this.storage.setCollection(this.key, []);
+  }
+}
+
+const chromeStorage = new ChromeStorageManager();
+const dictionaryStore = new EntityCollectionStore<CustomDictionaryEntry>(
+  chromeStorage,
+  STORAGE_KEYS.CUSTOM_DICTIONARY
+);
+
+export class CustomDictionaryManager {
+  async getDictionary(): Promise<CustomDictionaryEntry[]> {
+    return dictionaryStore.getAll();
+  }
+
+  async addEntry(
+    entry: Omit<CustomDictionaryEntry, 'id' | 'timestamp'>
+  ): Promise<boolean> {
+    return dictionaryStore.add({
       ...entry,
-      id: `dict_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+      id: `dict_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
       timestamp: Date.now(),
-    };
-    return await chromeStorage.addItem(STORAGE_KEYS.CUSTOM_DICTIONARY, newEntry);
+    });
   }
 
   async updateEntry(entry: CustomDictionaryEntry): Promise<boolean> {
-    return await chromeStorage.updateItem(STORAGE_KEYS.CUSTOM_DICTIONARY, entry);
+    return dictionaryStore.update(entry);
   }
 
   async deleteEntry(id: string): Promise<boolean> {
-    return await chromeStorage.deleteItem<CustomDictionaryEntry>(STORAGE_KEYS.CUSTOM_DICTIONARY, id);
+    return dictionaryStore.delete(id);
   }
 
   async clearDictionary(): Promise<boolean> {
-    return await chromeStorage.clear(STORAGE_KEYS.CUSTOM_DICTIONARY);
+    return dictionaryStore.clear();
   }
 
   async getDictionaryByDomain(domain: string): Promise<CustomDictionaryEntry[]> {
-    return await chromeStorage.query<CustomDictionaryEntry>(STORAGE_KEYS.CUSTOM_DICTIONARY, (entry) =>
-      entry.domain === domain && entry.isActive
-    );
+    const dictionary = await this.getDictionary();
+    return dictionary.filter((entry) => entry.domain === domain && entry.isActive);
   }
 
-  async findTranslation(domain: string, original: string): Promise<CustomDictionaryEntry | undefined> {
-    const entries = await this.getDictionaryByDomain(domain);
-    return entries.find(entry => 
-      entry.original.toLowerCase() === original.toLowerCase()
+  async findTranslation(
+    domain: string,
+    original: string
+  ): Promise<CustomDictionaryEntry | undefined> {
+    const dictionary = await this.getDictionaryByDomain(domain);
+    return dictionary.find(
+      (entry) => entry.original.toLowerCase() === original.toLowerCase()
     );
   }
 }
 
-// 域名设置管理
 export class DomainSettingsManager {
   async getDomainSettings(): Promise<DomainSetting[]> {
-    return await chromeStorage.get<DomainSetting>(STORAGE_KEYS.DOMAIN_SETTINGS);
+    return chromeStorage.getCollection<DomainSetting>(STORAGE_KEYS.DOMAIN_SETTINGS);
   }
 
   async setDomainSetting(setting: Omit<DomainSetting, 'timestamp'>): Promise<boolean> {
-    const settings = await this.getDomainSettings();
-    const existingIndex = settings.findIndex(s => s.domain === setting.domain);
-    
     const newSetting: DomainSetting = {
       ...setting,
       timestamp: Date.now(),
     };
 
-    if (existingIndex >= 0) {
-      settings[existingIndex] = newSetting;
-    } else {
-      settings.push(newSetting);
-    }
-
-    return await chromeStorage.set(STORAGE_KEYS.DOMAIN_SETTINGS, settings);
+    return chromeStorage.updateCollection<DomainSetting>(
+      STORAGE_KEYS.DOMAIN_SETTINGS,
+      (settings) => {
+        const nextSettings = settings.filter(
+          (current) => current.domain !== newSetting.domain
+        );
+        return [...nextSettings, newSetting];
+      }
+    );
   }
 
   async deleteDomainSetting(domain: string): Promise<boolean> {
-    const settings = await this.getDomainSettings();
-    const filtered = settings.filter(s => s.domain !== domain);
-    return await chromeStorage.set(STORAGE_KEYS.DOMAIN_SETTINGS, filtered);
+    return chromeStorage.updateCollection<DomainSetting>(
+      STORAGE_KEYS.DOMAIN_SETTINGS,
+      (settings) => settings.filter((setting) => setting.domain !== domain)
+    );
   }
 
   async clearDomainSettings(): Promise<boolean> {
-    return await chromeStorage.clear(STORAGE_KEYS.DOMAIN_SETTINGS);
+    return chromeStorage.setCollection(STORAGE_KEYS.DOMAIN_SETTINGS, []);
   }
 
   async isWhitelisted(domain: string): Promise<boolean> {
     const settings = await this.getDomainSettings();
-    const setting = settings.find(s => s.domain === domain);
-    return setting ? setting.enabled && setting.type === 'whitelist' : false;
+    const setting = settings.find((item) => item.domain === domain);
+    return Boolean(setting?.enabled && setting.type === 'whitelist');
   }
 
   async getWhitelistedDomains(): Promise<string[]> {
     const settings = await this.getDomainSettings();
     return settings
-      .filter(s => s.enabled && s.type === 'whitelist')
-      .map(s => s.domain);
+      .filter((setting) => setting.enabled && setting.type === 'whitelist')
+      .map((setting) => setting.domain);
   }
 }
 
-// 翻译缓存管理
-export class TranslationCacheManager {
-  private generateCacheKey(text: string, from: string, to: string, engine: string): string {
-    return `${engine}_${from}_${to}_${btoa(encodeURIComponent(text)).replace(/[+/=]/g, '')}`;
-  }
-
-  async get(text: string, from: string, to: string, engine: string): Promise<string | null> {
-    try {
-      const key = this.generateCacheKey(text, from, to, engine);
-      const cacheEntries = await chromeStorage.get<TranslationCacheEntry>(STORAGE_KEYS.TRANSLATION_CACHE);
-      const entry = cacheEntries.find(e => e.key === key);
-      
-      if (entry) {
-        // 更新访问统计
-        entry.lastAccessed = Date.now();
-        entry.accessCount++;
-        await chromeStorage.updateItem(STORAGE_KEYS.TRANSLATION_CACHE, entry);
-        return entry.translation;
-      }
-      
-      return null;
-    } catch (error) {
-      console.error('Failed to get from cache:', error);
-      return null;
-    }
-  }
-
-  async set(text: string, translation: string, from: string, to: string, engine: string): Promise<boolean> {
-    try {
-      const key = this.generateCacheKey(text, from, to, engine);
-      const entry: TranslationCacheEntry = {
-        id: key, // 使用key作为id
-        key,
-        text,
-        translation,
-        from,
-        to,
-        engine,
-        timestamp: Date.now(),
-        lastAccessed: Date.now(),
-        accessCount: 1,
-      };
-
-      const cacheEntries = await chromeStorage.get<TranslationCacheEntry>(STORAGE_KEYS.TRANSLATION_CACHE);
-      const existingIndex = cacheEntries.findIndex(e => e.key === key);
-      
-      if (existingIndex >= 0) {
-        cacheEntries[existingIndex] = entry;
-      } else {
-        cacheEntries.push(entry);
-      }
-
-      // 检查缓存大小，如果超过限制则清理旧缓存
-      if (cacheEntries.length > 10000) {
-        // 按最后访问时间排序，删除最旧的1000条
-        cacheEntries.sort((a, b) => b.lastAccessed - a.lastAccessed);
-        cacheEntries.splice(9000);
-      }
-
-      return await chromeStorage.set(STORAGE_KEYS.TRANSLATION_CACHE, cacheEntries);
-    } catch (error) {
-      console.error('Failed to set cache:', error);
-      return false;
-    }
-  }
-
-  async clear(): Promise<boolean> {
-    return await chromeStorage.clear(STORAGE_KEYS.TRANSLATION_CACHE);
-  }
-
-  async cleanupExpired(maxAge: number = 30 * 24 * 60 * 60 * 1000): Promise<boolean> {
-    try {
-      const now = Date.now();
-      const cacheEntries = await chromeStorage.get<TranslationCacheEntry>(STORAGE_KEYS.TRANSLATION_CACHE);
-      const validEntries = cacheEntries.filter(entry => now - entry.timestamp < maxAge);
-      return await chromeStorage.set(STORAGE_KEYS.TRANSLATION_CACHE, validEntries);
-    } catch (error) {
-      console.error('Failed to cleanup expired cache:', error);
-      return false;
-    }
-  }
-
-  /**
-   * 获取缓存统计信息
-   */
-  async getStats(): Promise<{ count: number; size: number }> {
-    try {
-      const cacheEntries = await chromeStorage.get<TranslationCacheEntry>(STORAGE_KEYS.TRANSLATION_CACHE);
-      const count = cacheEntries.length;
-      
-      // 估算缓存大小 (基于JSON字符串长度)
-      const sizeInBytes = JSON.stringify(cacheEntries).length;
-      
-      return {
-        count,
-        size: sizeInBytes
-      };
-    } catch (error) {
-      console.error('Failed to get cache stats:', error);
-      return {
-        count: 0,
-        size: 0
-      };
-    }
-  }
-}
-
-// 导出管理器实例
-export const favoritesManager = new FavoritesManager();
 export const customDictionaryManager = new CustomDictionaryManager();
 export const domainSettingsManager = new DomainSettingsManager();
-export const translationCacheManager = new TranslationCacheManager();

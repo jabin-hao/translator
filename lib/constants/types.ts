@@ -211,7 +211,6 @@ export interface EngineSettings {
  */
 export interface TextTranslateSettings {
   enabled: boolean;
-  showOriginal: boolean;
   selectTranslate: boolean;
   quickTranslate: boolean;
   pressKeyTranslate: boolean;
@@ -234,7 +233,6 @@ export interface InputTranslateSettings {
  * 页面翻译设置
  */
 export interface PageTranslateSettings {
-  enabled: boolean;
   mode: PageTranslateMode;
   autoTranslate: boolean;
 }
@@ -271,7 +269,6 @@ export interface ShortcutSettings {
   enabled: boolean;
   toggleTranslate: string;
   pageTranslate: string;
-  openInput: string;
   textTranslate: string;
   inputTranslate: string;
 }
@@ -290,9 +287,10 @@ export interface CacheSettings {
  */
 export interface FavoritesSettings {
   enabled: boolean;
-  words: FavoriteWord[];
-  autoSave: boolean;
   maxSize: number;
+  // Deprecated fields kept optional for older stored settings payloads.
+  words?: FavoriteWord[];
+  autoSave?: boolean;
 }
 
 /**

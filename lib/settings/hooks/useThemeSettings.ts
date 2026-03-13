@@ -1,26 +1,22 @@
-/**
- * 主题设置 Hook
- */
 import { useCallback } from 'react';
-import { useGlobalSettings } from './useGlobalSettings';
-import type { GlobalSettings, PartialDeep } from '../../constants/types';
+
+import type { GlobalSettings, PartialDeep, ThemeMode } from '../../constants/types';
+import { useSettingsModule } from './useSettingsModule';
 
 export function useThemeSettings() {
-  const { settings, updateModuleSettings } = useGlobalSettings();
+  const { moduleSettings: themeSettings, updateSettings: updateTheme } =
+    useSettingsModule('theme');
 
-  const themeSettings = settings.theme;
+  const setThemeMode = useCallback(
+    (mode: ThemeMode) => updateTheme({ mode } as PartialDeep<GlobalSettings['theme']>),
+    [updateTheme]
+  );
 
-  const updateTheme = useCallback((updates: PartialDeep<GlobalSettings['theme']>) => {
-    updateModuleSettings('theme', updates);
-  }, [updateModuleSettings]);
-
-  const setThemeMode = useCallback((mode: 'light' | 'dark' | 'auto') => {
-    updateTheme({ mode });
-  }, [updateTheme]);
-
-  const setUiLanguage = useCallback((uiLanguage: string) => {
-    updateTheme({ uiLanguage });
-  }, [updateTheme]);
+  const setUiLanguage = useCallback(
+    (uiLanguage: string) =>
+      updateTheme({ uiLanguage } as PartialDeep<GlobalSettings['theme']>),
+    [updateTheme]
+  );
 
   return {
     themeSettings,

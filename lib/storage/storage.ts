@@ -1,61 +1,105 @@
 import { Storage } from '@plasmohq/storage';
-import { useEffect, useRef, useCallback } from 'react';
-import { useImmer } from 'use-immer';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  hasExtensionContextBeenInvalidated,
+  isExtensionContextInvalidatedError,
+  logExtensionError,
+} from '../utils/extensionContext';
 
 const storage = new Storage();
 
-// 简化的存储API
 export const storageApi = {
-  // 读取配置
-  async get(key: string) {
-    return await storage.get(key);
+  async get<T = unknown>(key: string) {
+    if (hasExtensionContextBeenInvalidated()) {
+      return undefined;
+    }
+
+    try {
+      return await storage.get<T>(key);
+    } catch (error) {
+      if (isExtensionContextInvalidatedError(error)) {
+        return undefined;
+      }
+
+      throw error;
+    }
   },
-  
-  // 保存配置
-  async set(key: string, value: any) {
-    return await storage.set(key, value);
-  }
+
+  async set<T = unknown>(key: string, value: T) {
+    if (hasExtensionContextBeenInvalidated()) {
+      return;
+    }
+
+    try {
+      return await storage.set(key, value);
+    } catch (error) {
+      if (isExtensionContextInvalidatedError(error)) {
+        return;
+      }
+
+      throw error;
+    }
+  },
 };
 
-// 简化的useStorage Hook
-export function useStorage<T = any>(key: string, defaultValue?: T) {
-  const [value, setValue] = useImmer<T>(defaultValue as T);
+export function useStorage<T>(key: string, defaultValue?: T) {
+  const [value, setValue] = useState<T>(defaultValue as T);
   const defaultValueRef = useRef(defaultValue);
 
   useEffect(() => {
     let mounted = true;
+    if (hasExtensionContextBeenInvalidated()) {
+      return () => {
+        mounted = false;
+      };
+    }
 
-    // 初始化读取
-    storageApi.get(key).then((val) => {
-      if (mounted) {
-        setValue(val === undefined ? defaultValueRef.current as T : (val as T));
-      }
-    });
-
-    // 使用Plasmo Storage的原生watch功能
-    storage.watch({
-      [key]: (change) => {
+    storageApi
+      .get<T>(key)
+      .then((storedValue) => {
         if (mounted) {
-          const newValue = change.newValue !== undefined ? change.newValue : change;
-          setValue(newValue);
+          setValue(storedValue === undefined ? (defaultValueRef.current as T) : storedValue);
         }
-      }
-    });
+      })
+      .catch((error) => {
+        logExtensionError(`Failed to read storage key "${key}"`, error);
+      });
+
+    try {
+      storage.watch({
+        [key]: (change) => {
+          if (hasExtensionContextBeenInvalidated()) {
+            return;
+          }
+
+          if (mounted) {
+            const newValue =
+              change && typeof change === 'object' && 'newValue' in change
+                ? (change.newValue as T)
+                : (change as T);
+            setValue(newValue);
+          }
+        },
+      });
+    } catch (error) {
+      logExtensionError(`Failed to watch storage key "${key}"`, error);
+    }
 
     return () => {
       mounted = false;
     };
   }, [key]);
 
-  // 修改存储的值
-  const setStorageValue = useCallback(async (val: T) => {
-    try {
-      // 直接保存到存储，让watch机制处理更新
-      await storageApi.set(key, val);
-    } catch (error) {
-      console.error('Error setting storage value:', error);
-    }
-  }, [key]);
+  const setStorageValue = useCallback(
+    async (nextValue: T) => {
+      try {
+        await storageApi.set(key, nextValue);
+      } catch (error) {
+        logExtensionError(`Error setting storage value for key "${key}"`, error);
+      }
+    },
+    [key]
+  );
 
   return [value, setStorageValue] as const;
 }
