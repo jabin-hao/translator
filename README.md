@@ -15,9 +15,9 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Plasmo-Extension-blue?style=flat-square" alt="Plasmo" />
-  <img src="https://img.shields.io/badge/React-18-61dafb?style=flat-square" alt="React 18" />
+  <img src="https://img.shields.io/badge/React-19-61dafb?style=flat-square" alt="React 18" />
   <img src="https://img.shields.io/badge/TypeScript-5.x-3178c6?style=flat-square" alt="TypeScript" />
-  <img src="https://img.shields.io/badge/Ant%20Design-5.x-1677ff?style=flat-square" alt="Ant Design" />
+  <img src="https://img.shields.io/badge/Ant%20Design-6.x-1677ff?style=flat-square" alt="Ant Design" />
   <img src="https://img.shields.io/badge/i18n-i18next-26a69a?style=flat-square" alt="i18n" />
 </p>
 
