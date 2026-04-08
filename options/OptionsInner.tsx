@@ -14,9 +14,9 @@ import LanguageSettings from './pages/language/LanguageSettings';
 import ShortcutSettings from './pages/shortcut/ShortcutSettings';
 import InputTranslateSettings from './pages/translate/InputTranslateSettings';
 import PageTranslateSettings from './pages/translate/PageTranslateSettings';
-import PdfTranslateSettings from './pages/translate/PdfTranslateSettings';
+// import PdfTranslateSettings from './pages/translate/PdfTranslateSettings';
 import SpeechSettings from './pages/translate/SpeechSettings';
-import SubtitleTranslateSettings from './pages/translate/SubtitleTranslateSettings';
+// import SubtitleTranslateSettings from './pages/translate/SubtitleTranslateSettings';
 import TextTranslateSettings from './pages/translate/TextTranslateSettings';
 
 const { Title } = Typography;
@@ -78,8 +78,8 @@ const OptionsInner = () => {
         { key: 'translate-page', icon: <Icon name="web" size={18} />, label: t('Page translation') },
         { key: 'translate-input', icon: <Icon name="keyboard" size={18} />, label: t('Input translation') },
         { key: 'translate-speech', icon: <Icon name="volume" size={18} />, label: t('Speech settings') },
-        { key: 'translate-pdf', icon: <Icon name="book" size={18} />, label: t('PDF translation') },
-        { key: 'translate-subtitle', icon: <Icon name="edit" size={18} />, label: t('Subtitle translation') },
+        // { key: 'translate-pdf', icon: <Icon name="book" size={18} />, label: t('PDF translation') },
+        // { key: 'translate-subtitle', icon: <Icon name="edit" size={18} />, label: t('Subtitle translation') },
       ],
     },
     { key: 'favorites', icon: <Icon name="favorite" size={22} />, label: t('Favorites') },
@@ -96,8 +96,8 @@ const OptionsInner = () => {
     'translate-page': <PageTranslateSettings />,
     'translate-input': <InputTranslateSettings />,
     'translate-speech': <SpeechSettings />,
-    'translate-pdf': <PdfTranslateSettings />,
-    'translate-subtitle': <SubtitleTranslateSettings />,
+    // 'translate-pdf': <PdfTranslateSettings />,
+    // 'translate-subtitle': <SubtitleTranslateSettings />,
     favorites: <FavoritesSettings />,
     cache: <CacheSettings />,
     shortcut: <ShortcutSettings />,
