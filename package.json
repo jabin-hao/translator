@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "plasmo dev",
     "build": "plasmo build",
-    "package": "plasmo package"
+    "package": "plasmo package",
+    "changelog": "git-cliff --offline -o CHANGELOG.md",
+    "changelog:preview": "git-cliff --offline"
   },
   "dependencies": {
     "@ant-design/cssinjs": "^2.0.3",
@@ -32,6 +34,7 @@
     "@types/node": "20.11.5",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
+    "git-cliff": "^2.13.1",
     "prettier": "3.2.4",
     "typescript": "5.3.3"
   },
