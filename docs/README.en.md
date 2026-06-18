@@ -1,4 +1,8 @@
-# <img src="../assets/icon.png" alt="Translator icon" width="36" /> Translator
+<p align="center">
+  <img src="../assets/logo.png" alt="Translator logo" width="160" />
+</p>
+
+# Translator
 
 <p align="center">
   <strong>A multi-engine browser translation extension for the modern web</strong><br />

@@ -1,4 +1,8 @@
-# <img src="./assets/icon.png" alt="Translator icon" width="36" /> Translator
+<p align="center">
+  <img src="./assets/logo.png" alt="Translator logo" width="160" />
+</p>
+
+# Translator
 
 <p align="center">
   <strong>一个面向浏览器的多引擎网页翻译扩展</strong><br />
@@ -22,17 +26,12 @@
 </p>
 
 <p align="center">
-  中文文档 | <a href="./docs/README.en.md">English Docs</a>
+  <a href="./docs/README.zh.md">中文文档</a> | <a href="./docs/README.en.md">English Docs</a>
 </p>
 
 ## 项目简介
 
 `Translator` 是一个基于 `Plasmo + React + TypeScript` 构建的浏览器扩展，专注网页翻译场景，支持划词翻译、整页翻译、输入框翻译、语音朗读、缓存、收藏、快捷键和多翻译引擎切换。
-
-## 文档
-
-- 中文文档：[docs/README.zh.md](./docs/README.zh.md)
-- English documentation: [docs/README.en.md](./docs/README.en.md)
 
 ## 快速预览
 
